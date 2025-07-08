@@ -1,0 +1,5 @@
+{
+  // Add VS Code specific settings here
+  "dart.lineLength": 100,
+  "editor.formatOnSave": true
+} 
