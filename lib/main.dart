@@ -1,8 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app.dart';
 
-void main() {
-  runApp(const WaddiApp());
+void main() async {
+  // Ensure Flutter widgets are initialized
+  WidgetsFlutterBinding.ensureInitialized();
+  // TODO: Initialize Firebase here after Firebase setup
+  // await Firebase.initializeApp();
+  runApp(
+    const ProviderScope(
+      child: WaddiApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {

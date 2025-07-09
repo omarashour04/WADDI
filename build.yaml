@@ -1,0 +1,14 @@
+targets:
+  $default:
+    builders:
+      riverpod_generator:auto_route_generator:
+        options:
+          output: "lib/generated"
+      # Optional: if you use Freezed for data classes
+      freezed:freezed:
+        options:
+          output: "lib/generated"
+      # Optional: if you use json_serializable for JSON serialization
+      json_serializable:json_serializable:
+        options:
+          output: "lib/generated" 
