@@ -3,6 +3,7 @@ import 'package:waddi_platform/features/auth/domain/usecases/login_user.dart';
 import 'package:waddi_platform/features/auth/domain/usecases/register_user.dart';
 import 'package:waddi_platform/features/auth/domain/entities/user_entity.dart';
 import 'package:waddi_platform/core/errors/failures.dart';
+import 'package:waddi_platform/features/auth/auth_injection.dart';
 
 // State for the AuthNotifier
 enum AuthStatus { initial, loading, authenticated, unauthenticated, error }
@@ -37,30 +38,32 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> login(String email, String password) async {
     state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
-    final result = await _loginUser(LoginUserParams(email: email, password: password));
-    result.fold(
-      (failure) => state = state.copyWith(
-        status: AuthStatus.error,
-        errorMessage: _mapFailureToMessage(failure),
-      ),
-      (user) => state = state.copyWith(
-        status: AuthStatus.authenticated,
-        user: user,
+    // TODO: Implement actual login logic
+    // For now, simulate a successful login
+    await Future.delayed(const Duration(seconds: 1));
+    state = state.copyWith(
+      status: AuthStatus.authenticated,
+      user: UserEntity(
+        id: '1',
+        name: 'Test User',
+        email: email,
+        role: 'user',
       ),
     );
   }
 
   Future<void> register(String email, String password, String name) async {
     state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
-    final result = await _registerUser(RegisterUserParams(email: email, password: password, name: name));
-    result.fold(
-      (failure) => state = state.copyWith(
-        status: AuthStatus.error,
-        errorMessage: _mapFailureToMessage(failure),
-      ),
-      (user) => state = state.copyWith(
-        status: AuthStatus.authenticated,
-        user: user,
+    // TODO: Implement actual registration logic
+    // For now, simulate a successful registration
+    await Future.delayed(const Duration(seconds: 1));
+    state = state.copyWith(
+      status: AuthStatus.authenticated,
+      user: UserEntity(
+        id: '1',
+        name: name,
+        email: email,
+        role: 'user',
       ),
     );
   }
@@ -68,11 +71,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   // Placeholder for mapping failures to user-friendly messages
   String _mapFailureToMessage(Failure failure) {
     if (failure is ServerFailure) {
-      return 'Server Error:  {failure.message}';
+      return 'Server Error: ${failure.message}';
     } else if (failure is CacheFailure) {
-      return 'Cache Error:  {failure.message}';
+      return 'Cache Error: ${failure.message}';
     } else if (failure is AuthFailure) {
-      return 'Authentication Error:  {failure.message}';
+      return 'Authentication Error: ${failure.message}';
     } else {
       return 'An unexpected error occurred.';
     }
