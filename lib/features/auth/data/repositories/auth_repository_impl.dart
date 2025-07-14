@@ -1,4 +1,1 @@
-// Implementation of AuthRepository
-class AuthRepositoryImpl {
-  // TODO: Implement repository methods
-} 
+// Implementation of AuthRepository moved to domain file 

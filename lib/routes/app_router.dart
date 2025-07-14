@@ -16,7 +16,6 @@ final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
 // Provider for the GoRouter instance
-defaultGoRouterProvider(WidgetRef ref) => goRouterProvider(ref);
 final goRouterProvider = Provider<GoRouter>((ref) {
   // Watch the authentication state to react to changes (e.g., login/logout)
   final authState = ref.watch(authProvider);

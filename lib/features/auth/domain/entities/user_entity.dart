@@ -1,4 +1,14 @@
 // User entity
 class UserEntity {
-  // TODO: Define user entity properties
+  final String id;
+  final String name;
+  final String email;
+  final String role;
+
+  UserEntity({
+    required this.id,
+    required this.name,
+    required this.email,
+    required this.role,
+  });
 } 
