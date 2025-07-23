@@ -1,5 +1,5 @@
 // Validation utilities
 bool isValidEmail(String email) {
-  // TODO: Implement email validation
-  return email.contains('@');
+  final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}\$');
+  return emailRegex.hasMatch(email);
 } 

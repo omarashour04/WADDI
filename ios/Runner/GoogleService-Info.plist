@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>458693507291-cnt3r1e1sfvae3p9obm0ugsfk4ql2gkq.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.458693507291-cnt3r1e1sfvae3p9obm0ugsfk4ql2gkq</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>458693507291-p4g13mv5tcoa748p8bh9c9o9ei0o9h08.apps.googleusercontent.com</string>
+	<key>API_KEY</key>
+	<string>AIzaSyD3ol2QslIx-fEp9SvWtOqS5Qh_2Tq-qi8</string>
+	<key>GCM_SENDER_ID</key>
+	<string>458693507291</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.example.waddi</string>
+	<key>PROJECT_ID</key>
+	<string>waddi-platform-dev</string>
+	<key>STORAGE_BUCKET</key>
+	<string>waddi-platform-dev.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:458693507291:ios:7ddb77fb2ab749d14bf4fe</string>
+</dict>
+</plist>

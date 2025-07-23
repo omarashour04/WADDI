@@ -1,5 +1,7 @@
+import 'package:intl/intl.dart';
+
 // Date formatting utilities
 String formatDate(DateTime date) {
-  // TODO: Implement date formatting
-  return date.toIso8601String();
+  final formatter = DateFormat('yyyy-MM-dd HH:mm');
+  return formatter.format(date);
 } 

@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "458693507291",
+    "project_id": "waddi-platform-dev",
+    "storage_bucket": "waddi-platform-dev.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:458693507291:android:fb2f4d3d55be2f904bf4fe",
+        "android_client_info": {
+          "package_name": "com.waddi.mobile.dev"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "458693507291-v7t2u308ku180r6aqhkfrhhmst2ur47e.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.waddi.mobile.dev",
+            "certificate_hash": "e563da566fff89a07d35c1af6eed3b0ee39212d8"
+          }
+        },
+        {
+          "client_id": "458693507291-sksb2dnit8hibq3ln14gicngq0qgp68n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCE2ZQLUOtrDRwp0l-BGBsa-4FoHTY35cw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "458693507291-sksb2dnit8hibq3ln14gicngq0qgp68n.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "458693507291-cnt3r1e1sfvae3p9obm0ugsfk4ql2gkq.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.waddi"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

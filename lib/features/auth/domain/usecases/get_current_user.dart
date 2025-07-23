@@ -1,4 +1,11 @@
-// Use case for getting the current user
+import '../repositories/auth_repository.dart';
+import '../entities/user_entity.dart';
+
 class GetCurrentUser {
-  // TODO: Implement get current user logic
+  final AuthRepository repository;
+  GetCurrentUser(this.repository);
+
+  Future<UserEntity?> call() {
+    return repository.getCurrentUser();
+  }
 } 

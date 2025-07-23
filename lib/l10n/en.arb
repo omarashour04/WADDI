@@ -1,0 +1,15 @@
+{
+  "@@locale": "en",
+  "appTitle": "WADDI Platform",
+  "loginButtonText": "Login",
+  "emailHint": "Email Address",
+  "passwordHint": "Password",
+  "welcomeMessage": "Welcome, {userName}",
+  "@welcomeMessage": {
+    "placeholders": {
+      "userName": {
+        "type": "String"
+      }
+    }
+  }
+} 

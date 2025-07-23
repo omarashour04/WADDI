@@ -28,6 +28,8 @@ class AuthState {
       errorMessage: errorMessage ?? this.errorMessage,
     );
   }
+  bool get isLoading => status == AuthStatus.loading;
+  String? get error => errorMessage;
 }
 
 // Notifier that holds and manages the authentication state
@@ -38,34 +40,42 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> login(String email, String password) async {
     state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
-    // TODO: Implement actual login logic
-    // For now, simulate a successful login
-    await Future.delayed(const Duration(seconds: 1));
-    state = state.copyWith(
-      status: AuthStatus.authenticated,
-      user: UserEntity(
-        id: '1',
-        name: 'Test User',
-        email: email,
-        role: 'user',
-      ),
-    );
+    try {
+      final user = await _loginUser(email, password);
+      if (user != null) {
+        state = state.copyWith(status: AuthStatus.authenticated, user: user);
+      } else {
+        state = state.copyWith(status: AuthStatus.error, errorMessage: 'Login failed');
+      }
+    } catch (e) {
+      state = state.copyWith(status: AuthStatus.error, errorMessage: e.toString());
+    }
   }
 
-  Future<void> register(String email, String password, String name) async {
+  Future<void> register(String name, String email, String password) async {
     state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
-    // TODO: Implement actual registration logic
-    // For now, simulate a successful registration
-    await Future.delayed(const Duration(seconds: 1));
-    state = state.copyWith(
-      status: AuthStatus.authenticated,
-      user: UserEntity(
-        id: '1',
-        name: name,
-        email: email,
-        role: 'user',
-      ),
-    );
+    try {
+      final user = await _registerUser(name, email, password);
+      if (user != null) {
+        state = state.copyWith(status: AuthStatus.authenticated, user: user);
+      } else {
+        state = state.copyWith(status: AuthStatus.error, errorMessage: 'Registration failed');
+      }
+    } catch (e) {
+      state = state.copyWith(status: AuthStatus.error, errorMessage: e.toString());
+    }
+  }
+
+  Future<void> logout() async {
+    // TODO: Implement logout logic
+    state = AuthState(status: AuthStatus.unauthenticated);
+  }
+
+  Future<void> resetPassword(String email) async {
+    // TODO: Implement reset password logic
+    state = state.copyWith(status: AuthStatus.loading);
+    await Future.delayed(Duration(seconds: 1));
+    state = state.copyWith(status: AuthStatus.initial);
   }
 
   // Placeholder for mapping failures to user-friendly messages
@@ -84,8 +94,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
 // The provider that exposes the AuthNotifier
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  // In a real app, you would provide the actual use case implementations here
-  // For simplicity, we're using dummy ones. You'd use ref.read(someUseCaseProvider)
   final loginUser = ref.read(loginUserUseCaseProvider);
   final registerUser = ref.read(registerUserUseCaseProvider);
   return AuthNotifier(loginUser, registerUser);

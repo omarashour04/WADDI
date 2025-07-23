@@ -1,4 +1,11 @@
-// Use case for logging in a user
+import '../repositories/auth_repository.dart';
+import '../entities/user_entity.dart';
+
 class LoginUser {
-  // TODO: Implement login logic
+  final AuthRepository repository;
+  LoginUser(this.repository);
+
+  Future<UserEntity?> call(String email, String password) {
+    return repository.login(email, password);
+  }
 } 

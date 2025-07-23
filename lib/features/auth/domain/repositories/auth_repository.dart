@@ -1,9 +1,10 @@
 // Abstract repository for authentication
-abstract class AuthRepository {
-  // TODO: Define repository methods
-}
+import '../entities/user_entity.dart';
 
-// Implementation of AuthRepository
-class AuthRepositoryImpl implements AuthRepository {
-  // TODO: Implement repository methods
+abstract class AuthRepository {
+  Future<UserEntity?> login(String email, String password);
+  Future<UserEntity?> register(String name, String email, String password);
+  Future<void> logout();
+  Future<UserEntity?> getCurrentUser();
+  Future<void> resetPassword(String email);
 } 

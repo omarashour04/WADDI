@@ -1,5 +1,5 @@
 // Logging utilities
 void log(String message) {
-  // TODO: Implement logging
-  print(message);
+  // For production, consider integrating a logging package or remote logger.
+  print('[LOG] $message');
 } 

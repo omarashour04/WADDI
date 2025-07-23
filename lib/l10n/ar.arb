@@ -1,0 +1,15 @@
+{
+  "@@locale": "ar",
+  "appTitle": "يداو ﺔﺼﻨﻣ",
+  "loginButtonText": "لﻮﺧﺪﻟا ﻞﻴﺠﺴﺗ",
+  "emailHint": "ﻲﻧوﺮﺘﻜﻟﻹا ﺪﻳﺮﺒﻟا ناﻮﻨﻋ",
+  "passwordHint": "روﺮﻤﻟا ﺔﻤﻠﻛ",
+  "welcomeMessage": "ﻚﺑ ﻼﻫأ، {userName}",
+  "@welcomeMessage": {
+    "placeholders": {
+      "userName": {
+        "type": "String"
+      }
+    }
+  }
+} 
