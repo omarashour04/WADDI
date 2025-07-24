@@ -24,7 +24,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     ref.listen<AuthState>(authProvider, (previous, next) {
       if (next.status == AuthStatus.authenticated) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          context.go('/venues');
+          context.go('/users');
         });
       }
     });
@@ -54,14 +54,26 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
             const SizedBox(height: 24),
             authState.isLoading
                 ? const CircularProgressIndicator()
-                : ElevatedButton(
-                    onPressed: () async {
-                      final name = _nameController.text.trim();
-                      final email = _emailController.text.trim();
-                      final password = _passwordController.text.trim();
-                      await authNotifier.register(name, email, password);
-                    },
-                    child: const Text('Register'),
+                : Column(
+                    children: [
+                      ElevatedButton(
+                        onPressed: () async {
+                          final name = _nameController.text.trim();
+                          final email = _emailController.text.trim();
+                          final password = _passwordController.text.trim();
+                          await authNotifier.register(name, email, password);
+                        },
+                        child: const Text('Register'),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.login),
+                        label: const Text('Sign up with Google'),
+                        onPressed: () async {
+                          await authNotifier.signInWithGoogle();
+                        },
+                      ),
+                    ],
                   ),
             TextButton(
               onPressed: () {
@@ -79,4 +91,4 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       ),
     );
   }
-} 
+}

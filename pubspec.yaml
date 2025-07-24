@@ -48,6 +48,9 @@ dependencies:
   shimmer: ^3.0.0
   equatable: ^2.0.5
   geocoding: ^2.0.5
+  google_sign_in: ^6.1.5   # Or the latest version
+  url_launcher: ^6.2.5   # Or the latest version
+  image_picker: ^1.0.7   # Or the latest version
 
 dev_dependencies:
   flutter_test:
