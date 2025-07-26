@@ -23,18 +23,32 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     ref.listen<AuthState>(authProvider, (previous, next) {
       if (next.status == AuthStatus.authenticated) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          context.go('/users');
+          context.go('/venues');
         });
       }
     });
     return Scaffold(
-      appBar: AppBar(title: const Text('Login')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: Center(
         child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              // Logo
+              Image.asset(
+                'assets/images/common/waddi_logo.jpg',
+                width: 120,
+                height: 120,
+                fit: BoxFit.contain,
+              ),
+              const SizedBox(height: 32),
+              Text(
+                'Welcome to WADDI',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
               TextField(
                 controller: _emailController,
                 decoration: const InputDecoration(labelText: 'Email'),
@@ -51,42 +65,57 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   ? const CircularProgressIndicator()
                   : Column(
                       children: [
-                        ElevatedButton(
-                          onPressed: () async {
-                            final email = _emailController.text.trim();
-                            final password = _passwordController.text.trim();
-                            await authNotifier.login(email, password);
-                          },
-                          child: const Text('Login'),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              final email = _emailController.text.trim();
+                              final password = _passwordController.text.trim();
+                              await authNotifier.login(email, password);
+                            },
+                            child: const Text('Login'),
+                          ),
                         ),
                         const SizedBox(height: 12),
-                        ElevatedButton.icon(
-                          icon: const Icon(Icons.login),
-                          label: const Text('Login with Google'),
-                          onPressed: () async {
-                            await authNotifier.signInWithGoogle();
-                          },
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            icon: const Icon(Icons.login),
+                            label: const Text('Login with Google'),
+                            onPressed: () async {
+                              await authNotifier.signInWithGoogle();
+                            },
+                          ),
                         ),
                         const SizedBox(height: 12),
-                        OutlinedButton(
-                          child: const Text('Continue as Guest'),
-                          onPressed: () async {
-                            await authNotifier.signInAnonymously();
-                          },
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            child: const Text('Continue as Guest'),
+                            onPressed: () async {
+                              await authNotifier.signInAnonymously();
+                            },
+                          ),
                         ),
                       ],
                     ),
-              TextButton(
-                onPressed: () {
-                  context.push('/register');
-                },
-                child: const Text('Don\'t have an account? Register'),
-              ),
-              TextButton(
-                onPressed: () {
-                  context.push('/reset-password');
-                },
-                child: const Text('Forgot password?'),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      context.push('/register');
+                    },
+                    child: const Text('Don\'t have an account? Register'),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      context.push('/reset-password');
+                    },
+                    child: const Text('Forgot password?'),
+                  ),
+                ],
               ),
               if (authState.error != null)
                 Padding(

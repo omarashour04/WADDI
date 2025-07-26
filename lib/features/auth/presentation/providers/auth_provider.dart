@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waddi_platform/features/auth/domain/usecases/login_user.dart';
 import 'package:waddi_platform/features/auth/domain/usecases/register_user.dart';
-import 'package:waddi_platform/features/auth/domain/entities/user_entity.dart';
+import 'package:waddi_platform/features/users/domain/entities/user_entity.dart';
 import 'package:waddi_platform/core/errors/failures.dart';
 import 'package:waddi_platform/features/auth/auth_injection.dart';
 import 'package:waddi_platform/features/auth/domain/repositories/auth_repository.dart';
@@ -54,7 +54,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (user != null) {
         // Save user to Firestore after successful registration
         await saveUserToFirestore(
-          uid: user.uid,
+          uid: user.id,
           email: user.email,
           name: user.name,
           phoneNumber: null, // or user.phoneNumber if available
@@ -86,11 +86,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final repo = _loginUser.repository as AuthRepository;
       final user = await repo.signInWithGoogle();
       if (user != null) {
-        final userDoc = FirebaseFirestore.instance.collection('users').doc(user.uid);
+        final userDoc = FirebaseFirestore.instance.collection('users').doc(user.id);
         final docSnapshot = await userDoc.get();
         if (!docSnapshot.exists) {
           await saveUserToFirestore(
-            uid: user.uid,
+            uid: user.id,
             email: user.email,
             name: user.name,
             phoneNumber: null,
@@ -111,11 +111,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final repo = _loginUser.repository as AuthRepository;
       final user = await repo.signInAnonymously();
       if (user != null) {
-        final userDoc = FirebaseFirestore.instance.collection('users').doc(user.uid);
+        final userDoc = FirebaseFirestore.instance.collection('users').doc(user.id);
         final docSnapshot = await userDoc.get();
         if (!docSnapshot.exists) {
           await saveUserToFirestore(
-            uid: user.uid,
+            uid: user.id,
             email: user.email,
             name: user.name,
             phoneNumber: null,

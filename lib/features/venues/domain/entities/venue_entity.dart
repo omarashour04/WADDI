@@ -10,6 +10,7 @@ class VenueEntity {
   final String contactPhone;
   final String contactEmail;
   final List<String> images;
+  final List<String> amenities;
   final String ownerId;
   final double averageRating;
   final int totalReviews;
@@ -29,6 +30,7 @@ class VenueEntity {
     required this.contactPhone,
     required this.contactEmail,
     required this.images,
+    required this.amenities,
     required this.ownerId,
     required this.averageRating,
     required this.totalReviews,
@@ -58,6 +60,7 @@ class VenueEntity {
         contactPhone: data['contactPhone'] ?? '',
         contactEmail: data['contactEmail'] ?? '',
         images: data['images'] != null ? List<String>.from(data['images']) : [],
+        amenities: data['amenities'] != null ? List<String>.from(data['amenities']) : [],
         ownerId: data['ownerId'] ?? '',
         averageRating: (data['averageRating'] ?? 0.0).toDouble(),
         totalReviews: (data['totalReviews'] ?? 0),
@@ -79,6 +82,7 @@ class VenueEntity {
         contactPhone: '',
         contactEmail: '',
         images: [],
+        amenities: [],
         ownerId: '',
         averageRating: 0.0,
         totalReviews: 0,
@@ -101,6 +105,7 @@ class VenueEntity {
       'contactPhone': contactPhone,
       'contactEmail': contactEmail,
       'images': images,
+      'amenities': amenities,
       'ownerId': ownerId,
       'averageRating': averageRating,
       'totalReviews': totalReviews,

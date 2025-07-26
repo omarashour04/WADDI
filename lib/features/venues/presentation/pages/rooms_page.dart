@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/venue_providers.dart';
 import '../../domain/entities/room_entity.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:waddi_platform/features/auth/presentation/providers/auth_provider.dart';
+import 'package:waddi_platform/features/bookings/presentation/pages/booking_flow_page.dart';
 
 class RoomsPage extends ConsumerWidget {
   final String venueId;
@@ -10,6 +14,8 @@ class RoomsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final roomsAsync = ref.watch(roomsForVenueProvider(venueId));
+    final authState = ref.watch(authProvider);
+    final userId = authState.user?.id ?? '';
     return Scaffold(
       appBar: AppBar(title: const Text('Rooms')),
       body: roomsAsync.when(
@@ -19,7 +25,7 @@ class RoomsPage extends ConsumerWidget {
           }
           return ListView.builder(
             itemCount: rooms.length,
-            itemBuilder: (context, i) => _RoomCard(room: rooms[i]),
+            itemBuilder: (context, i) => _RoomCard(room: rooms[i], userId: userId, venueId: venueId),
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -34,7 +40,9 @@ class RoomsPage extends ConsumerWidget {
 
 class _RoomCard extends StatelessWidget {
   final RoomEntity room;
-  const _RoomCard({required this.room});
+  final String userId;
+  final String venueId;
+  const _RoomCard({required this.room, required this.userId, required this.venueId});
 
   @override
   Widget build(BuildContext context) {
@@ -53,8 +61,18 @@ class _RoomCard extends StatelessWidget {
             style: Theme.of(context).textTheme.bodyMedium,
             textScaleFactor: MediaQuery.textScaleFactorOf(context),
           ),
-          onTap: () {
-            // TODO: Show room details
+          onTap: () async {
+            // Navigate to booking flow page
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => BookingFlowPage(
+                  venueId: venueId,
+                  roomId: room.id,
+                  hourlyPrice: room.hourlyPrice,
+                  userId: userId,
+                ),
+              ),
+            );
           },
         ),
       ),

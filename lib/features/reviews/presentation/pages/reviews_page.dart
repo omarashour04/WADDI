@@ -2,31 +2,55 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/review_providers.dart';
 import '../../domain/entities/review_entity.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class ReviewsPage extends ConsumerWidget {
+class ReviewsPage extends StatelessWidget {
   final String venueId;
   const ReviewsPage({required this.venueId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final reviewsAsync = ref.watch(reviewsForVenueProvider(venueId));
+  Widget build(BuildContext context) {
+    final userId = ''; // TODO: Get current userId from provider if needed
     return Scaffold(
-      appBar: AppBar(title: const Text('Venue Reviews')),
-      body: reviewsAsync.when(
-        data: (reviews) {
-          if (reviews.isEmpty) {
-            return const _EmptyState(message: 'No reviews yet. Be the first to review this venue!');
+      appBar: AppBar(title: const Text('Reviews')),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('reviews')
+            .where('venueId', isEqualTo: venueId)
+            .orderBy('createdAt', descending: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
           }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text('No reviews found.'));
+          }
+          final reviews = snapshot.data!.docs;
           return ListView.builder(
             itemCount: reviews.length,
-            itemBuilder: (context, i) => _ReviewCard(review: reviews[i]),
+            itemBuilder: (context, i) {
+              final review = reviews[i].data() as Map<String, dynamic>;
+              return Card(
+                child: ListTile(
+                  title: Text('Rating: ${review['rating'] ?? ''}'),
+                  subtitle: Text(review['comment'] ?? ''),
+                  trailing: Text(review['userId'] ?? ''),
+                ),
+              );
+            },
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, st) => _ErrorState(
-          message: 'Something went wrong. Please try again.',
-          onRetry: () => ref.refresh(reviewsForVenueProvider(venueId)),
-        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          await showDialog(
+            context: context,
+            builder: (context) => _NewReviewDialog(venueId: venueId, userId: userId),
+          );
+        },
+        child: const Icon(Icons.rate_review),
+        tooltip: 'Write Review',
       ),
     );
   }
@@ -116,6 +140,65 @@ class _ErrorState extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+class _NewReviewDialog extends StatefulWidget {
+  final String venueId;
+  final String userId;
+  const _NewReviewDialog({required this.venueId, required this.userId});
+  @override
+  State<_NewReviewDialog> createState() => _NewReviewDialogState();
+}
+
+class _NewReviewDialogState extends State<_NewReviewDialog> {
+  double _rating = 5.0;
+  final _commentController = TextEditingController();
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Write a Review'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Slider(
+            value: _rating,
+            min: 1,
+            max: 5,
+            divisions: 4,
+            label: _rating.toString(),
+            onChanged: (val) => setState(() => _rating = val),
+          ),
+          TextField(
+            controller: _commentController,
+            decoration: const InputDecoration(labelText: 'Comment'),
+            maxLines: 3,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () async {
+            await FirebaseFirestore.instance.collection('reviews').add({
+              'userId': widget.userId,
+              'venueId': widget.venueId,
+              'rating': _rating,
+              'comment': _commentController.text.trim(),
+              'createdAt': FieldValue.serverTimestamp(),
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Review submitted!')),
+            );
+            Navigator.of(context).pop();
+          },
+          child: const Text('Submit'),
+        ),
+      ],
     );
   }
 } 

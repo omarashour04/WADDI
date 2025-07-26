@@ -1,5 +1,5 @@
 // Abstract repository for authentication
-import '../entities/user_entity.dart';
+import 'package:waddi_platform/features/users/domain/entities/user_entity.dart';
 
 abstract class AuthRepository {
   Future<UserEntity?> login(String email, String password);

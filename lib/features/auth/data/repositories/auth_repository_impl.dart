@@ -1,6 +1,7 @@
 import '../../domain/repositories/auth_repository.dart';
-import '../../domain/entities/user_entity.dart';
+import 'package:waddi_platform/features/users/domain/entities/user_entity.dart';
 import '../../data/datasources/auth_remote_datasource.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource _remoteDataSource = AuthRemoteDataSource();
@@ -8,14 +9,30 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<UserEntity?> login(String email, String password) async {
     // TODO: Integrate with Firebase Auth
-    return UserEntity(uid: '1', name: 'Test User', email: email, role: 'user');
+    return UserEntity(
+      id: '1',
+      name: 'Test User',
+      email: email,
+      role: 'user',
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+      points: 0,
+    );
   }
 
   @override
   Future<UserEntity?> register(String name, String email, String password) async {
     final user = await _remoteDataSource.register(email, password);
     if (user == null) return null;
-    return UserEntity(uid: user.uid, name: name, email: user.email ?? '', role: 'user');
+    return UserEntity(
+      id: user.uid,
+      name: name,
+      email: user.email ?? '',
+      role: 'user',
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+      points: 0,
+    );
   }
 
   @override
@@ -39,10 +56,13 @@ class AuthRepositoryImpl implements AuthRepository {
     final user = await _remoteDataSource.signInWithGoogle();
     if (user == null) return null;
     return UserEntity(
-      uid: user.uid,
+      id: user.uid,
       name: user.displayName ?? '',
       email: user.email ?? '',
       role: 'user',
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+      points: 0,
     );
   }
 
@@ -50,6 +70,14 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<UserEntity?> signInAnonymously() async {
     final user = await _remoteDataSource.signInAnonymously();
     if (user == null) return null;
-    return UserEntity(uid: user.uid, name: 'Guest', email: '', role: 'user');
+    return UserEntity(
+      id: user.uid,
+      name: 'Guest',
+      email: '',
+      role: 'user',
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+      points: 0,
+    );
   }
 }

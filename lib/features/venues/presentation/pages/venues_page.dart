@@ -5,6 +5,9 @@ import '../../domain/entities/venue_entity.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../providers/geocoding_provider.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:go_router/go_router.dart';
+import 'package:waddi_platform/shared/widgets/main_scaffold.dart';
+import 'package:waddi_platform/features/auth/presentation/providers/auth_provider.dart';
 
 class VenuesPage extends ConsumerStatefulWidget {
   @override
@@ -17,162 +20,168 @@ class _VenuesPageState extends ConsumerState<VenuesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+    final userId = authState.user?.id ?? '';
     final venuesAsync = ref.watch(filteredVenuesProvider);
     final searchController = TextEditingController(text: ref.read(venueSearchQueryProvider));
     final filter = ref.watch(venueFilterProvider);
     final geocodingService = ref.read(geocodingProvider);
     CameraPosition? _searchedCameraPosition;
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Venues'),
-          actions: [
-            IconButton(
-              icon: Icon(isGrid ? Icons.grid_view : Icons.view_list),
-              tooltip: isGrid ? 'Grid View' : 'List View',
-              onPressed: () => setState(() => isGrid = !isGrid),
-            ),
-          ],
-          bottom: TabBar(
-            onTap: (i) => setState(() => selectedTab = i),
-            tabs: const [
-              Tab(icon: Icon(Icons.list), text: 'List'),
-              Tab(icon: Icon(Icons.map), text: 'Map'),
+    return MainScaffold(
+      currentIndex: 0,
+      userId: userId,
+      child: DefaultTabController(
+        length: 2,
+        child: Scaffold(
+          appBar: AppBar(
+            title: const Text('Venues'),
+            actions: [
+              IconButton(
+                icon: Icon(isGrid ? Icons.grid_view : Icons.view_list),
+                tooltip: isGrid ? 'Grid View' : 'List View',
+                onPressed: () => setState(() => isGrid = !isGrid),
+              ),
             ],
+            bottom: TabBar(
+              onTap: (i) => setState(() => selectedTab = i),
+              tabs: const [
+                Tab(icon: Icon(Icons.list), text: 'List'),
+                Tab(icon: Icon(Icons.map), text: 'Map'),
+              ],
+            ),
           ),
-        ),
-        body: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: searchController,
-                      decoration: const InputDecoration(
-                        hintText: 'Search by name or location',
-                        prefixIcon: Icon(Icons.search),
+          body: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: searchController,
+                        decoration: const InputDecoration(
+                          hintText: 'Search by name or location',
+                          prefixIcon: Icon(Icons.search),
+                        ),
+                        onChanged: (val) => ref.read(venueSearchQueryProvider.notifier).state = val,
                       ),
-                      onChanged: (val) => ref.read(venueSearchQueryProvider.notifier).state = val,
                     ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.filter_list),
-                    onPressed: () => _showFilterDialog(context),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.location_searching),
-                    tooltip: 'Search by address',
-                    onPressed: () async {
-                      final address = searchController.text.trim();
-                      if (address.isNotEmpty) {
-                        final location = await geocodingService.getLocationFromAddress(address);
-                        if (location != null) {
-                          setState(() {
-                            _searchedCameraPosition = CameraPosition(
-                              target: LatLng(location.latitude, location.longitude),
-                              zoom: 14,
+                    IconButton(
+                      icon: const Icon(Icons.filter_list),
+                      onPressed: () => _showFilterDialog(context),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.location_searching),
+                      tooltip: 'Search by address',
+                      onPressed: () async {
+                        final address = searchController.text.trim();
+                        if (address.isNotEmpty) {
+                          final location = await geocodingService.getLocationFromAddress(address);
+                          if (location != null) {
+                            setState(() {
+                              _searchedCameraPosition = CameraPosition(
+                                target: LatLng(location.latitude, location.longitude),
+                                zoom: 14,
+                              );
+                              selectedTab = 1; // Switch to map tab
+                            });
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Address not found.')),
                             );
-                            selectedTab = 1; // Switch to map tab
-                          });
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Address not found.')),
+                          }
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: TabBarView(
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: [
+                    venuesAsync.when(
+                      data: (venues) {
+                        if (venues.isEmpty) {
+                          return _EmptyState(
+                            message: 'No venues found. Try adjusting your search or filters.',
+                            onClear: (ref.read(venueSearchQueryProvider) != '' ||
+                                      ref.read(venueFilterProvider).minRating != null ||
+                                      ref.read(venueFilterProvider).priceRange != null ||
+                                      (ref.read(venueFilterProvider).amenities?.isNotEmpty ?? false) ||
+                                      (ref.read(venueFilterProvider).gameTypes?.isNotEmpty ?? false))
+                                ? () {
+                                    ref.read(venueSearchQueryProvider.notifier).state = '';
+                                    ref.read(venueFilterProvider.notifier).state = VenueFilter();
+                                  }
+                                : null,
                           );
                         }
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: TabBarView(
-                physics: const NeverScrollableScrollPhysics(),
-                children: [
-                  venuesAsync.when(
-                    data: (venues) {
-                      if (venues.isEmpty) {
-                        return _EmptyState(
-                          message: 'No venues found. Try adjusting your search or filters.',
-                          onClear: (ref.read(venueSearchQueryProvider) != '' ||
-                                    ref.read(venueFilterProvider).minRating != null ||
-                                    ref.read(venueFilterProvider).priceRange != null ||
-                                    (ref.read(venueFilterProvider).amenities?.isNotEmpty ?? false) ||
-                                    (ref.read(venueFilterProvider).gameTypes?.isNotEmpty ?? false))
-                              ? () {
-                                  ref.read(venueSearchQueryProvider.notifier).state = '';
-                                  ref.read(venueFilterProvider.notifier).state = VenueFilter();
-                                }
-                              : null,
-                        );
-                      }
-                      return isGrid
-                          ? GridView.builder(
-                              padding: const EdgeInsets.all(8),
-                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                childAspectRatio: 1.2,
-                                crossAxisSpacing: 8,
-                                mainAxisSpacing: 8,
-                              ),
-                              itemCount: venues.length,
-                              itemBuilder: (context, i) => _VenueCard(venue: venues[i]),
-                            )
-                          : ListView.builder(
-                              itemCount: venues.length,
-                              itemBuilder: (context, i) => _VenueCard(venue: venues[i]),
-                            );
-                    },
-                    loading: () => _VenueSkeleton(isGrid: isGrid),
-                    error: (e, st) => _ErrorState(
-                      message: 'Something went wrong. Please try again.',
-                      onRetry: () => ref.refresh(filteredVenuesProvider),
+                        return isGrid
+                            ? GridView.builder(
+                                padding: const EdgeInsets.all(8),
+                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  childAspectRatio: 1.2,
+                                  crossAxisSpacing: 8,
+                                  mainAxisSpacing: 8,
+                                ),
+                                itemCount: venues.length,
+                                itemBuilder: (context, i) => _VenueCard(venue: venues[i]),
+                              )
+                            : ListView.builder(
+                                itemCount: venues.length,
+                                itemBuilder: (context, i) => _VenueCard(venue: venues[i]),
+                              );
+                      },
+                      loading: () => _VenueSkeleton(isGrid: isGrid),
+                      error: (e, st) => _ErrorState(
+                        message: 'Something went wrong. Please try again.',
+                        onRetry: () => ref.refresh(filteredVenuesProvider),
+                      ),
                     ),
-                  ),
-                  venuesAsync.when(
-                    data: (venues) {
-                      if (venues.isEmpty) {
-                        return _EmptyState(
-                          message: 'No venues to show on the map.',
-                          onClear: (ref.read(venueSearchQueryProvider) != '' ||
-                                    ref.read(venueFilterProvider).minRating != null ||
-                                    ref.read(venueFilterProvider).priceRange != null ||
-                                    (ref.read(venueFilterProvider).amenities?.isNotEmpty ?? false) ||
-                                    (ref.read(venueFilterProvider).gameTypes?.isNotEmpty ?? false))
-                              ? () {
-                                  ref.read(venueSearchQueryProvider.notifier).state = '';
-                                  ref.read(venueFilterProvider.notifier).state = VenueFilter();
-                                }
-                              : null,
+                    venuesAsync.when(
+                      data: (venues) {
+                        if (venues.isEmpty) {
+                          return _EmptyState(
+                            message: 'No venues to show on the map.',
+                            onClear: (ref.read(venueSearchQueryProvider) != '' ||
+                                      ref.read(venueFilterProvider).minRating != null ||
+                                      ref.read(venueFilterProvider).priceRange != null ||
+                                      (ref.read(venueFilterProvider).amenities?.isNotEmpty ?? false) ||
+                                      (ref.read(venueFilterProvider).gameTypes?.isNotEmpty ?? false))
+                                ? () {
+                                    ref.read(venueSearchQueryProvider.notifier).state = '';
+                                    ref.read(venueFilterProvider.notifier).state = VenueFilter();
+                                  }
+                                : null,
+                          );
+                        }
+                        return GoogleMap(
+                          initialCameraPosition: _searchedCameraPosition ?? CameraPosition(
+                            target: LatLng(venues[0].location.latitude, venues[0].location.longitude),
+                            zoom: 10,
+                          ),
+                          markers: venues
+                              .map((venue) => Marker(
+                                    markerId: MarkerId(venue.id),
+                                    position: LatLng(venue.location.latitude, venue.location.longitude),
+                                    infoWindow: InfoWindow(title: venue.name, snippet: venue.address),
+                                  ))
+                              .toSet(),
                         );
-                      }
-                      return GoogleMap(
-                        initialCameraPosition: _searchedCameraPosition ?? CameraPosition(
-                          target: LatLng(venues[0].location.latitude, venues[0].location.longitude),
-                          zoom: 10,
-                        ),
-                        markers: venues
-                            .map((venue) => Marker(
-                                  markerId: MarkerId(venue.id),
-                                  position: LatLng(venue.location.latitude, venue.location.longitude),
-                                  infoWindow: InfoWindow(title: venue.name, snippet: venue.address),
-                                ))
-                            .toSet(),
-                      );
-                    },
-                    loading: () => _VenueSkeleton(isGrid: false),
-                    error: (e, st) => _ErrorState(
-                      message: 'Something went wrong. Please try again.',
-                      onRetry: () => ref.refresh(filteredVenuesProvider),
+                      },
+                      loading: () => _VenueSkeleton(isGrid: false),
+                      error: (e, st) => _ErrorState(
+                        message: 'Something went wrong. Please try again.',
+                        onRetry: () => ref.refresh(filteredVenuesProvider),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -325,7 +334,7 @@ class _VenueCard extends StatelessWidget {
             ],
           ),
           onTap: () {
-            // TODO: Navigate to venue details
+            context.go('/venues/${venue.id}/rooms');
           },
         ),
       ),
