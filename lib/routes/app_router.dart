@@ -6,7 +6,7 @@ import '../features/auth/presentation/providers/auth_provider.dart';
 import '../features/auth/presentation/pages/login_page.dart';
 import '../features/auth/presentation/pages/register_page.dart';
 import '../features/auth/presentation/pages/reset_password_page.dart';
-import '../features/auth/presentation/pages/profile_page.dart';
+import '../features/profile/presentation/pages/profile_page.dart';
 // Core feature pages
 import '../features/venues/presentation/pages/venues_page.dart';
 import '../features/venues/presentation/pages/rooms_page.dart';
@@ -21,135 +21,204 @@ import '../features/admin/presentation/pages/admin_bookings_page.dart';
 import '../features/admin/presentation/pages/admin_analytics_page.dart';
 import '../features/admin/presentation/pages/admin_content_page.dart';
 import '../features/admin/presentation/pages/admin_notifications_page.dart';
+import 'package:waddi_platform/features/search/presentation/pages/search_page.dart';
+import '../features/venues/presentation/pages/venue_details_page.dart';
+import '../features/bookings/presentation/pages/booking_confirmation_page.dart';
+import '../features/bookings/presentation/pages/booking_details_page.dart';
 
-final GoRouter appRouter = GoRouter(
-  routes: [
-    GoRoute(
-      path: '/login',
-      builder: (context, state) => const LoginPage(),
-    ),
-    GoRoute(
-      path: '/register',
-      builder: (context, state) => const RegisterPage(),
-    ),
-    GoRoute(
-      path: '/reset-password',
-      builder: (context, state) => const ResetPasswordPage(),
-    ),
-    GoRoute(
-      path: '/profile',
-      builder: (context, state) => const ProfilePage(),
-    ),
-    GoRoute(
-      path: '/venues',
-      builder: (context, state) => VenuesPage(),
-    ),
-    GoRoute(
-      path: '/venues/:venueId/rooms',
-      builder: (context, state) => RoomsPage(venueId: state.pathParameters['venueId']!),
-    ),
-    GoRoute(
-      path: '/users',
-      builder: (context, state) => UsersPage(),
-    ),
-    GoRoute(
-      path: '/bookings/:userId',
-      builder: (context, state) => BookingsPage(userId: state.pathParameters['userId']!),
-    ),
-    GoRoute(
-      path: '/reviews/:venueId',
-      builder: (context, state) => ReviewsPage(venueId: state.pathParameters['venueId']!),
-    ),
-    GoRoute(
-      path: '/support/:userId',
-      builder: (context, state) => SupportTicketsPage(userId: state.pathParameters['userId']!),
-    ),
-    GoRoute(
-      path: '/admin',
-      builder: (context, state) => AdminDashboardPage(),
-      redirect: (context, state) {
-        final container = ProviderScope.containerOf(context);
-        final authState = container.read(authProvider);
-        if (authState.user == null || authState.user!.role != 'admin') {
-          return '/login';
-        }
-        return null;
-      },
-    ),
-    GoRoute(
-      path: '/admin/users',
-      builder: (context, state) => AdminUsersPage(),
-      redirect: (context, state) {
-        final container = ProviderScope.containerOf(context);
-        final authState = container.read(authProvider);
-        if (authState.user == null || authState.user!.role != 'admin') {
-          return '/login';
-        }
-        return null;
-      },
-    ),
-    GoRoute(
-      path: '/admin/venues',
-      builder: (context, state) => AdminVenuesPage(),
-      redirect: (context, state) {
-        final container = ProviderScope.containerOf(context);
-        final authState = container.read(authProvider);
-        if (authState.user == null || authState.user!.role != 'admin') {
-          return '/login';
-        }
-        return null;
-      },
-    ),
-    GoRoute(
-      path: '/admin/bookings',
-      builder: (context, state) => AdminBookingsPage(),
-      redirect: (context, state) {
-        final container = ProviderScope.containerOf(context);
-        final authState = container.read(authProvider);
-        if (authState.user == null || authState.user!.role != 'admin') {
-          return '/login';
-        }
-        return null;
-      },
-    ),
-    GoRoute(
-      path: '/admin/analytics',
-      builder: (context, state) => AdminAnalyticsPage(),
-      redirect: (context, state) {
-        final container = ProviderScope.containerOf(context);
-        final authState = container.read(authProvider);
-        if (authState.user == null || authState.user!.role != 'admin') {
-          return '/login';
-        }
-        return null;
-      },
-    ),
-    GoRoute(
-      path: '/admin/content',
-      builder: (context, state) => AdminContentPage(),
-      redirect: (context, state) {
-        final container = ProviderScope.containerOf(context);
-        final authState = container.read(authProvider);
-        if (authState.user == null || authState.user!.role != 'admin') {
-          return '/login';
-        }
-        return null;
-      },
-    ),
-    GoRoute(
-      path: '/admin/notifications',
-      builder: (context, state) => AdminNotificationsPage(),
-      redirect: (context, state) {
-        final container = ProviderScope.containerOf(context);
-        final authState = container.read(authProvider);
-        if (authState.user == null || authState.user!.role != 'admin') {
-          return '/login';
-        }
-        return null;
-      },
-    ),
-  ],
-  initialLocation: '/login',
-);
+final goRouterProvider = Provider<GoRouter>((ref) {
+  return GoRouter(
+    initialLocation: '/',
+    redirect: (context, state) {
+      final authState = ref.watch(authProvider);
 
-final goRouterProvider = Provider<GoRouter>((ref) => appRouter); 
+      print(
+        'Router redirect - Location: ${state.matchedLocation}, Auth Status: ${authState.status}, Loading: ${authState.isLoading}',
+      );
+
+      // If auth state is still loading, don't redirect yet
+      if (authState.isLoading) {
+        print('Auth still loading, staying at current location');
+        return null;
+      }
+
+      // If user is authenticated and trying to access auth pages, redirect to home
+      if (authState.status == AuthStatus.authenticated &&
+          (state.matchedLocation == '/login' ||
+              state.matchedLocation == '/register' ||
+              state.matchedLocation == '/reset-password')) {
+        print('Authenticated user accessing auth page, redirecting to venues');
+        return '/venues';
+      }
+
+      // If user is not authenticated and trying to access protected pages, redirect to login
+      if (authState.status == AuthStatus.unauthenticated &&
+          state.matchedLocation != '/login' &&
+          state.matchedLocation != '/register' &&
+          state.matchedLocation != '/reset-password' &&
+          state.matchedLocation != '/') {
+        print('Unauthenticated user accessing protected page, redirecting to login');
+        return '/login';
+      }
+
+      // If at root and authenticated, redirect to venues
+      if (state.matchedLocation == '/' && authState.status == AuthStatus.authenticated) {
+        print('Authenticated user at root, redirecting to venues');
+        return '/venues';
+      }
+
+      // If at root and not authenticated, redirect to login
+      if (state.matchedLocation == '/' && authState.status == AuthStatus.unauthenticated) {
+        print('Unauthenticated user at root, redirecting to login');
+        return '/login';
+      }
+
+      print('No redirect needed');
+      return null;
+    },
+    routes: [
+      // Root route for loading state
+      GoRoute(
+        path: '/',
+        builder: (context, state) => Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [CircularProgressIndicator(), SizedBox(height: 16), Text('Loading...')],
+            ),
+          ),
+        ),
+      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
+      GoRoute(path: '/register', builder: (context, state) => const RegisterPage()),
+      GoRoute(path: '/reset-password', builder: (context, state) => const ResetPasswordPage()),
+      GoRoute(path: '/profile', builder: (context, state) => ProfilePage()),
+      GoRoute(path: '/venues', builder: (context, state) => VenuesPage()),
+      GoRoute(
+        path: '/venues/:venueId',
+        builder: (context, state) => VenueDetailsPage(venueId: state.pathParameters['venueId']!),
+      ),
+      GoRoute(
+        path: '/venues/:venueId/rooms',
+        builder: (context, state) => RoomsPage(venueId: state.pathParameters['venueId']!),
+      ),
+      GoRoute(
+        path: '/booking-confirmation',
+        builder: (context, state) {
+          final queryParams = state.uri.queryParameters;
+          return BookingConfirmationPage(
+            bookingId: queryParams['bookingId'] ?? '123456789',
+            venueName: queryParams['venueName'] ?? 'The Pixel Palace',
+            roomName: queryParams['roomName'] ?? 'Room 3',
+            bookingDate: DateTime.tryParse(queryParams['bookingDate'] ?? '') ?? DateTime.now(),
+            durationHours: int.tryParse(queryParams['durationHours'] ?? '2') ?? 2,
+            totalPrice: double.tryParse(queryParams['totalPrice'] ?? '50.00') ?? 50.00,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/booking-details/:bookingId',
+        builder: (context, state) =>
+            BookingDetailsPage(bookingId: state.pathParameters['bookingId']!),
+      ),
+      GoRoute(path: '/users', builder: (context, state) => UsersPage()),
+      GoRoute(
+        path: '/bookings/:userId',
+        builder: (context, state) => BookingsPage(userId: state.pathParameters['userId']!),
+      ),
+      GoRoute(
+        path: '/reviews/:venueId',
+        builder: (context, state) => ReviewsPage(venueId: state.pathParameters['venueId']!),
+      ),
+      GoRoute(
+        path: '/support/:userId',
+        builder: (context, state) => SupportTicketsPage(userId: state.pathParameters['userId']!),
+      ),
+      GoRoute(path: '/search', builder: (context, state) => SearchPage()),
+      GoRoute(
+        path: '/admin',
+        builder: (context, state) => AdminDashboardPage(),
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.user == null || authState.user!.role != 'admin') {
+            return '/login';
+          }
+          return null;
+        },
+      ),
+      GoRoute(
+        path: '/admin/users',
+        builder: (context, state) => AdminUsersPage(),
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.user == null || authState.user!.role != 'admin') {
+            return '/login';
+          }
+          return null;
+        },
+      ),
+      GoRoute(
+        path: '/admin/venues',
+        builder: (context, state) => AdminVenuesPage(),
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.user == null || authState.user!.role != 'admin') {
+            return '/login';
+          }
+          return null;
+        },
+      ),
+      GoRoute(
+        path: '/admin/bookings',
+        builder: (context, state) => AdminBookingsPage(),
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.user == null || authState.user!.role != 'admin') {
+            return '/login';
+          }
+          return null;
+        },
+      ),
+      GoRoute(
+        path: '/admin/analytics',
+        builder: (context, state) => AdminAnalyticsPage(),
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.user == null || authState.user!.role != 'admin') {
+            return '/login';
+          }
+          return null;
+        },
+      ),
+      GoRoute(
+        path: '/admin/content',
+        builder: (context, state) => AdminContentPage(),
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.user == null || authState.user!.role != 'admin') {
+            return '/login';
+          }
+          return null;
+        },
+      ),
+      GoRoute(
+        path: '/admin/notifications',
+        builder: (context, state) => AdminNotificationsPage(),
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.user == null || authState.user!.role != 'admin') {
+            return '/login';
+          }
+          return null;
+        },
+      ),
+    ],
+  );
+});

@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:waddi_platform/routes/app_router.dart';
 import 'package:waddi_platform/shared/themes/app_theme.dart';
 import 'package:waddi_platform/l10n/app_localizations.dart';
+import 'package:waddi_platform/shared/widgets/main_scaffold.dart';
 
 class WaddiApp extends ConsumerWidget {
   const WaddiApp({Key? key}) : super(key: key);
@@ -11,11 +12,13 @@ class WaddiApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final goRouter = ref.watch(goRouterProvider);
+    final currentTheme = ref.watch(themeProvider);
+
     return MaterialApp.router(
       title: 'WADDI Platform',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
+      themeMode: currentTheme,
       routerConfig: goRouter,
       debugShowCheckedModeBanner: false,
       // Localization setup
@@ -28,4 +31,4 @@ class WaddiApp extends ConsumerWidget {
       supportedLocales: AppLocalizations.supportedLocales,
     );
   }
-} 
+}

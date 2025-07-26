@@ -9,9 +9,9 @@ plugins {
 }
 
 android {
-    namespace = "com.example.waddi_platform"
+    namespace = "com.waddi.mobile.dev"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -31,6 +31,10 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        
+        // Performance optimizations
+        multiDexEnabled = true
+        vectorDrawables.useSupportLibrary = true
     }
 
     buildTypes {
@@ -38,7 +42,23 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            
+            // Performance optimizations for release
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
+        debug {
+            // Performance optimizations for debug
+            isDebuggable = true
+            isMinifyEnabled = false
+        }
+    }
+    
+    // Performance optimizations
+    dexOptions {
+        javaMaxHeapSize = "4g"
+        preDexLibraries = false
     }
 }
 

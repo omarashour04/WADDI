@@ -51,12 +51,14 @@ class VenueEntity {
         address: data['address'] ?? '',
         location: data['location'] is GeoPoint
             ? data['location']
-            : (data['location'] != null && data['location']['latitude'] != null && data['location']['longitude'] != null
-                ? GeoPoint(
-                    (data['location']['latitude'] as num).toDouble(),
-                    (data['location']['longitude'] as num).toDouble(),
-                  )
-                : GeoPoint(0, 0)),
+            : (data['location'] != null &&
+                      data['location']['latitude'] != null &&
+                      data['location']['longitude'] != null
+                  ? GeoPoint(
+                      (data['location']['latitude'] as num).toDouble(),
+                      (data['location']['longitude'] as num).toDouble(),
+                    )
+                  : GeoPoint(0, 0)),
         contactPhone: data['contactPhone'] ?? '',
         contactEmail: data['contactEmail'] ?? '',
         images: data['images'] != null ? List<String>.from(data['images']) : [],
@@ -64,18 +66,26 @@ class VenueEntity {
         ownerId: data['ownerId'] ?? '',
         averageRating: (data['averageRating'] ?? 0.0).toDouble(),
         totalReviews: (data['totalReviews'] ?? 0),
-        hourlyPriceRange: data['hourlyPriceRange'] != null ? Map<String, dynamic>.from(data['hourlyPriceRange']) : {'min': 0, 'max': 0},
-        capacityRange: data['capacityRange'] != null ? Map<String, dynamic>.from(data['capacityRange']) : {'min': 0, 'max': 0},
-        operatingHours: data['operatingHours'] != null ? Map<String, dynamic>.from(data['operatingHours']) : {},
-        blockedDates: data['blockedDates'] != null ? List<Timestamp>.from(data['blockedDates']) : [],
+        hourlyPriceRange: data['hourlyPriceRange'] != null
+            ? Map<String, dynamic>.from(data['hourlyPriceRange'])
+            : {'min': 0, 'max': 0},
+        capacityRange: data['capacityRange'] != null
+            ? Map<String, dynamic>.from(data['capacityRange'])
+            : {'min': 0, 'max': 0},
+        operatingHours: data['operatingHours'] != null
+            ? Map<String, dynamic>.from(data['operatingHours'])
+            : {},
+        blockedDates: data['blockedDates'] != null
+            ? List<Timestamp>.from(data['blockedDates'])
+            : [],
         createdAt: data['createdAt'] is Timestamp ? data['createdAt'] : Timestamp.now(),
         updatedAt: data['updatedAt'] is Timestamp ? data['updatedAt'] : Timestamp.now(),
       );
-    } catch (e, st) {
-      print('VenueEntity.fromMap error for doc $documentId: $e\n$st');
+    } catch (e) {
+      // Return a default venue entity instead of throwing
       return VenueEntity(
         id: documentId,
-        name: '',
+        name: 'Error loading venue',
         description: '',
         address: '',
         location: GeoPoint(0, 0),
@@ -134,4 +144,4 @@ class VenueRoom extends Equatable {
 
   @override
   List<Object?> get props => [id, name, capacity, amenities];
-} 
+}

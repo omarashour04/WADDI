@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../providers/booking_providers.dart';
 import '../../domain/entities/booking_entity.dart';
 import 'package:waddi_platform/features/auth/presentation/providers/auth_provider.dart';
@@ -16,10 +17,9 @@ class BookingsPage extends ConsumerWidget {
     final authState = ref.watch(authProvider);
     final currentUserId = authState.user?.id ?? '';
     return MainScaffold(
-      currentIndex: 1,
+      currentIndex: 2,
       userId: currentUserId,
       child: Scaffold(
-        appBar: AppBar(title: const Text('My Bookings')),
         body: bookingsAsync.when(
           data: (bookings) {
             if (bookings.isEmpty) {
@@ -50,10 +50,9 @@ class _BookingCard extends StatelessWidget {
         subtitle: Text('Room: ${booking.roomId}\nStatus: ${booking.bookingStatus}'),
         trailing: Text('${booking.totalAmount} SAR'),
         onTap: () {
-          // TODO: Implement navigation to booking details page if exists
-          // Example: context.go('/booking-details/${booking.id}');
+          context.go('/booking-details/${booking.id}');
         },
       ),
     );
   }
-} 
+}

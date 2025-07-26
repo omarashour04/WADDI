@@ -17,8 +17,18 @@ class VenueRepositoryImpl implements VenueRepository {
 
   @override
   Future<List<VenueEntity>> getAllVenues() async {
-    final snapshot = await firestore.collection('venues').get();
-    return snapshot.docs.map((doc) => VenueEntity.fromMap(doc.data(), doc.id)).toList();
+    try {
+      print('Fetching all venues from Firestore...');
+      final snapshot = await firestore.collection('venues').get();
+      print('Found ${snapshot.docs.length} venues');
+      final venues = snapshot.docs.map((doc) => VenueEntity.fromMap(doc.data(), doc.id)).toList();
+      print('Successfully loaded ${venues.length} venues');
+      return venues;
+    } catch (e, stackTrace) {
+      print('Error in getAllVenues: $e');
+      print('Stack trace: $stackTrace');
+      rethrow;
+    }
   }
 
   @override
@@ -44,13 +54,37 @@ class VenueRepositoryImpl implements VenueRepository {
   }
 
   @override
+  Future<RoomEntity?> getRoomById(String roomId) async {
+    // Search for the room across all venues
+    final venues = await getAllVenues();
+    for (final venue in venues) {
+      final rooms = await getRoomsForVenue(venue.id);
+      final room = rooms.where((room) => room.id == roomId).firstOrNull;
+      if (room != null) {
+        return room;
+      }
+    }
+    return null;
+  }
+
+  @override
   Future<void> createRoom(String venueId, RoomEntity room) async {
-    await firestore.collection('venues').doc(venueId).collection('rooms').doc(room.id).set(room.toMap());
+    await firestore
+        .collection('venues')
+        .doc(venueId)
+        .collection('rooms')
+        .doc(room.id)
+        .set(room.toMap());
   }
 
   @override
   Future<void> updateRoom(String venueId, RoomEntity room) async {
-    await firestore.collection('venues').doc(venueId).collection('rooms').doc(room.id).update(room.toMap());
+    await firestore
+        .collection('venues')
+        .doc(venueId)
+        .collection('rooms')
+        .doc(room.id)
+        .update(room.toMap());
   }
 
   @override
@@ -67,8 +101,14 @@ class VenueRepositoryImpl implements VenueRepository {
         venuesQuery = venuesQuery.where('averageRating', isGreaterThanOrEqualTo: filter.minRating);
       }
       if (filter.priceRange != null) {
-        venuesQuery = venuesQuery.where('hourlyPriceRange.min', isLessThanOrEqualTo: filter.priceRange);
-        venuesQuery = venuesQuery.where('hourlyPriceRange.max', isGreaterThanOrEqualTo: filter.priceRange);
+        venuesQuery = venuesQuery.where(
+          'hourlyPriceRange.min',
+          isLessThanOrEqualTo: filter.priceRange,
+        );
+        venuesQuery = venuesQuery.where(
+          'hourlyPriceRange.max',
+          isGreaterThanOrEqualTo: filter.priceRange,
+        );
       }
       if (filter.amenities != null && filter.amenities!.isNotEmpty) {
         for (final amenity in filter.amenities!) {
@@ -82,13 +122,18 @@ class VenueRepositoryImpl implements VenueRepository {
       }
     }
     final snapshot = await venuesQuery.get();
-    var venues = snapshot.docs.map((doc) => VenueEntity.fromMap(doc.data() as Map<String, dynamic>, doc.id)).toList();
+    var venues = snapshot.docs
+        .map((doc) => VenueEntity.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+        .toList();
     if (query != null && query.isNotEmpty) {
-      venues = venues.where((venue) =>
-        venue.name.toLowerCase().contains(query.toLowerCase()) ||
-        venue.address.toLowerCase().contains(query.toLowerCase())
-      ).toList();
+      venues = venues
+          .where(
+            (venue) =>
+                venue.name.toLowerCase().contains(query.toLowerCase()) ||
+                venue.address.toLowerCase().contains(query.toLowerCase()),
+          )
+          .toList();
     }
     return venues;
   }
-} 
+}

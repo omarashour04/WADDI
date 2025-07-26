@@ -6,6 +6,7 @@ import 'package:waddi_platform/core/errors/failures.dart';
 import 'package:waddi_platform/features/auth/auth_injection.dart';
 import 'package:waddi_platform/features/auth/domain/repositories/auth_repository.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 // State for the AuthNotifier
 enum AuthStatus { initial, loading, authenticated, unauthenticated, error }
@@ -31,7 +32,75 @@ class AuthState {
 class AuthNotifier extends StateNotifier<AuthState> {
   final LoginUser _loginUser;
   final RegisterUser _registerUser;
-  AuthNotifier(this._loginUser, this._registerUser) : super(AuthState());
+  AuthNotifier(this._loginUser, this._registerUser) : super(AuthState()) {
+    // Initialize auth state when the notifier is created
+    _initializeAuthState();
+  }
+
+  // Initialize authentication state by checking Firebase Auth
+  Future<void> _initializeAuthState() async {
+    state = state.copyWith(status: AuthStatus.loading);
+    try {
+      print('Starting auth state initialization...');
+
+      // Wait a bit to ensure Firebase Auth is fully initialized
+      await Future.delayed(Duration(milliseconds: 500));
+
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      print('Firebase current user: ${firebaseUser?.uid ?? 'null'}');
+
+      if (firebaseUser != null) {
+        // User is already signed in, fetch user data from Firestore
+        print('User found, fetching from Firestore...');
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(firebaseUser.uid)
+            .get();
+
+        if (userDoc.exists) {
+          final userData = userDoc.data()!;
+          final user = UserEntity(
+            id: firebaseUser.uid,
+            name: userData['name'] ?? '',
+            email: userData['email'] ?? firebaseUser.email ?? '',
+            phoneNumber: userData['phoneNumber'] ?? '',
+            role: userData['role'] ?? 'user',
+            createdAt: userData['createdAt'] ?? Timestamp.now(),
+            updatedAt: userData['updatedAt'] ?? Timestamp.now(),
+          );
+          print('User data found, setting authenticated state');
+          state = state.copyWith(status: AuthStatus.authenticated, user: user);
+        } else {
+          // User exists in Firebase Auth but not in Firestore, create user document
+          print('User not in Firestore, creating user document...');
+          final user = UserEntity(
+            id: firebaseUser.uid,
+            name: firebaseUser.displayName ?? '',
+            email: firebaseUser.email ?? '',
+            phoneNumber: firebaseUser.phoneNumber ?? '',
+            role: 'user',
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now(),
+          );
+          await saveUserToFirestore(
+            uid: user.id,
+            email: user.email,
+            name: user.name,
+            phoneNumber: user.phoneNumber,
+          );
+          print('User document created, setting authenticated state');
+          state = state.copyWith(status: AuthStatus.authenticated, user: user);
+        }
+      } else {
+        // No user is signed in
+        print('No user found, setting unauthenticated state');
+        state = state.copyWith(status: AuthStatus.unauthenticated);
+      }
+    } catch (e) {
+      print('Error initializing auth state: $e');
+      state = state.copyWith(status: AuthStatus.error, errorMessage: e.toString());
+    }
+  }
 
   Future<void> login(String email, String password) async {
     state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
@@ -69,8 +138,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> logout() async {
-    // TODO: Implement logout logic
-    state = AuthState(status: AuthStatus.unauthenticated);
+    try {
+      await FirebaseAuth.instance.signOut();
+      state = AuthState(status: AuthStatus.unauthenticated);
+    } catch (e) {
+      state = state.copyWith(status: AuthStatus.error, errorMessage: e.toString());
+    }
   }
 
   Future<void> resetPassword(String email) async {

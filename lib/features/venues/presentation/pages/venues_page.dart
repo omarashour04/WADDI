@@ -8,6 +8,7 @@ import 'package:shimmer/shimmer.dart';
 import 'package:go_router/go_router.dart';
 import 'package:waddi_platform/shared/widgets/main_scaffold.dart';
 import 'package:waddi_platform/features/auth/presentation/providers/auth_provider.dart';
+import 'package:waddi_platform/shared/themes/app_colors.dart';
 
 class VenuesPage extends ConsumerStatefulWidget {
   @override
@@ -33,154 +34,325 @@ class _VenuesPageState extends ConsumerState<VenuesPage> {
       child: DefaultTabController(
         length: 2,
         child: Scaffold(
-          appBar: AppBar(
-            title: const Text('Venues'),
-            actions: [
-              IconButton(
-                icon: Icon(isGrid ? Icons.grid_view : Icons.view_list),
-                tooltip: isGrid ? 'Grid View' : 'List View',
-                onPressed: () => setState(() => isGrid = !isGrid),
-              ),
-            ],
-            bottom: TabBar(
-              onTap: (i) => setState(() => selectedTab = i),
-              tabs: const [
-                Tab(icon: Icon(Icons.list), text: 'List'),
-                Tab(icon: Icon(Icons.map), text: 'Map'),
+          body: SingleChildScrollView(
+            child: Column(
+              children: [
+                // Search Section
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 50,
+                          child: TextField(
+                            controller: searchController,
+                            decoration: InputDecoration(
+                              hintText: 'Search for venues',
+                              prefixIcon: const Icon(Icons.search),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                            ),
+                            onSubmitted: (query) {
+                              if (query.trim().isNotEmpty) {
+                                // Navigate to search page with the query
+                                context.go('/search?query=${Uri.encodeComponent(query.trim())}');
+                              }
+                            },
+                            onTap: () {
+                              // Navigate to search page when tapped
+                              context.go('/search');
+                            },
+                            readOnly: true, // Make it read-only so it acts as a button
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.filter_list),
+                        onPressed: () {
+                          // Navigate to search page with filter dialog
+                          context.go('/search');
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.location_searching),
+                        tooltip: 'Search by address',
+                        onPressed: () {
+                          // Navigate to search page for location search
+                          context.go('/search');
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                // Featured Venues Section
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Featured Venues',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 240, // Increased height to accommodate cards
+                        child: venuesAsync.when(
+                          data: (venues) {
+                            if (venues.isEmpty) {
+                              return const Center(child: Text('No venues available'));
+                            }
+                            // Take first 4 venues for featured section
+                            final featuredVenues = venues.take(4).toList();
+                            return ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: featuredVenues.length,
+                              itemBuilder: (context, index) {
+                                final venue = featuredVenues[index];
+                                return Container(
+                                  width: 160,
+                                  margin: const EdgeInsets.only(right: 12),
+                                  child: Card(
+                                    elevation: 4,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: InkWell(
+                                      onTap: () {
+                                        // Navigate to venue details page
+                                        context.go('/venues/${venue.id}');
+                                      },
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          // Image section - reduced flex
+                                          Expanded(
+                                            flex: 2, // Reduced from 3 to 2
+                                            child: Container(
+                                              width: double.infinity,
+                                              decoration: BoxDecoration(
+                                                borderRadius: const BorderRadius.vertical(
+                                                  top: Radius.circular(12),
+                                                ),
+                                                color: AppColors.primaryLight,
+                                              ),
+                                              child: Center(
+                                                child: Icon(
+                                                  Icons.games,
+                                                  size: 40, // Reduced from 48 to 40
+                                                  color: AppColors.primary,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          // Content section - increased flex
+                                          Expanded(
+                                            flex: 3, // Increased from 2 to 3
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(8.0),
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    venue.name,
+                                                    style: Theme.of(context).textTheme.titleMedium
+                                                        ?.copyWith(
+                                                          fontWeight: FontWeight.bold,
+                                                          color: AppColors.textPrimary,
+                                                        ),
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                  const SizedBox(height: 2), // Reduced from 4 to 2
+                                                  Text(
+                                                    'Book your spot now!',
+                                                    style: Theme.of(context).textTheme.bodySmall
+                                                        ?.copyWith(
+                                                          color: AppColors.textSecondary,
+                                                          fontSize: 11, // Reduced font size
+                                                        ),
+                                                    maxLines: 2,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                  const Spacer(), // Push rating to bottom
+                                                  Row(
+                                                    children: [
+                                                      Icon(
+                                                        Icons.star,
+                                                        size: 14, // Reduced from 16 to 14
+                                                        color: Colors.amber,
+                                                      ),
+                                                      const SizedBox(
+                                                        width: 2,
+                                                      ), // Reduced from 4 to 2
+                                                      Text(
+                                                        venue.averageRating.toString(),
+                                                        style: Theme.of(context).textTheme.bodySmall
+                                                            ?.copyWith(
+                                                              fontSize: 11, // Reduced font size
+                                                            ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                          loading: () => ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: 4,
+                            itemBuilder: (context, index) {
+                              return Container(
+                                width: 160,
+                                margin: const EdgeInsets.only(right: 12),
+                                child: Card(
+                                  elevation: 4,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        flex: 2,
+                                        child: Container(
+                                          width: double.infinity,
+                                          decoration: BoxDecoration(
+                                            borderRadius: const BorderRadius.vertical(
+                                              top: Radius.circular(12),
+                                            ),
+                                            color: AppColors.primaryLight,
+                                          ),
+                                          child: Center(
+                                            child: Icon(
+                                              Icons.games,
+                                              size: 40,
+                                              color: AppColors.primary,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      Expanded(
+                                        flex: 3,
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Container(
+                                                height: 16,
+                                                width: 120,
+                                                color: Colors.grey[300],
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Container(
+                                                height: 12,
+                                                width: 100,
+                                                color: Colors.grey[300],
+                                              ),
+                                              const Spacer(),
+                                              Row(
+                                                children: [
+                                                  Icon(Icons.star, size: 14, color: Colors.amber),
+                                                  const SizedBox(width: 2),
+                                                  Container(
+                                                    height: 12,
+                                                    width: 20,
+                                                    color: Colors.grey[300],
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          error: (e, st) => const Center(child: Text('Error loading venues')),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Action Buttons
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            // Navigate to booking flow
+                            context.go('/venues');
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.secondary,
+                            foregroundColor: AppColors.textOnSecondary,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: Text(
+                            'Book Now',
+                            style: Theme.of(
+                              context,
+                            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Quick Access',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            // Navigate to favorites
+                            context.go('/favorites');
+                          },
+                          icon: const Icon(Icons.favorite),
+                          label: const Text('Favorites'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.tertiary,
+                            foregroundColor: AppColors.textOnTertiary,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
-          ),
-          body: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: searchController,
-                        decoration: const InputDecoration(
-                          hintText: 'Search by name or location',
-                          prefixIcon: Icon(Icons.search),
-                        ),
-                        onChanged: (val) => ref.read(venueSearchQueryProvider.notifier).state = val,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.filter_list),
-                      onPressed: () => _showFilterDialog(context),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.location_searching),
-                      tooltip: 'Search by address',
-                      onPressed: () async {
-                        final address = searchController.text.trim();
-                        if (address.isNotEmpty) {
-                          final location = await geocodingService.getLocationFromAddress(address);
-                          if (location != null) {
-                            setState(() {
-                              _searchedCameraPosition = CameraPosition(
-                                target: LatLng(location.latitude, location.longitude),
-                                zoom: 14,
-                              );
-                              selectedTab = 1; // Switch to map tab
-                            });
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Address not found.')),
-                            );
-                          }
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: TabBarView(
-                  physics: const NeverScrollableScrollPhysics(),
-                  children: [
-                    venuesAsync.when(
-                      data: (venues) {
-                        if (venues.isEmpty) {
-                          return _EmptyState(
-                            message: 'No venues found. Try adjusting your search or filters.',
-                            onClear: (ref.read(venueSearchQueryProvider) != '' ||
-                                      ref.read(venueFilterProvider).minRating != null ||
-                                      ref.read(venueFilterProvider).priceRange != null ||
-                                      (ref.read(venueFilterProvider).amenities?.isNotEmpty ?? false) ||
-                                      (ref.read(venueFilterProvider).gameTypes?.isNotEmpty ?? false))
-                                ? () {
-                                    ref.read(venueSearchQueryProvider.notifier).state = '';
-                                    ref.read(venueFilterProvider.notifier).state = VenueFilter();
-                                  }
-                                : null,
-                          );
-                        }
-                        return isGrid
-                            ? GridView.builder(
-                                padding: const EdgeInsets.all(8),
-                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  childAspectRatio: 1.2,
-                                  crossAxisSpacing: 8,
-                                  mainAxisSpacing: 8,
-                                ),
-                                itemCount: venues.length,
-                                itemBuilder: (context, i) => _VenueCard(venue: venues[i]),
-                              )
-                            : ListView.builder(
-                                itemCount: venues.length,
-                                itemBuilder: (context, i) => _VenueCard(venue: venues[i]),
-                              );
-                      },
-                      loading: () => _VenueSkeleton(isGrid: isGrid),
-                      error: (e, st) => _ErrorState(
-                        message: 'Something went wrong. Please try again.',
-                        onRetry: () => ref.refresh(filteredVenuesProvider),
-                      ),
-                    ),
-                    venuesAsync.when(
-                      data: (venues) {
-                        if (venues.isEmpty) {
-                          return _EmptyState(
-                            message: 'No venues to show on the map.',
-                            onClear: (ref.read(venueSearchQueryProvider) != '' ||
-                                      ref.read(venueFilterProvider).minRating != null ||
-                                      ref.read(venueFilterProvider).priceRange != null ||
-                                      (ref.read(venueFilterProvider).amenities?.isNotEmpty ?? false) ||
-                                      (ref.read(venueFilterProvider).gameTypes?.isNotEmpty ?? false))
-                                ? () {
-                                    ref.read(venueSearchQueryProvider.notifier).state = '';
-                                    ref.read(venueFilterProvider.notifier).state = VenueFilter();
-                                  }
-                                : null,
-                          );
-                        }
-                        return GoogleMap(
-                          initialCameraPosition: _searchedCameraPosition ?? CameraPosition(
-                            target: LatLng(venues[0].location.latitude, venues[0].location.longitude),
-                            zoom: 10,
-                          ),
-                          markers: venues
-                              .map((venue) => Marker(
-                                    markerId: MarkerId(venue.id),
-                                    position: LatLng(venue.location.latitude, venue.location.longitude),
-                                    infoWindow: InfoWindow(title: venue.name, snippet: venue.address),
-                                  ))
-                              .toSet(),
-                        );
-                      },
-                      loading: () => _VenueSkeleton(isGrid: false),
-                      error: (e, st) => _ErrorState(
-                        message: 'Something went wrong. Please try again.',
-                        onRetry: () => ref.refresh(filteredVenuesProvider),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
           ),
         ),
       ),
@@ -193,8 +365,12 @@ class _VenuesPageState extends ConsumerState<VenuesPage> {
       builder: (context) {
         double? minRating = ref.read(venueFilterProvider).minRating;
         String? priceRange = ref.read(venueFilterProvider).priceRange;
-        List<String> selectedAmenities = List<String>.from(ref.read(venueFilterProvider).amenities ?? []);
-        List<String> selectedGameTypes = List<String>.from(ref.read(venueFilterProvider).gameTypes ?? []);
+        List<String> selectedAmenities = List<String>.from(
+          ref.read(venueFilterProvider).amenities ?? [],
+        );
+        List<String> selectedGameTypes = List<String>.from(
+          ref.read(venueFilterProvider).gameTypes ?? [],
+        );
         // Example options - in real app, fetch from Firestore or config
         final amenitiesOptions = ['WiFi', 'Parking', 'Cafeteria', 'Locker Room', 'Showers'];
         final gameTypesOptions = ['Football', 'Basketball', 'Tennis', 'Padel', 'Volleyball'];
@@ -209,10 +385,12 @@ class _VenuesPageState extends ConsumerState<VenuesPage> {
                     value: minRating,
                     hint: const Text('Min Rating'),
                     items: [null, 3.0, 4.0, 4.5, 5.0]
-                        .map((r) => DropdownMenuItem(
-                              value: r,
-                              child: Text(r == null ? 'Any' : r.toString()),
-                            ))
+                        .map(
+                          (r) => DropdownMenuItem(
+                            value: r,
+                            child: Text(r == null ? 'Any' : r.toString()),
+                          ),
+                        )
                         .toList(),
                     onChanged: (val) => setState(() => minRating = val),
                   ),
@@ -220,12 +398,12 @@ class _VenuesPageState extends ConsumerState<VenuesPage> {
                   DropdownButton<String>(
                     value: priceRange,
                     hint: const Text('Price'),
-                    items: [null, 'Low', 'Medium', 'High']
-                        .map((p) => DropdownMenuItem(
-                              value: p,
-                              child: Text(p ?? 'Any'),
-                            ))
-                        .toList(),
+                    items: [
+                      null,
+                      'Low',
+                      'Medium',
+                      'High',
+                    ].map((p) => DropdownMenuItem(value: p, child: Text(p ?? 'Any'))).toList(),
                     onChanged: (val) => setState(() => priceRange = val),
                   ),
                   const SizedBox(height: 16),
@@ -235,22 +413,29 @@ class _VenuesPageState extends ConsumerState<VenuesPage> {
                   ),
                   Wrap(
                     spacing: 8,
-                    children: amenitiesOptions.map((amenity) => FilterChip(
-                      label: Text(amenity, textScaleFactor: MediaQuery.textScaleFactorOf(context)),
-                      selected: selectedAmenities.contains(amenity),
-                      onSelected: (selected) {
-                        setState(() {
-                          if (selected) {
-                            selectedAmenities.add(amenity);
-                          } else {
-                            selectedAmenities.remove(amenity);
-                          }
-                        });
-                      },
-                      selectedColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
-                      checkmarkColor: Theme.of(context).colorScheme.primary,
-                      showCheckmark: true,
-                    )).toList(),
+                    children: amenitiesOptions
+                        .map(
+                          (amenity) => FilterChip(
+                            label: Text(
+                              amenity,
+                              textScaleFactor: MediaQuery.textScaleFactorOf(context),
+                            ),
+                            selected: selectedAmenities.contains(amenity),
+                            onSelected: (selected) {
+                              setState(() {
+                                if (selected) {
+                                  selectedAmenities.add(amenity);
+                                } else {
+                                  selectedAmenities.remove(amenity);
+                                }
+                              });
+                            },
+                            selectedColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                            checkmarkColor: Theme.of(context).colorScheme.primary,
+                            showCheckmark: true,
+                          ),
+                        )
+                        .toList(),
                   ),
                   const SizedBox(height: 16),
                   Align(
@@ -259,22 +444,29 @@ class _VenuesPageState extends ConsumerState<VenuesPage> {
                   ),
                   Wrap(
                     spacing: 8,
-                    children: gameTypesOptions.map((game) => FilterChip(
-                      label: Text(game, textScaleFactor: MediaQuery.textScaleFactorOf(context)),
-                      selected: selectedGameTypes.contains(game),
-                      onSelected: (selected) {
-                        setState(() {
-                          if (selected) {
-                            selectedGameTypes.add(game);
-                          } else {
-                            selectedGameTypes.remove(game);
-                          }
-                        });
-                      },
-                      selectedColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
-                      checkmarkColor: Theme.of(context).colorScheme.primary,
-                      showCheckmark: true,
-                    )).toList(),
+                    children: gameTypesOptions
+                        .map(
+                          (game) => FilterChip(
+                            label: Text(
+                              game,
+                              textScaleFactor: MediaQuery.textScaleFactorOf(context),
+                            ),
+                            selected: selectedGameTypes.contains(game),
+                            onSelected: (selected) {
+                              setState(() {
+                                if (selected) {
+                                  selectedGameTypes.add(game);
+                                } else {
+                                  selectedGameTypes.remove(game);
+                                }
+                              });
+                            },
+                            selectedColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                            checkmarkColor: Theme.of(context).colorScheme.primary,
+                            showCheckmark: true,
+                          ),
+                        )
+                        .toList(),
                   ),
                 ],
               ),
@@ -282,13 +474,12 @@ class _VenuesPageState extends ConsumerState<VenuesPage> {
             actions: [
               TextButton(
                 onPressed: () {
-                  ref.read(venueFilterProvider.notifier).state =
-                      VenueFilter(
-                        minRating: minRating,
-                        priceRange: priceRange,
-                        amenities: selectedAmenities,
-                        gameTypes: selectedGameTypes,
-                      );
+                  ref.read(venueFilterProvider.notifier).state = VenueFilter(
+                    minRating: minRating,
+                    priceRange: priceRange,
+                    amenities: selectedAmenities,
+                    gameTypes: selectedGameTypes,
+                  );
                   Navigator.of(context).pop();
                 },
                 child: const Text('Apply'),
@@ -362,11 +553,7 @@ class _VenueSkeleton extends StatelessWidget {
           baseColor: Colors.grey[300]!,
           highlightColor: Colors.grey[100]!,
           child: Card(
-            child: Container(
-              width: double.infinity,
-              height: 120,
-              color: Colors.white,
-            ),
+            child: Container(width: double.infinity, height: 120, color: Colors.white),
           ),
         ),
       );
@@ -401,7 +588,10 @@ class _EmptyState extends StatelessWidget {
         children: [
           Icon(Icons.search_off, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 16),
-          Text(message, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.grey[600])),
+          Text(
+            message,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
+          ),
           if (onClear != null)
             Padding(
               padding: const EdgeInsets.only(top: 16.0),
@@ -429,7 +619,10 @@ class _ErrorState extends StatelessWidget {
         children: [
           Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
           const SizedBox(height: 16),
-          Text(message, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.red[700])),
+          Text(
+            message,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.red[700]),
+          ),
           if (onRetry != null)
             Padding(
               padding: const EdgeInsets.only(top: 16.0),
@@ -443,4 +636,4 @@ class _ErrorState extends StatelessWidget {
       ),
     );
   }
-} 
+}
