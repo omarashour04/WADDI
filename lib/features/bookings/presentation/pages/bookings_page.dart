@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/services/app_state_service.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/booking_providers.dart';
 import '../../domain/entities/booking_entity.dart';
@@ -16,6 +17,11 @@ class BookingsPage extends ConsumerWidget {
     // Get userId from user provider if needed
     final authState = ref.watch(authProvider);
     final currentUserId = authState.user?.id ?? '';
+
+    // Update navigation state
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(navigationStateProvider.notifier).updateCurrentRoute('/bookings/$userId');
+    });
     return MainScaffold(
       currentIndex: 2,
       userId: currentUserId,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/services/app_state_service.dart';
 import '../providers/venue_providers.dart';
 import '../../domain/entities/venue_entity.dart';
 import '../../domain/entities/room_entity.dart';
@@ -17,6 +18,11 @@ class VenueDetailsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final venueAsync = ref.watch(venueProvider(venueId));
     final reviewsAsync = ref.watch(reviewsForVenueProvider(venueId));
+
+    // Update navigation state
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(navigationStateProvider.notifier).updateCurrentRoute('/venues/$venueId');
+    });
 
     return venueAsync.when(
       data: (venue) {

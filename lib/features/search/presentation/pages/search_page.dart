@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/services/app_state_service.dart';
 import 'package:waddi_platform/features/auth/presentation/providers/auth_provider.dart';
 import 'package:waddi_platform/shared/widgets/main_scaffold.dart';
 import 'package:waddi_platform/shared/themes/app_colors.dart';
@@ -49,6 +50,11 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     final authState = ref.watch(authProvider);
     final userId = authState.user?.id ?? '';
     final venuesAsync = ref.watch(filteredVenuesProvider);
+
+    // Update navigation state
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(navigationStateProvider.notifier).updateCurrentRoute('/search');
+    });
     final geocodingService = ref.read(geocodingProvider);
 
     return MainScaffold(

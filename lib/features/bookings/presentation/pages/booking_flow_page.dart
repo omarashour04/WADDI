@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/services/app_state_service.dart';
 import 'package:go_router/go_router.dart';
 import '../../domain/entities/booking_entity.dart';
 import '../../domain/entities/time_slot_entity.dart';
@@ -30,6 +31,26 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
   bool isSubmitting = false;
   String? feedback;
   bool isDatePickerOpen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedState();
+  }
+
+  Future<void> _loadSavedState() async {
+    final savedState = await AppStateService.getPageState('booking_flow');
+    if (savedState != null) {
+      setState(() {
+        if (savedState['selectedDate'] != null) {
+          selectedDate = DateTime.parse(savedState['selectedDate']);
+        }
+        if (savedState['selectedTimeSlot'] != null) {
+          selectedTimeSlot = DateTime.parse(savedState['selectedTimeSlot']);
+        }
+      });
+    }
+  }
 
   // Debounce timer for setState calls
   bool _isUpdating = false;
@@ -65,6 +86,20 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
   Widget build(BuildContext context) {
     final checkAvailability = ref.watch(checkRoomAvailabilityProvider);
     final authState = ref.watch(authProvider);
+
+    // Save booking flow state
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final currentState = {
+        'venueId': widget.venueId,
+        'roomId': widget.roomId,
+        'hourlyPrice': widget.hourlyPrice,
+        'userId': widget.userId,
+        'selectedDate': selectedDate.toIso8601String(),
+        'selectedTimeSlot': selectedTimeSlot?.toIso8601String(),
+      };
+      AppStateService.savePageState('booking_flow', currentState);
+      ref.read(navigationStateProvider.notifier).updateCurrentRoute('/booking-flow');
+    });
 
     // Check if user is a guest user and redirect to login
     if (authState.isGuestUser) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../features/auth/presentation/providers/auth_provider.dart';
+import '../core/services/app_state_service.dart';
 // Auth pages
 import '../features/auth/presentation/pages/login_page.dart';
 import '../features/auth/presentation/pages/register_page.dart';
@@ -26,12 +27,68 @@ import '../features/venues/presentation/pages/venue_details_page.dart';
 import '../features/bookings/presentation/pages/booking_confirmation_page.dart';
 import '../features/bookings/presentation/pages/booking_details_page.dart';
 
+// Helper function to validate if a route is accessible for current auth state
+bool _isValidRoute(String route, AuthState authState) {
+  // Define protected pages that require authentication
+  final protectedPages = [
+    '/profile',
+    '/bookings',
+    '/booking-details',
+    '/booking-confirmation',
+    '/users',
+    '/reviews',
+    '/support',
+    '/admin',
+  ];
+
+  // If user is not authenticated and trying to access protected pages, route is invalid
+  if (authState.status == AuthStatus.unauthenticated &&
+      protectedPages.any((page) => route.startsWith(page))) {
+    return false;
+  }
+
+  // If user is authenticated (but not guest) and trying to access auth pages, route is invalid
+  if (authState.status == AuthStatus.authenticated &&
+      !authState.isGuestUser &&
+      (route == '/login' || route == '/register' || route == '/reset-password')) {
+    return false;
+  }
+
+  return true;
+}
+
 final goRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/',
     debugLogDiagnostics: true,
-    redirect: (context, state) {
+    redirect: (context, state) async {
       final authState = ref.watch(authProvider);
+      final navigationState = ref.watch(navigationStateProvider);
+
+      print(
+        'Router redirect - Location: ${state.matchedLocation}, Auth Status: ${authState.status}, Loading: ${authState.isLoading}',
+      );
+
+      // If auth state is still loading, don't redirect yet
+      if (authState.isLoading) {
+        print('Auth still loading, staying at current location');
+        return null;
+      }
+
+      // Check if we should restore saved state
+      if (state.matchedLocation == '/' && authState.status != AuthStatus.loading) {
+        final wasActive = await AppStateService.wasRecentlyActive();
+        if (wasActive) {
+          final savedState = await AppStateService.getSavedState();
+          final savedRoute = savedState['currentRoute'];
+
+          // Validate the saved route is accessible
+          if (_isValidRoute(savedRoute, authState)) {
+            print('Restoring saved state to: $savedRoute');
+            return savedRoute;
+          }
+        }
+      }
 
       print(
         'Router redirect - Location: ${state.matchedLocation}, Auth Status: ${authState.status}, Loading: ${authState.isLoading}',

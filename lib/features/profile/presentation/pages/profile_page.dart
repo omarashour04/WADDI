@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/services/app_state_service.dart';
 import 'package:waddi_platform/features/auth/presentation/providers/auth_provider.dart';
 import 'package:waddi_platform/shared/widgets/main_scaffold.dart';
 import 'package:waddi_platform/shared/themes/app_colors.dart';
@@ -10,6 +11,11 @@ class ProfilePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
     final userId = authState.user?.id ?? '';
+
+    // Update navigation state
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(navigationStateProvider.notifier).updateCurrentRoute('/profile');
+    });
 
     return MainScaffold(
       currentIndex: 3,
@@ -58,11 +64,7 @@ class ProfilePage extends ConsumerWidget {
                       CircleAvatar(
                         radius: 50,
                         backgroundColor: AppColors.primaryLight,
-                        child: Icon(
-                          Icons.person,
-                          size: 50,
-                          color: AppColors.primary,
-                        ),
+                        child: Icon(Icons.person, size: 50, color: AppColors.primary),
                       ),
                       const SizedBox(height: 16),
                       // User Name

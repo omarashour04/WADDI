@@ -6,6 +6,7 @@ import 'package:waddi_platform/shared/themes/app_theme.dart';
 import 'package:waddi_platform/l10n/app_localizations.dart';
 import 'package:waddi_platform/shared/widgets/main_scaffold.dart';
 import 'package:waddi_platform/shared/widgets/app_back_button_handler.dart';
+import 'package:waddi_platform/core/services/app_state_service.dart';
 
 class WaddiApp extends ConsumerWidget {
   const WaddiApp({Key? key}) : super(key: key);
@@ -14,6 +15,12 @@ class WaddiApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final goRouter = ref.watch(goRouterProvider);
     final currentTheme = ref.watch(themeProvider);
+    final navigationState = ref.watch(navigationStateProvider);
+
+    // Initialize navigation state on app start
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(navigationStateProvider.notifier).loadSavedState();
+    });
 
     return AppBackButtonHandler(
       child: MaterialApp.router(

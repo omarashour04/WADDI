@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/services/app_state_service.dart';
 import '../providers/venue_providers.dart';
 import '../../domain/entities/room_entity.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -24,6 +25,13 @@ class _RoomsPageState extends ConsumerState<RoomsPage> {
   Widget build(BuildContext context) {
     final roomsAsync = ref.watch(roomsForVenueProvider(widget.venueId));
     final authState = ref.watch(authProvider);
+
+    // Update navigation state
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref
+          .read(navigationStateProvider.notifier)
+          .updateCurrentRoute('/venues/${widget.venueId}/rooms');
+    });
     final userId = authState.user?.id ?? '';
 
     return Scaffold(

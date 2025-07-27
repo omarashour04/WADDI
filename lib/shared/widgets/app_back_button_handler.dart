@@ -1,28 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/services/app_state_service.dart';
 
-class AppBackButtonHandler extends StatelessWidget {
+class AppBackButtonHandler extends ConsumerWidget {
   final Widget child;
   final String? fallbackRoute;
 
   const AppBackButtonHandler({super.key, required this.child, this.fallbackRoute});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return PopScope(
       canPop: false,
       onPopInvoked: (didPop) {
         if (didPop) return;
 
         // Handle back button press
-        _handleBackButton(context);
+        _handleBackButton(context, ref);
       },
       child: child,
     );
   }
 
-  void _handleBackButton(BuildContext context) {
+  void _handleBackButton(BuildContext context, WidgetRef ref) {
     final location = GoRouterState.of(context).uri.path;
 
     // Define navigation hierarchy
@@ -72,6 +74,9 @@ class AppBackButtonHandler extends StatelessWidget {
         }
       }
     }
+
+    // Update navigation state
+    ref.read(navigationStateProvider.notifier).updateCurrentRoute(targetRoute ?? '/venues');
 
     // If we have a target route, navigate there
     if (targetRoute != null) {

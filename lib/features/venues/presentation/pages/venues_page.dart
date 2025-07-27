@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:waddi_platform/shared/widgets/main_scaffold.dart';
 import 'package:waddi_platform/features/auth/presentation/providers/auth_provider.dart';
 import 'package:waddi_platform/shared/themes/app_colors.dart';
+import '../../../../core/services/app_state_service.dart';
 
 class VenuesPage extends ConsumerStatefulWidget {
   @override
@@ -28,6 +29,11 @@ class _VenuesPageState extends ConsumerState<VenuesPage> {
     final filter = ref.watch(venueFilterProvider);
     final geocodingService = ref.read(geocodingProvider);
     CameraPosition? _searchedCameraPosition;
+
+    // Update navigation state when page is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(navigationStateProvider.notifier).updateCurrentRoute('/venues');
+    });
     return MainScaffold(
       currentIndex: 0,
       userId: userId,
