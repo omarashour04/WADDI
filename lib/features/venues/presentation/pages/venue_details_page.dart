@@ -315,7 +315,7 @@ class VenueDetailsPage extends ConsumerWidget {
                         ElevatedButton(
                           onPressed: () {
                             Navigator.of(context).pop();
-                            context.go('/login');
+                            context.push('/login');
                           },
                           child: const Text('Login'),
                         ),

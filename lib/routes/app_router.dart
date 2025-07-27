@@ -42,8 +42,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         return null;
       }
 
-      // If user is authenticated and trying to access auth pages, redirect to home
+      // If user is authenticated (but not guest) and trying to access auth pages, redirect to home
       if (authState.status == AuthStatus.authenticated &&
+          !authState.isGuestUser &&
           (state.matchedLocation == '/login' ||
               state.matchedLocation == '/register' ||
               state.matchedLocation == '/reset-password')) {

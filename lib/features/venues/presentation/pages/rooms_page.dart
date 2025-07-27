@@ -125,7 +125,7 @@ class _RoomsPageState extends ConsumerState<RoomsPage> {
                           ElevatedButton(
                             onPressed: () {
                               Navigator.of(context).pop();
-                              context.go('/login');
+                              context.push('/login');
                             },
                             child: const Text('Login'),
                           ),
