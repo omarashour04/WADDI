@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:waddi_platform/shared/themes/app_colors.dart';
 import 'package:waddi_platform/features/auth/presentation/providers/auth_provider.dart';
 
@@ -265,13 +266,44 @@ class BookingConfirmationPage extends ConsumerWidget {
   }
 
   void _addToCalendar(BuildContext context) {
-    // Show a snackbar for now - in a real app, this would integrate with calendar APIs
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Calendar integration coming soon!'),
-        duration: Duration(seconds: 2),
-      ),
+    // Create calendar event details
+    final startTime = bookingDate;
+    final endTime = bookingDate.add(Duration(hours: durationHours));
+
+    // Format dates for calendar
+    final startDate =
+        '${startTime.year}${startTime.month.toString().padLeft(2, '0')}${startTime.day.toString().padLeft(2, '0')}T${startTime.hour.toString().padLeft(2, '0')}${startTime.minute.toString().padLeft(2, '0')}00';
+    final endDate =
+        '${endTime.year}${endTime.month.toString().padLeft(2, '0')}${endTime.day.toString().padLeft(2, '0')}T${endTime.hour.toString().padLeft(2, '0')}${endTime.minute.toString().padLeft(2, '0')}00';
+
+    // Create calendar URL
+    final eventTitle = Uri.encodeComponent('Gaming Session - $roomName at $venueName');
+    final eventDetails = Uri.encodeComponent(
+      'Gaming session at $venueName\nRoom: $roomName\nDuration: ${durationHours} hours\nTotal: $totalPrice EGP',
     );
+    final location = Uri.encodeComponent(venueName);
+
+    final calendarUrl =
+        'https://calendar.google.com/calendar/render?action=TEMPLATE&text=$eventTitle&details=$eventDetails&location=$location&dates=$startDate/$endDate';
+
+    // Launch calendar URL
+    _launchCalendarUrl(context, calendarUrl);
+  }
+
+  Future<void> _launchCalendarUrl(BuildContext context, String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open calendar app.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 }
 

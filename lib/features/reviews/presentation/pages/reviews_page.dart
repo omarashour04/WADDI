@@ -79,7 +79,50 @@ class _ReviewCard extends StatelessWidget {
           ),
           trailing: review.response != null ? Icon(Icons.reply, color: Colors.green) : null,
           onTap: () {
-            // TODO: Show review details or response
+            // Show review details dialog
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: Text('Review Details'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text('Rating: '),
+                        ...List.generate(
+                          5,
+                          (index) => Icon(
+                            index < review.rating ? Icons.star : Icons.star_border,
+                            color: Colors.amber,
+                            size: 20,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text('Comment:'),
+                    const SizedBox(height: 4),
+                    Text(review.comment),
+                    if (review.response != null) ...[
+                      const SizedBox(height: 16),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      Text('Venue Response:', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      Text(review.response!),
+                    ],
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Close'),
+                  ),
+                ],
+              ),
+            );
           },
         ),
       ),
@@ -100,7 +143,10 @@ class _EmptyState extends StatelessWidget {
         children: [
           Icon(Icons.rate_review, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 16),
-          Text(message, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.grey[600])),
+          Text(
+            message,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
+          ),
           if (onAction != null && actionLabel != null)
             Padding(
               padding: const EdgeInsets.only(top: 16.0),
@@ -128,7 +174,10 @@ class _ErrorState extends StatelessWidget {
         children: [
           Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
           const SizedBox(height: 16),
-          Text(message, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.red[700])),
+          Text(
+            message,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.red[700]),
+          ),
           if (onRetry != null)
             Padding(
               padding: const EdgeInsets.only(top: 16.0),
@@ -178,10 +227,7 @@ class _NewReviewDialogState extends State<_NewReviewDialog> {
         ],
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
         ElevatedButton(
           onPressed: () async {
             await FirebaseFirestore.instance.collection('reviews').add({
@@ -191,9 +237,9 @@ class _NewReviewDialogState extends State<_NewReviewDialog> {
               'comment': _commentController.text.trim(),
               'createdAt': FieldValue.serverTimestamp(),
             });
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Review submitted!')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('Review submitted!')));
             Navigator.of(context).pop();
           },
           child: const Text('Submit'),
@@ -201,4 +247,4 @@ class _NewReviewDialogState extends State<_NewReviewDialog> {
       ],
     );
   }
-} 
+}

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:waddi_platform/shared/themes/app_colors.dart';
 import 'package:waddi_platform/features/auth/presentation/providers/auth_provider.dart';
 import 'package:waddi_platform/features/bookings/domain/entities/booking_entity.dart';
@@ -122,7 +124,7 @@ class _BookingDetailsContent extends ConsumerWidget {
             const SizedBox(height: 32),
 
             // Action Buttons
-            _buildActionButtons(context),
+            _buildActionButtons(context, ref),
           ],
         ),
       ),
@@ -368,7 +370,7 @@ class _BookingDetailsContent extends ConsumerWidget {
     );
   }
 
-  Widget _buildActionButtons(BuildContext context) {
+  Widget _buildActionButtons(BuildContext context, WidgetRef ref) {
     return Column(
       children: [
         // Contact Venue Button
@@ -377,12 +379,62 @@ class _BookingDetailsContent extends ConsumerWidget {
           child: ElevatedButton(
             onPressed: () {
               // Contact venue functionality
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Contact venue functionality coming soon!'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
+              ref
+                  .read(venueProvider(booking.venueId))
+                  .when(
+                    data: (venue) {
+                      if (venue?.contactPhone != null && venue!.contactPhone!.isNotEmpty) {
+                        // Show contact options dialog
+                        showDialog(
+                          context: context,
+                          builder: (dialogContext) => AlertDialog(
+                            title: const Text('Contact Venue'),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Venue: ${venue.name}'),
+                                const SizedBox(height: 8),
+                                Text('Phone: ${venue.contactPhone}'),
+                                if (venue.contactEmail != null && venue.contactEmail!.isNotEmpty)
+                                  Text('Email: ${venue.contactEmail}'),
+                              ],
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(dialogContext).pop(),
+                                child: const Text('Close'),
+                              ),
+                              ElevatedButton(
+                                onPressed: () {
+                                  Navigator.of(dialogContext).pop();
+                                  // Launch phone call
+                                  _launchPhoneCall(context, venue.contactPhone!);
+                                },
+                                child: const Text('Call'),
+                              ),
+                            ],
+                          ),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Contact information not available for this venue.'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    },
+                    loading: () => ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(const SnackBar(content: Text('Loading venue information...'))),
+                    error: (_, __) => ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Unable to load venue contact information.'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    ),
+                  );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.secondary,
@@ -405,12 +457,32 @@ class _BookingDetailsContent extends ConsumerWidget {
           child: OutlinedButton(
             onPressed: () {
               // Get directions functionality
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Directions functionality coming soon!'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
+              ref
+                  .read(venueProvider(booking.venueId))
+                  .when(
+                    data: (venue) {
+                      if (venue?.address != null && venue!.address!.isNotEmpty) {
+                        // Launch maps with venue address
+                        _launchDirections(context, venue.address!);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Address not available for this venue.'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    },
+                    loading: () => ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(const SnackBar(content: Text('Loading venue information...'))),
+                    error: (_, __) => ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Unable to load venue address.'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    ),
+                  );
             },
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.textPrimary,
@@ -433,10 +505,42 @@ class _BookingDetailsContent extends ConsumerWidget {
           child: OutlinedButton(
             onPressed: () {
               // Manage booking functionality
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Manage booking functionality coming soon!'),
-                  duration: Duration(seconds: 2),
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Manage Booking'),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Booking ID: ${booking.id}'),
+                      const SizedBox(height: 8),
+                      Text('Status: ${booking.bookingStatus}'),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Date: ${_formatDateTime(booking.startTime.toDate(), booking.durationHours)}',
+                      ),
+                      const SizedBox(height: 16),
+                      const Text('What would you like to do?'),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        _cancelBooking(context, booking.id);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Cancel Booking'),
+                    ),
+                  ],
                 ),
               );
             },
@@ -472,5 +576,102 @@ class _BookingDetailsContent extends ConsumerWidget {
       'December',
     ];
     return months[month - 1];
+  }
+
+  Future<void> _launchPhoneCall(BuildContext context, String phoneNumber) async {
+    final uri = Uri.parse('tel:$phoneNumber');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not launch phone app.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _launchDirections(BuildContext context, String address) async {
+    final encodedAddress = Uri.encodeComponent(address);
+    final uri = Uri.parse('https://maps.google.com/maps?q=$encodedAddress');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not launch maps app.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  String _formatDateTime(DateTime date, int durationHours) {
+    final startTime = date;
+    final endTime = date.add(Duration(hours: durationHours));
+
+    final dateFormat = '${_getMonthName(startTime.month)} ${startTime.day}, ${startTime.year}';
+    final startTimeFormat =
+        '${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}';
+    final endTimeFormat =
+        '${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}';
+
+    return '$dateFormat, $startTimeFormat - $endTimeFormat';
+  }
+
+  Future<void> _cancelBooking(BuildContext context, String bookingId) async {
+    try {
+      // Show confirmation dialog
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Cancel Booking'),
+          content: const Text(
+            'Are you sure you want to cancel this booking? This action cannot be undone.',
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('No')),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Yes, Cancel'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm == true) {
+        // Update booking status in Firestore
+        await FirebaseFirestore.instance.collection('bookings').doc(bookingId).update({
+          'bookingStatus': 'cancelled',
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Booking cancelled successfully.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          // Navigate back to bookings page
+          context.pop();
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error cancelling booking: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 }
