@@ -31,10 +31,10 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
         child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
+          children: [
                 Align(
                   alignment: Alignment.centerLeft,
                   child: IconButton(
@@ -61,8 +61,8 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
-                TextField(
-                  controller: _emailController,
+            TextField(
+              controller: _emailController,
                   style: const TextStyle(fontFamily: null),
                   decoration: InputDecoration(
                     filled: true,
@@ -74,9 +74,9 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                       borderSide: BorderSide.none,
                     ),
                   ),
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 24),
+              keyboardType: TextInputType.emailAddress,
+            ),
+            const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -92,29 +92,29 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                       ),
                       elevation: 0,
                     ),
-                    onPressed: () async {
-                      final email = _emailController.text.trim();
-                      await authNotifier.resetPassword(email);
-                      setState(() {
-                        _feedback = 'Password reset email sent (if account exists).';
-                      });
-                    },
-                    child: const Text('Send Reset Email'),
+              onPressed: () async {
+                final email = _emailController.text.trim();
+                await authNotifier.resetPassword(email);
+                setState(() {
+                  _feedback = 'Password reset email sent (if account exists).';
+                });
+              },
+              child: const Text('Send Reset Email'),
                   ),
-                ),
-                if (_feedback != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16.0),
+            ),
+            if (_feedback != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 16.0),
                     child: Text(
                       _feedback!,
                       style: const TextStyle(color: Colors.green, fontFamily: null),
                     ),
-                  ),
-              ],
+              ),
+          ],
             ),
           ),
         ),
       ),
     );
   }
-}
+} 

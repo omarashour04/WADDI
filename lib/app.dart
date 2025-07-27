@@ -18,8 +18,8 @@ class WaddiApp extends ConsumerWidget {
     final navigationState = ref.watch(navigationStateProvider);
 
     // Initialize navigation state on app start
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(navigationStateProvider.notifier).loadSavedState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await ref.read(navigationStateProvider.notifier).loadSavedState();
     });
 
     return AppBackButtonHandler(

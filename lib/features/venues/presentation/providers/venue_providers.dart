@@ -19,7 +19,7 @@ final allVenuesProvider = FutureProvider<List<VenueEntity>>((ref) async {
       return _venuesCache[cacheKey]!;
     }
 
-    final repo = ref.watch(venueRepositoryProvider);
+  final repo = ref.watch(venueRepositoryProvider);
     final venues = await repo.getAllVenues();
     _venuesCache[cacheKey] = venues;
     return venues;
@@ -32,8 +32,8 @@ final allVenuesProvider = FutureProvider<List<VenueEntity>>((ref) async {
 
 final venueProvider = FutureProvider.family<VenueEntity?, String>((ref, id) async {
   try {
-    final repo = ref.watch(venueRepositoryProvider);
-    return repo.getVenueById(id);
+  final repo = ref.watch(venueRepositoryProvider);
+  return repo.getVenueById(id);
   } catch (e, stackTrace) {
     print('Error loading venue $id: $e');
     print('Stack trace: $stackTrace');
@@ -43,8 +43,8 @@ final venueProvider = FutureProvider.family<VenueEntity?, String>((ref, id) asyn
 
 final roomsForVenueProvider = FutureProvider.family<List<RoomEntity>, String>((ref, venueId) async {
   try {
-    final repo = ref.watch(venueRepositoryProvider);
-    return repo.getRoomsForVenue(venueId);
+  final repo = ref.watch(venueRepositoryProvider);
+  return repo.getRoomsForVenue(venueId);
   } catch (e, stackTrace) {
     print('Error loading rooms for venue $venueId: $e');
     print('Stack trace: $stackTrace');
@@ -70,9 +70,9 @@ final venueFilterProvider = StateProvider<VenueFilter>((ref) => VenueFilter());
 // Optimized filtered venues provider with caching
 final filteredVenuesProvider = FutureProvider<List<VenueEntity>>((ref) async {
   try {
-    final repo = ref.watch(venueRepositoryProvider);
-    final query = ref.watch(venueSearchQueryProvider);
-    final filter = ref.watch(venueFilterProvider);
+  final repo = ref.watch(venueRepositoryProvider);
+  final query = ref.watch(venueSearchQueryProvider);
+  final filter = ref.watch(venueFilterProvider);
 
     // Create cache key based on query and filter
     final cacheKey = '${query}_${filter.hashCode}';

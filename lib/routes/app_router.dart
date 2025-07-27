@@ -63,7 +63,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     debugLogDiagnostics: true,
     redirect: (context, state) async {
       final authState = ref.watch(authProvider);
-      final navigationState = ref.watch(navigationStateProvider);
 
       print(
         'Router redirect - Location: ${state.matchedLocation}, Auth Status: ${authState.status}, Loading: ${authState.isLoading}',
@@ -75,20 +74,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         return null;
       }
 
-      // Check if we should restore saved state
-      if (state.matchedLocation == '/' && authState.status != AuthStatus.loading) {
-        final wasActive = await AppStateService.wasRecentlyActive();
-        if (wasActive) {
-          final savedState = await AppStateService.getSavedState();
-          final savedRoute = savedState['currentRoute'];
-
-          // Validate the saved route is accessible
-          if (_isValidRoute(savedRoute, authState)) {
-            print('Restoring saved state to: $savedRoute');
-            return savedRoute;
-          }
-        }
-      }
+      // TODO: Implement state restoration in a separate method to avoid conflicts
 
       print(
         'Router redirect - Location: ${state.matchedLocation}, Auth Status: ${authState.status}, Loading: ${authState.isLoading}',
@@ -138,6 +124,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       // If at root and not authenticated, redirect to venues (allow guest access)
       if (state.matchedLocation == '/' && authState.status == AuthStatus.unauthenticated) {
         print('Unauthenticated user at root, redirecting to venues (guest access)');
+        return '/venues';
+      }
+
+      // If at root and authenticated, redirect to venues
+      if (state.matchedLocation == '/' && authState.status == AuthStatus.authenticated) {
+        print('Authenticated user at root, redirecting to venues');
         return '/venues';
       }
 

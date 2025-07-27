@@ -19,7 +19,7 @@ class VenueRepositoryImpl implements VenueRepository {
   Future<List<VenueEntity>> getAllVenues() async {
     try {
       print('Fetching all venues from Firestore...');
-      final snapshot = await firestore.collection('venues').get();
+    final snapshot = await firestore.collection('venues').get();
       print('Found ${snapshot.docs.length} venues');
       final venues = snapshot.docs.map((doc) => VenueEntity.fromMap(doc.data(), doc.id)).toList();
       print('Successfully loaded ${venues.length} venues');
@@ -129,11 +129,11 @@ class VenueRepositoryImpl implements VenueRepository {
       venues = venues
           .where(
             (venue) =>
-                venue.name.toLowerCase().contains(query.toLowerCase()) ||
+        venue.name.toLowerCase().contains(query.toLowerCase()) ||
                 venue.address.toLowerCase().contains(query.toLowerCase()),
           )
           .toList();
     }
     return venues;
   }
-}
+} 
