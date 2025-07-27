@@ -107,7 +107,35 @@ class _RoomsPageState extends ConsumerState<RoomsPage> {
               ),
               child: ElevatedButton(
                 onPressed: () {
-                  // Navigate to booking flow
+                  // Check if user is a guest user
+                  if (authState.isGuestUser) {
+                    // Show dialog to redirect to login
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Login Required'),
+                        content: const Text(
+                          'Guest users cannot make bookings. Please log in to continue.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('Cancel'),
+                          ),
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                              context.go('/login');
+                            },
+                            child: const Text('Login'),
+                          ),
+                        ],
+                      ),
+                    );
+                    return;
+                  }
+
+                  // Navigate to booking flow for authenticated users
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) => BookingFlowPage(

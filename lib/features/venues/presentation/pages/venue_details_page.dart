@@ -7,6 +7,7 @@ import '../../../reviews/presentation/providers/review_providers.dart';
 import '../../../reviews/domain/entities/review_entity.dart';
 import 'package:go_router/go_router.dart';
 import 'package:waddi_platform/shared/themes/app_colors.dart';
+import 'package:waddi_platform/features/auth/presentation/providers/auth_provider.dart';
 
 class VenueDetailsPage extends ConsumerWidget {
   final String venueId;
@@ -295,6 +296,36 @@ class VenueDetailsPage extends ConsumerWidget {
             ),
             child: ElevatedButton(
               onPressed: () {
+                // Check if user is a guest user
+                final authState = ref.watch(authProvider);
+                if (authState.isGuestUser) {
+                  // Show dialog to redirect to login
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Login Required'),
+                      content: const Text(
+                        'Guest users cannot make bookings. Please log in to continue.',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Cancel'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            context.go('/login');
+                          },
+                          child: const Text('Login'),
+                        ),
+                      ],
+                    ),
+                  );
+                  return;
+                }
+
+                // Navigate to rooms page for authenticated users
                 context.go('/venues/$venueId/rooms');
               },
               style: ElevatedButton.styleFrom(

@@ -26,6 +26,9 @@ class AuthState {
 
   bool get isLoading => status == AuthStatus.loading;
   String? get error => errorMessage;
+
+  // Check if the current user is a guest user
+  bool get isGuestUser => user?.email.isEmpty == true || user?.name == 'Guest';
 }
 
 // Notifier that holds and manages the authentication state

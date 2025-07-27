@@ -5,6 +5,7 @@ import '../../domain/entities/booking_entity.dart';
 import '../../domain/entities/time_slot_entity.dart';
 import '../providers/booking_providers.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:waddi_platform/features/auth/presentation/providers/auth_provider.dart';
 
 class BookingFlowPage extends ConsumerStatefulWidget {
   final String venueId;
@@ -63,6 +64,35 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
   @override
   Widget build(BuildContext context) {
     final checkAvailability = ref.watch(checkRoomAvailabilityProvider);
+    final authState = ref.watch(authProvider);
+
+    // Check if user is a guest user and redirect to login
+    if (authState.isGuestUser) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: const Text('Login Required'),
+            content: const Text('Guest users cannot make bookings. Please log in to continue.'),
+            actions: [
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  context.go('/login');
+                },
+                child: const Text('Login'),
+              ),
+            ],
+          ),
+        );
+      });
+      return Scaffold(
+        appBar: AppBar(title: const Text('Book Room')),
+        body: const Center(child: Text('Redirecting to login...')),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(title: const Text('Book Room')),
       body: SingleChildScrollView(
