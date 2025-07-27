@@ -5,6 +5,7 @@ import 'package:waddi_platform/routes/app_router.dart';
 import 'package:waddi_platform/shared/themes/app_theme.dart';
 import 'package:waddi_platform/l10n/app_localizations.dart';
 import 'package:waddi_platform/shared/widgets/main_scaffold.dart';
+import 'package:waddi_platform/shared/widgets/app_back_button_handler.dart';
 
 class WaddiApp extends ConsumerWidget {
   const WaddiApp({Key? key}) : super(key: key);
@@ -14,21 +15,23 @@ class WaddiApp extends ConsumerWidget {
     final goRouter = ref.watch(goRouterProvider);
     final currentTheme = ref.watch(themeProvider);
 
-    return MaterialApp.router(
-      title: 'WADDI Platform',
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: currentTheme,
-      routerConfig: goRouter,
-      debugShowCheckedModeBanner: false,
-      // Localization setup
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: AppLocalizations.supportedLocales,
+    return AppBackButtonHandler(
+      child: MaterialApp.router(
+        title: 'WADDI Platform',
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: currentTheme,
+        routerConfig: goRouter,
+        debugShowCheckedModeBanner: false,
+        // Localization setup
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+      ),
     );
   }
 }

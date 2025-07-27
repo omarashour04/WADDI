@@ -29,6 +29,7 @@ import '../features/bookings/presentation/pages/booking_details_page.dart';
 final goRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/',
+    debugLogDiagnostics: true,
     redirect: (context, state) {
       final authState = ref.watch(authProvider);
 
@@ -86,6 +87,28 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       print('No redirect needed');
       return null;
     },
+    errorBuilder: (context, state) => Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 64, color: Colors.red[400]),
+            const SizedBox(height: 16),
+            Text(
+              'Page not found',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.red[600]),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'The page you are looking for does not exist.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(onPressed: () => context.go('/venues'), child: const Text('Go to Home')),
+          ],
+        ),
+      ),
+    ),
     routes: [
       // Root route for loading state
       GoRoute(
