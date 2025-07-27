@@ -28,7 +28,11 @@ class AuthState {
   String? get error => errorMessage;
 
   // Check if the current user is a guest user
-  bool get isGuestUser => user?.email.isEmpty == true || user?.name == 'Guest';
+  bool get isGuestUser {
+    if (user == null) return false;
+    // Check if user has guest role, empty email, or name is 'Guest'
+    return user!.role == 'guest' || user!.email.isEmpty || user!.name == 'Guest';
+  }
 }
 
 // Notifier that holds and manages the authentication state
@@ -53,6 +57,23 @@ class AuthNotifier extends StateNotifier<AuthState> {
       print('Firebase current user: ${firebaseUser?.uid ?? 'null'}');
 
       if (firebaseUser != null) {
+        // Check if this is a guest user (anonymous user)
+        if (firebaseUser.isAnonymous) {
+          print('Guest user detected, creating guest user entity');
+          // Create a guest user entity but keep them authenticated
+          final guestUser = UserEntity(
+            id: firebaseUser.uid,
+            name: 'Guest',
+            email: '',
+            phoneNumber: '',
+            role: 'guest',
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now(),
+          );
+          state = state.copyWith(status: AuthStatus.authenticated, user: guestUser);
+          return;
+        }
+
         // User is already signed in, fetch user data from Firestore
         print('User found, fetching from Firestore...');
         final userDoc = await FirebaseFirestore.instance
@@ -187,17 +208,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final repo = _loginUser.repository as AuthRepository;
       final user = await repo.signInAnonymously();
       if (user != null) {
-        final userDoc = FirebaseFirestore.instance.collection('users').doc(user.id);
-        final docSnapshot = await userDoc.get();
-        if (!docSnapshot.exists) {
-          await saveUserToFirestore(
-            uid: user.id,
-            email: user.email,
-            name: user.name,
-            phoneNumber: null,
-          );
-        }
-        state = state.copyWith(status: AuthStatus.authenticated, user: user);
+        // Create a guest user entity (no Firestore save)
+        final guestUser = UserEntity(
+          id: user.id,
+          name: 'Guest',
+          email: '',
+          phoneNumber: '',
+          role: 'guest',
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+        );
+        print('Guest user signed in anonymously, creating guest entity');
+        state = state.copyWith(status: AuthStatus.authenticated, user: guestUser);
       } else {
         state = state.copyWith(status: AuthStatus.error, errorMessage: 'Anonymous sign-in failed');
       }

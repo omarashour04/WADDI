@@ -51,12 +51,21 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         return '/venues';
       }
 
+      // Define protected pages that require authentication
+      final protectedPages = [
+        '/profile',
+        '/bookings',
+        '/booking-details',
+        '/booking-confirmation',
+        '/users',
+        '/reviews',
+        '/support',
+        '/admin',
+      ];
+
       // If user is not authenticated and trying to access protected pages, redirect to login
       if (authState.status == AuthStatus.unauthenticated &&
-          state.matchedLocation != '/login' &&
-          state.matchedLocation != '/register' &&
-          state.matchedLocation != '/reset-password' &&
-          state.matchedLocation != '/') {
+          protectedPages.any((page) => state.matchedLocation.startsWith(page))) {
         print('Unauthenticated user accessing protected page, redirecting to login');
         return '/login';
       }
@@ -67,10 +76,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         return '/venues';
       }
 
-      // If at root and not authenticated, redirect to login
+      // If at root and not authenticated, redirect to venues (allow guest access)
       if (state.matchedLocation == '/' && authState.status == AuthStatus.unauthenticated) {
-        print('Unauthenticated user at root, redirecting to login');
-        return '/login';
+        print('Unauthenticated user at root, redirecting to venues (guest access)');
+        return '/venues';
       }
 
       print('No redirect needed');
