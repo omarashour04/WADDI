@@ -44,22 +44,22 @@ final bookingsForVenueProvider = FutureProvider.family<List<BookingEntity>, Stri
 
 final bookingsForRoomOnDateProvider =
     StreamProvider.family<List<BookingEntity>, Map<String, dynamic>>((ref, params) {
-      final repo = ref.watch(bookingRepositoryProvider);
-      final roomId = params['roomId'] as String;
-      final date = params['date'] as DateTime;
-      final startOfDay = Timestamp.fromDate(DateTime(date.year, date.month, date.day, 0, 0));
-      final endOfDay = Timestamp.fromDate(DateTime(date.year, date.month, date.day, 23, 59, 59));
-      return FirebaseFirestore.instance
-          .collection('bookings')
-          .where('roomId', isEqualTo: roomId)
-          .where('startTime', isLessThanOrEqualTo: endOfDay)
-          .where('endTime', isGreaterThanOrEqualTo: startOfDay)
-          .snapshots()
+  final repo = ref.watch(bookingRepositoryProvider);
+  final roomId = params['roomId'] as String;
+  final date = params['date'] as DateTime;
+  final startOfDay = Timestamp.fromDate(DateTime(date.year, date.month, date.day, 0, 0));
+  final endOfDay = Timestamp.fromDate(DateTime(date.year, date.month, date.day, 23, 59, 59));
+  return FirebaseFirestore.instance
+      .collection('bookings')
+      .where('roomId', isEqualTo: roomId)
+      .where('startTime', isLessThanOrEqualTo: endOfDay)
+      .where('endTime', isGreaterThanOrEqualTo: startOfDay)
+      .snapshots()
           .map(
             (snapshot) =>
                 snapshot.docs.map((doc) => BookingEntity.fromMap(doc.data(), doc.id)).toList(),
           );
-    });
+});
 
 // Optimized availability checker with caching
 final checkRoomAvailabilityProvider = Provider((ref) {

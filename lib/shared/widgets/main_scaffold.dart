@@ -26,14 +26,14 @@ class MainScaffold extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.textOnPrimary,
+        backgroundColor: currentTheme == ThemeMode.dark ? AppColors.primaryDark : AppColors.primary,
+        foregroundColor: currentTheme == ThemeMode.dark ? Colors.white : AppColors.textOnPrimary,
         elevation: 0,
         actions: [
           IconButton(
             icon: Icon(
               currentTheme == ThemeMode.dark ? Icons.light_mode : Icons.dark_mode,
-              color: AppColors.textOnPrimary,
+              color: currentTheme == ThemeMode.dark ? Colors.white : AppColors.textOnPrimary,
             ),
             onPressed: () {
               ref.read(themeProvider.notifier).state = currentTheme == ThemeMode.dark

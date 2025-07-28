@@ -2,6 +2,7 @@ import '../../domain/repositories/auth_repository.dart';
 import 'package:waddi_platform/features/users/domain/entities/user_entity.dart';
 import '../../data/datasources/auth_remote_datasource.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource _remoteDataSource = AuthRemoteDataSource();
@@ -79,5 +80,14 @@ class AuthRepositoryImpl implements AuthRepository {
       updatedAt: Timestamp.now(),
       points: 0,
     );
+  }
+
+  @override
+  Future<void> changePassword(String newPassword) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw Exception('No user is currently signed in.');
+    }
+    await user.updatePassword(newPassword);
   }
 }

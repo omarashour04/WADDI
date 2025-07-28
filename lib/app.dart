@@ -24,21 +24,21 @@ class WaddiApp extends ConsumerWidget {
 
     return AppBackButtonHandler(
       child: MaterialApp.router(
-        title: 'WADDI Platform',
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
+      title: 'WADDI Platform',
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
         themeMode: currentTheme,
-        routerConfig: goRouter,
-        debugShowCheckedModeBanner: false,
-        // Localization setup
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
+      routerConfig: goRouter,
+      debugShowCheckedModeBanner: false,
+      // Localization setup
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
       ),
     );
   }
-}
+} 

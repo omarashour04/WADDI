@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../features/auth/presentation/providers/auth_provider.dart';
-import '../core/services/app_state_service.dart';
+
+import '../shared/widgets/page_transitions.dart';
 // Auth pages
 import '../features/auth/presentation/pages/login_page.dart';
 import '../features/auth/presentation/pages/register_page.dart';
 import '../features/auth/presentation/pages/reset_password_page.dart';
+import '../features/auth/presentation/pages/change_password_page.dart';
 import '../features/profile/presentation/pages/profile_page.dart';
 // Core feature pages
 import '../features/venues/presentation/pages/venues_page.dart';
@@ -89,10 +91,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       // If user is authenticated (but not guest) and trying to access auth pages, redirect to home
       if (authState.status == AuthStatus.authenticated &&
           !authState.isGuestUser &&
-          (state.matchedLocation == '/login' ||
-              state.matchedLocation == '/register' ||
-              state.matchedLocation == '/reset-password')) {
-        print('Authenticated user accessing auth page, redirecting to venues');
+          (state.matchedLocation == '/login' || state.matchedLocation == '/register')) {
+        print('Authenticated user accessing login/register, redirecting to venues');
         return '/venues';
       }
 
@@ -174,6 +174,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
       GoRoute(path: '/register', builder: (context, state) => const RegisterPage()),
       GoRoute(path: '/reset-password', builder: (context, state) => const ResetPasswordPage()),
+      GoRoute(path: '/change-password', builder: (context, state) => const ChangePasswordPage()),
       GoRoute(path: '/profile', builder: (context, state) => ProfilePage()),
       GoRoute(path: '/venues', builder: (context, state) => VenuesPage()),
       GoRoute(

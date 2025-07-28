@@ -347,3 +347,4 @@ class _BookingDetailRow extends StatelessWidget {
     );
   }
 }
+ 

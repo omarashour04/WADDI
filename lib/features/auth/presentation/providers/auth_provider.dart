@@ -164,7 +164,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> logout() async {
     try {
       await FirebaseAuth.instance.signOut();
-      state = AuthState(status: AuthStatus.unauthenticated);
+    state = AuthState(status: AuthStatus.unauthenticated);
     } catch (e) {
       state = state.copyWith(status: AuthStatus.error, errorMessage: e.toString());
     }
@@ -225,6 +225,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
     } catch (e) {
       state = state.copyWith(status: AuthStatus.error, errorMessage: e.toString());
+    }
+  }
+
+  // Change password for the current user
+  Future<String?> changePassword(String newPassword) async {
+    try {
+      final repo = _loginUser.repository as AuthRepository;
+      await repo.changePassword(newPassword);
+      return null;
+    } catch (e) {
+      return e.toString();
     }
   }
 

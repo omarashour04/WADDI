@@ -10,6 +10,9 @@ import 'package:waddi_platform/features/venues/domain/entities/venue_entity.dart
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../shared/widgets/skeleton_loader.dart';
+import '../../../../shared/widgets/pull_to_refresh_wrapper.dart';
+import '../../../../shared/widgets/lottie_animations.dart';
 
 class SearchPage extends ConsumerStatefulWidget {
   @override
@@ -109,45 +112,40 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               ),
             ),
             Expanded(
-              child: venuesAsync.when(
-                data: (venues) {
-                  if (venues.isEmpty) {
-                    return _EmptyState(
-                      message: 'No venues found. Try adjusting your search or filters.',
-                      onClear:
-                          (ref.read(venueSearchQueryProvider) != '' ||
-                              ref.read(venueFilterProvider).minRating != null ||
-                              ref.read(venueFilterProvider).priceRange != null ||
-                              (ref.read(venueFilterProvider).amenities?.isNotEmpty ?? false) ||
-                              (ref.read(venueFilterProvider).gameTypes?.isNotEmpty ?? false))
-                          ? () {
-                              ref.read(venueSearchQueryProvider.notifier).state = '';
-                              ref.read(venueFilterProvider.notifier).state = VenueFilter();
-                            }
-                          : null,
-                    );
-                  }
-                  return isGrid
-                      ? GridView.builder(
-                          padding: const EdgeInsets.all(8),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            childAspectRatio: 1.2,
-                            crossAxisSpacing: 8,
-                            mainAxisSpacing: 8,
-                          ),
-                          itemCount: venues.length,
-                          itemBuilder: (context, i) => _VenueCard(venue: venues[i]),
-                        )
-                      : ListView.builder(
-                          itemCount: venues.length,
-                          itemBuilder: (context, i) => _VenueCard(venue: venues[i]),
-                        );
+              child: PullToRefreshWrapper(
+                onRefresh: () async {
+                  ref.invalidate(filteredVenuesProvider);
                 },
-                loading: () => _VenueSkeleton(isGrid: isGrid),
-                error: (e, st) => _ErrorState(
-                  message: 'Something went wrong. Please try again.',
-                  onRetry: () => ref.refresh(filteredVenuesProvider),
+                child: venuesAsync.when(
+                  data: (venues) {
+                    if (venues.isEmpty) {
+                      return LottieNoResultsAnimation(
+                        message: 'No venues found. Try adjusting your search or filters.',
+                        size: 150,
+                      );
+                    }
+                    return isGrid
+                        ? GridView.builder(
+                            padding: const EdgeInsets.all(8),
+                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              childAspectRatio: 1.2,
+                              crossAxisSpacing: 8,
+                              mainAxisSpacing: 8,
+                            ),
+                            itemCount: venues.length,
+                            itemBuilder: (context, i) => _VenueCard(venue: venues[i]),
+                          )
+                        : ListView.builder(
+                            itemCount: venues.length,
+                            itemBuilder: (context, i) => _VenueCard(venue: venues[i]),
+                          );
+                  },
+                  loading: () => _VenueSkeleton(isGrid: isGrid),
+                  error: (e, st) => LottieNetworkErrorAnimation(
+                    onRetry: () => ref.refresh(filteredVenuesProvider),
+                    size: 150,
+                  ),
                 ),
               ),
             ),
@@ -417,3 +415,4 @@ class _ErrorState extends StatelessWidget {
     );
   }
 }
+ 

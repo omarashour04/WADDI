@@ -27,13 +27,13 @@ A comprehensive, production-ready Flutter application for booking gaming venues 
 ## 🚀 Features
 
 ### 🏠 **Home Page (Venues Page)**
-- **Featured Venues Section**: Displays top venues with Firebase integration
+- **Featured Venues Section**: Displays top venues with dynamic image loading from Firebase Storage
 - **Search Bar**: Redirects to dedicated search page with query parameters
-- **Quick Access Sections**: "Book Now" and "Favorites" buttons
-- **Modern UI**: Gradient backgrounds, native fonts, consistent styling
-- **Responsive Layout**: Adapts to different screen sizes
-- **Loading States**: Skeleton loading for better UX
+- **Modern UI**: Responsive venue cards with aspect ratio images, gradient backgrounds
+- **Responsive Layout**: Adapts to different screen sizes with MediaQuery-based sizing
+- **Loading States**: Skeleton loading with shimmer effects for better UX
 - **Error Handling**: Graceful error states with retry functionality
+- **Theme Adaptation**: Text colors adapt to light/dark mode
 
 ### 🔍 **Search Page**
 - **Dedicated Search Functionality**: Full-featured search with real-time results
@@ -45,47 +45,51 @@ A comprehensive, production-ready Flutter application for booking gaming venues 
 - **Empty States**: Helpful messages when no results found
 
 ### 📅 **Booking System**
-- **Complete Booking Flow**: Step-by-step booking process
-- **Room Selection**: Visual room cards with images and descriptions
+- **Complete Booking Flow**: Step-by-step booking process with room selection
+- **Room Selection**: Visual room cards with local asset images and descriptions
 - **Date & Time Selection**: Intuitive date/time picker
 - **Duration Selection**: Flexible booking duration options
 - **Price Calculation**: Real-time price updates based on selections
-- **Booking Confirmation**: Success page with booking details
-- **Booking Details Page**: Comprehensive booking information
-- **Booking History**: Complete booking management
-- **Cancellation Policy**: Clear cancellation terms
+- **Booking Confirmation**: Success page with booking details and action buttons
+- **Booking Details Page**: Comprehensive booking information with venue/room details
+- **Booking History**: Complete booking management with navigation to details
+- **Cancellation Policy**: Clear cancellation terms with Firestore updates
+- **Calendar Integration**: Add bookings to Google Calendar via URL launcher
 
 ### 👤 **User Management**
-- **Firebase Authentication**: Secure user authentication
-- **Email/Password Login**: Traditional authentication method
-- **Google Sign-In**: OAuth integration for quick access
-- **Guest Mode**: Anonymous authentication for non-registered users
+- **Firebase Authentication**: Secure user authentication with email/password
+- **Guest Mode**: Anonymous authentication for non-registered users with browsing limitations
 - **User Registration**: Complete registration flow with validation
-- **Password Reset**: Secure password recovery system
-- **Profile Management**: User profile editing and management
-- **Support Tickets**: Integrated support system
+- **Password Reset**: Secure password recovery system accessible to authenticated users
+- **Change Password**: Functional password change with Firebase Auth integration
+- **Profile Management**: Modern profile page with account options and support tickets
+- **Support Tickets**: Integrated support system with ticket management
 - **Session Persistence**: Automatic login state restoration
+- **Guest Limitations**: Guest users can browse but cannot book or access profile
 
 ### 🎯 **Venue Management**
-- **Venue Details**: Comprehensive venue information
-- **Image Galleries**: Multiple venue images with carousel
+- **Venue Details**: Comprehensive venue information with dynamic image loading
+- **Image Galleries**: Multiple venue images with Firebase Storage integration
 - **Amenities Display**: Visual amenities with icons
-- **Room Selection**: Interactive room selection interface
+- **Room Selection**: Interactive room selection interface with visual cards
 - **Real-Time Availability**: Live availability checking
 - **Review System**: User reviews and ratings
 - **Venue Owner Features**: Special features for venue owners
 - **Room Management**: CRUD operations for rooms
+- **Contact Integration**: Phone calls and email via URL launcher
+- **Directions**: Google Maps integration for venue directions
 
 ### 🎨 **UI/UX Features**
-- **Light/Dark Mode**: Theme toggle with persistent state
-- **Responsive Design**: Adapts to all screen sizes
+- **Light/Dark Mode**: Theme toggle with persistent state, dark grey/black colors
+- **Responsive Design**: Adapts to all screen sizes with MediaQuery
 - **Native Phone Fonts**: Uses device's native font family
 - **Consistent Theming**: Unified design system across all pages
 - **Bottom Navigation**: Persistent navigation bar
-- **Loading Animations**: Smooth loading states and transitions
+- **Loading Animations**: Smooth loading states with skeleton loaders
 - **Error States**: User-friendly error messages
 - **Accessibility**: Screen reader support and accessibility features
 - **Animations**: Smooth page transitions and micro-interactions
+- **Global Back Button**: Native Android back button/swipe gesture handling
 
 ### 💳 **Payment System**
 - **PayMob Integration**: Secure payment processing
@@ -107,6 +111,13 @@ A comprehensive, production-ready Flutter application for booking gaming venues 
 - **Venue Performance**: Venue-specific analytics
 - **Revenue Tracking**: Financial reporting and analytics
 - **Admin Dashboard**: Comprehensive admin interface
+- **Crashlytics**: Firebase Crashlytics for error reporting
+
+### 🆘 **Support System**
+- **Help Center**: Dedicated help center page with placeholder actions
+- **Support Tickets**: Ticket management system
+- **FAQ Page**: Frequently asked questions
+- **Contact Form**: Direct contact with support team
 
 ## 🏗️ Architecture
 
@@ -164,14 +175,16 @@ Each feature is self-contained with its own:
 - **Deep Linking**: URL-based navigation
 - **Route Guards**: Authentication-based routing
 - **Query Parameters**: Dynamic route parameters
+- **Global Back Button**: Native Android back button handling
 
 ### **Backend Services**
 - **Firebase Core**: Firebase initialization
-- **Firebase Auth**: User authentication
+- **Firebase Auth**: User authentication with password change
 - **Cloud Firestore**: NoSQL database
-- **Firebase Storage**: File storage
+- **Firebase Storage**: File storage for venue/room images
 - **Firebase App Check**: Security
 - **Firebase Messaging**: Push notifications
+- **Firebase Crashlytics**: Error reporting
 - **Cloud Functions**: Serverless functions
 
 ### **Development Tools**
@@ -180,6 +193,7 @@ Each feature is self-contained with its own:
 - **Flutter CLI**: Command-line tools
 - **Dart DevTools**: Debugging and profiling
 - **Git**: Version control
+- **Flutter Launcher Icons**: App icon generation
 
 ### **Testing Framework**
 - **Flutter Test**: Widget testing
@@ -191,14 +205,16 @@ Each feature is self-contained with its own:
 - **Shimmer**: Loading effects
 - **Caching**: Data caching strategies
 - **Performance Profiling**: Memory and CPU monitoring
-- **Error Tracking**: Crash reporting
+- **Error Tracking**: Crash reporting with Crashlytics
 
 ### **UI/UX Libraries**
 - **Google Maps Flutter**: Map integration
 - **Image Picker**: Image selection
-- **URL Launcher**: External link handling
+- **URL Launcher**: External link handling (phone, maps, calendar)
 - **Shared Preferences**: Local storage
 - **HTTP**: Network requests
+- **Lottie**: Animated loading states
+- **Pull to Refresh**: Custom refresh functionality
 
 ## 📱 Screenshots & UI Walkthrough
 
@@ -206,30 +222,33 @@ Each feature is self-contained with its own:
 - **Login Page**: Gradient background with native fonts, email/password fields, Google Sign-In, "Continue as Guest" option
 - **Registration Page**: Unified styling with password confirmation, terms acceptance
 - **Password Reset**: Email-based password recovery with confirmation
-- **Guest Mode**: Anonymous authentication for quick access
+- **Change Password**: Functional password change with validation and Firebase integration
+- **Guest Mode**: Anonymous authentication for quick access with browsing limitations
 
 ### 🏠 Main Application Pages
-- **Home Page (Venues)**: Featured venues carousel, search bar, quick access buttons, modern gradient design
+- **Home Page (Venues)**: Featured venues carousel with responsive cards, search bar, modern gradient design
 - **Search Page**: Full-screen search with filters, real-time results, location search
 - **Bookings Page**: Booking history with status indicators, booking details access
-- **Profile Page**: User information, account options, support tickets, theme toggle
+- **Profile Page**: Modern user information, account options, support tickets, theme toggle
 
 ### 📅 Booking Flow
-- **Venue Details**: Comprehensive venue information with image gallery, amenities, reviews
-- **Room Selection**: Visual room cards with images, descriptions, pricing, selection interface
+- **Venue Details**: Comprehensive venue information with dynamic image loading, amenities, reviews
+- **Room Selection**: Visual room cards with local asset images, descriptions, pricing, selection interface
 - **Booking Flow**: Date/time picker, duration selection, price calculation, payment integration
-- **Booking Confirmation**: Success page with booking details, action buttons
-- **Booking Details**: Complete booking information with venue, room, timing, status
+- **Booking Confirmation**: Success page with booking details, action buttons (View Booking, Add to Calendar)
+- **Booking Details**: Complete booking information with venue, room, timing, status, management options
 
 ### 🎨 Design Elements
 - **Color Scheme**: Teal primary (#00838F), blue secondary (#1976D2), green tertiary (#4CAF50)
+- **Dark Mode**: Dark grey (#181818) and black (#121212) colors, no blue
 - **Typography**: Native phone fonts with consistent sizing
 - **Components**: Custom buttons, input fields, cards with shadows
 - **Animations**: Smooth transitions, loading states, micro-interactions
 - **Responsive Design**: Adapts to all screen sizes and orientations
+- **App Icon**: Custom app icon from assets/icons/logo.png
 
 ### 📱 Platform-Specific Features
-- **Android**: Material Design 3 components, adaptive icons
+- **Android**: Material Design 3 components, adaptive icons, native back button handling
 - **iOS**: Cupertino-style elements, native iOS feel
 - **Web**: Responsive web design with desktop optimization
 
@@ -281,6 +300,9 @@ flutter pub get
 
 # Generate code (if using code generation)
 flutter packages pub run build_runner build
+
+# Generate app icons
+flutter pub run flutter_launcher_icons:main
 
 # Verify project setup
 flutter analyze
@@ -345,9 +367,12 @@ flutter test
 #### **Post-Run Verification**
 - ✅ App launches without errors
 - ✅ Firebase connection established
-- ✅ Authentication working
-- ✅ Navigation functional
-- ✅ Data loading properly
+- ✅ Authentication working (including guest mode)
+- ✅ Navigation functional with global back button handling
+- ✅ Data loading properly with dynamic images
+- ✅ Dark mode working with proper colors
+- ✅ Change password functionality working
+- ✅ Booking flow complete with confirmation and details pages
 
 ## 📁 Project Structure
 
@@ -372,7 +397,7 @@ waddi_platform/
 ### **Core Application Structure**
 ```
 lib/
-├── main.dart                 # Application entry point
+├── main.dart                 # Application entry point with Crashlytics
 ├── app.dart                  # Root app widget and configuration
 ├── firebase_options.dart     # Firebase configuration options
 ├── generated/                # Auto-generated files
@@ -412,13 +437,15 @@ lib/
 │   │   │       ├── login_user.dart
 │   │   │       ├── logout_user.dart
 │   │   │       ├── register_user.dart
-│   │   │       └── reset_password.dart
+│   │   │       ├── reset_password.dart
+│   │   │       └── change_password.dart
 │   │   └── presentation/   # Presentation layer
 │   │       ├── pages/
 │   │       │   ├── login_page.dart
 │   │       │   ├── profile_page.dart
 │   │       │   ├── register_page.dart
-│   │       │   └── reset_password_page.dart
+│   │       │   ├── reset_password_page.dart
+│   │       │   └── change_password_page.dart
 │   │       ├── providers/
 │   │       │   └── auth_provider.dart
 │   │       └── widgets/
@@ -492,7 +519,8 @@ lib/
 │   │       ├── pages/
 │   │       │   ├── contact_form_page.dart
 │   │       │   ├── faq_page.dart
-│   │       │   └── support_tickets_page.dart
+│   │       │   ├── support_tickets_page.dart
+│   │       │   └── help_center_page.dart
 │   │       └── providers/
 │   │           └── support_ticket_providers.dart
 │   ├── users/              # User management feature
@@ -552,7 +580,9 @@ lib/
         ├── custom_text_field.dart
         ├── loading_indicator.dart
         ├── main_scaffold.dart
-        └── responsive_layout.dart
+        ├── responsive_layout.dart
+        ├── skeleton_loader.dart
+        └── app_back_button_handler.dart
 ```
 
 ### **Asset Structure**
@@ -560,13 +590,14 @@ lib/
 assets/
 ├── data/                   # Data files
 ├── fonts/                  # Custom fonts
-├── icons/                  # Icon assets
+├── icons/                  # Icon assets (including logo.png for app icon)
 ├── images/                 # Image assets
 │   ├── auth/              # Authentication images
 │   ├── common/            # Common images
 │   ├── icons/             # Icon images
-│   ├── rooms/             # Room images
+│   ├── rooms/             # Room images (arena.jpg, vault.jpg, etc.)
 │   └── venues/            # Venue images
+├── animations/             # Lottie animation files
 └── translations/           # Localization files
     ├── ar.arb             # Arabic translations
     └── en.arb             # English translations
@@ -591,25 +622,30 @@ integration_test/
 - **Primary**: Teal (#00838F)
 - **Secondary**: Blue (#1976D2)
 - **Tertiary**: Green (#4CAF50)
-- **Background**: Light gray (#F5F5F5)
-- **Text**: Dark gray (#212121)
+- **Background Light**: White (#FFFFFF)
+- **Background Dark**: Dark Grey (#181818)
+- **Surface Dark**: Dark Grey (#232323)
+- **Primary Dark**: Black (#121212)
+- **Text**: Dark grey (#212121)
 
 ### Typography
 - Uses native phone fonts
 - Consistent sizing across components
 - Proper contrast ratios
+- White text in dark mode
 
 ### Components
 - Custom buttons with unified styling
 - Input fields with consistent design
 - Cards with shadow effects
-- Loading indicators and skeletons
+- Loading indicators and skeleton loaders
+- Responsive venue cards with aspect ratio images
 
 ## 🔧 Configuration
 
 ### Firebase Setup
 1. Create Firebase project
-2. Enable Authentication, Firestore, Storage
+2. Enable Authentication, Firestore, Storage, App Check, Crashlytics
 3. Add platform-specific config files
 4. Configure security rules
 
@@ -623,19 +659,25 @@ integration_test/
 - Bundle identifier: `com.waddi.mobile.dev`
 - Deployment target: iOS 12.0+
 
+### App Icon Configuration
+- Custom app icon: `assets/icons/logo.png`
+- Generated using `flutter_launcher_icons`
+- Supports Android and iOS platforms
+
 ## 📊 State Management
 
 ### Providers
-- `authProvider` - Authentication state
-- `venueProvider` - Venue data
-- `bookingProvider` - Booking data
-- `themeProvider` - App theme
+- `authProvider` - Authentication state with password change functionality
+- `venueProvider` - Venue data with dynamic image loading
+- `bookingProvider` - Booking data with confirmation and details
+- `themeProvider` - App theme with dark mode support
 - `searchProvider` - Search functionality
 
 ### Caching
 - Venue data caching for performance
 - Booking data caching
-- Image caching with fallbacks
+- Image caching with Firebase Storage fallbacks
+- Local asset caching for room images
 
 ## 🔐 Security
 
@@ -643,28 +685,31 @@ integration_test/
 - Firebase Auth integration
 - Email/password authentication
 - Google Sign-In
-- Anonymous authentication
+- Anonymous authentication for guest users
+- Password change functionality
 - Session persistence
 
 ### Data Security
 - Firebase App Check enabled
 - Firestore security rules
 - Input validation
-- Error handling
+- Error handling with Crashlytics
 
 ## 🚀 Performance
 
 ### Optimizations
 - Debounced search queries
 - Cached data providers
-- Lazy loading of images
+- Lazy loading of images from Firebase Storage
 - Optimized build configurations
+- Skeleton loading for better perceived performance
 
 ### Android Performance
 - MultiDex enabled
 - ProGuard for release builds
 - Optimized heap size
 - Vector drawable support
+- Native back button handling
 
 ## 🧪 Testing
 
@@ -677,6 +722,7 @@ integration_test/
 - Cross-platform testing
 - Firebase integration testing
 - Payment flow testing
+- Guest user functionality testing
 
 ## 📦 Dependencies
 
@@ -686,17 +732,23 @@ integration_test/
 - `firebase_core` - Firebase initialization
 - `cloud_firestore` - Database
 - `firebase_auth` - Authentication
+- `firebase_storage` - File storage
+- `firebase_app_check` - Security
+- `firebase_crashlytics` - Error reporting
 
 ### UI Dependencies
 - `google_maps_flutter` - Maps integration
 - `shimmer` - Loading effects
 - `image_picker` - Image selection
-- `url_launcher` - External links
+- `url_launcher` - External links (phone, maps, calendar)
+- `lottie` - Animated loading states
+- `pull_to_refresh` - Custom refresh functionality
 
 ### Development Dependencies
 - `build_runner` - Code generation
 - `riverpod_generator` - Provider generation
 - `flutter_lints` - Code quality
+- `flutter_launcher_icons` - App icon generation
 
 ## 🤝 Contributing
 
@@ -718,6 +770,18 @@ For support and questions:
 - Check the documentation
 
 ## 🔄 Version History
+
+### v1.1.0 (Latest)
+- ✅ Implemented change password functionality
+- ✅ Added booking confirmation and details pages
+- ✅ Enhanced dark mode with dark grey/black colors
+- ✅ Added global back button handling
+- ✅ Implemented Firebase Crashlytics
+- ✅ Added Help Center page
+- ✅ Set custom app icon
+- ✅ Improved venue cards with responsive design
+- ✅ Added guest user limitations
+- ✅ Enhanced navigation with proper error handling
 
 ### v1.0.0
 - Initial release

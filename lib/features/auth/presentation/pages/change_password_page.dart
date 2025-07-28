@@ -3,15 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_provider.dart';
 import 'package:go_router/go_router.dart';
 
-class ResetPasswordPage extends ConsumerStatefulWidget {
-  const ResetPasswordPage({Key? key}) : super(key: key);
+class ChangePasswordPage extends ConsumerStatefulWidget {
+  const ChangePasswordPage({Key? key}) : super(key: key);
 
   @override
-  ConsumerState<ResetPasswordPage> createState() => _ResetPasswordPageState();
+  ConsumerState<ChangePasswordPage> createState() => _ChangePasswordPageState();
 }
 
-class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
-  final _emailController = TextEditingController();
+class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
+  final _passwordController = TextEditingController();
+  final _confirmController = TextEditingController();
   String? _feedback;
   bool _isLoading = false;
 
@@ -51,15 +52,26 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                 ),
                 const SizedBox(height: 32),
                 const Text(
-                  'Reset Password',
+                  'Change Password',
                   style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
                 const SizedBox(height: 32),
                 TextField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
+                  controller: _passwordController,
+                  obscureText: true,
                   decoration: InputDecoration(
-                    labelText: 'Email',
+                    labelText: 'New Password',
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _confirmController,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: 'Confirm Password',
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -72,7 +84,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                     child: Text(
                       _feedback!,
                       style: TextStyle(
-                        color: _feedback == 'Password reset email sent (if account exists).'
+                        color: _feedback == 'Password changed successfully!'
                             ? Colors.green
                             : Colors.red,
                         fontWeight: FontWeight.bold,
@@ -85,19 +97,30 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                     onPressed: _isLoading
                         ? null
                         : () async {
-                            final email = _emailController.text.trim();
-                            if (email.isEmpty) {
-                              setState(() => _feedback = 'Please enter your email.');
+                            final newPassword = _passwordController.text.trim();
+                            final confirm = _confirmController.text.trim();
+                            if (newPassword.isEmpty || confirm.isEmpty) {
+                              setState(() => _feedback = 'Please fill in all fields.');
+                              return;
+                            }
+                            if (newPassword.length < 6) {
+                              setState(() => _feedback = 'Password must be at least 6 characters.');
+                              return;
+                            }
+                            if (newPassword != confirm) {
+                              setState(() => _feedback = 'Passwords do not match.');
                               return;
                             }
                             setState(() {
                               _isLoading = true;
                               _feedback = null;
                             });
-                            await authNotifier.resetPassword(email);
+                            final error = await authNotifier.changePassword(newPassword);
                             setState(() {
                               _isLoading = false;
-                              _feedback = 'Password reset email sent (if account exists).';
+                              _feedback = error == null
+                                  ? 'Password changed successfully!'
+                                  : error.replaceAll('Exception: ', '');
                             });
                           },
                     style: ElevatedButton.styleFrom(
@@ -109,7 +132,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                     child: _isLoading
                         ? const CircularProgressIndicator()
                         : const Text(
-                            'Send Reset Email',
+                            'Change Password',
                             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                   ),

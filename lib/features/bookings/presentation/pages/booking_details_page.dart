@@ -675,3 +675,4 @@ class _BookingDetailsContent extends ConsumerWidget {
     }
   }
 }
+ 

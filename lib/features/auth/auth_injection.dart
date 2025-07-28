@@ -7,7 +7,9 @@ import 'package:waddi_platform/features/auth/domain/usecases/register_user.dart'
 import 'package:waddi_platform/features/auth/domain/usecases/get_current_user.dart';
 import 'package:waddi_platform/features/auth/domain/usecases/logout_user.dart';
 import 'package:waddi_platform/features/auth/domain/usecases/reset_password.dart';
+import 'package:waddi_platform/features/auth/domain/usecases/change_password.dart';
 import 'package:waddi_platform/features/auth/presentation/providers/auth_provider.dart';
+export 'package:waddi_platform/features/auth/presentation/pages/change_password_page.dart';
 
 // Data Sources
 final authRemoteDataSourceProvider = Provider<AuthRemoteDataSource>((ref) {
@@ -35,11 +37,11 @@ final logoutUserUseCaseProvider = Provider<LogoutUser>((ref) {
 final resetPasswordUseCaseProvider = Provider<ResetPassword>((ref) {
   return ResetPassword(ref.read(authRepositoryProvider));
 });
+final changePasswordUseCaseProvider = Provider<ChangePassword>((ref) {
+  return ChangePassword(ref.read(authRepositoryProvider));
+});
 
 // Presentation Layer Providers
 final authStateNotifierProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  return AuthNotifier(
-    ref.read(loginUserUseCaseProvider),
-    ref.read(registerUserUseCaseProvider),
-  );
+  return AuthNotifier(ref.read(loginUserUseCaseProvider), ref.read(registerUserUseCaseProvider));
 }); 

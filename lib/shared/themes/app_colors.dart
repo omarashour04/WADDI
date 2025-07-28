@@ -5,7 +5,7 @@ class AppColors {
   // Primary Colors - Teal/Turquoise theme (from screenshots)
   static const Color primary = Color(0xFF00B4D8); // Teal/Turquoise for headers and navigation
   static const Color primaryLight = Color(0xFF90E0EF); // Lighter teal
-  static const Color primaryDark = Color(0xFF0077B6); // Darker teal
+  static const Color primaryDark = Color(0xFF121212); // Black for dark mode primary
 
   // Secondary Colors - Dark Blue/Navy (from "Book Now" button)
   static const Color secondary = Color(0xFF03045E); // Dark Blue/Navy for main buttons
@@ -31,11 +31,14 @@ class AppColors {
 
   // Background Colors
   static const Color backgroundLight = Colors.white; // White background for content areas
-  static const Color backgroundDark = Color(0xFF03045E); // Dark blue for dark mode
+  static const Color backgroundDark = Color(0xFF181818); // Dark grey/black for dark mode
 
   // Surface Colors
   static const Color surfaceLight = Colors.white; // White for cards, sheets
-  static const Color surfaceDark = Color(0xFF0077B6); // Lighter blue for dark surfaces
+  static const Color surfaceDark = Color(0xFF232323); // Dark grey for dark surfaces
+
+  // Dark mode specific
+  static const Color secondaryDark = Color(0xFF232323); // Dark grey for dark mode secondary
 
   // Error Color
   static const Color error = Color(0xFFB00020);

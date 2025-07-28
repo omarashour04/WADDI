@@ -22,8 +22,12 @@ class ProfilePage extends ConsumerWidget {
       userId: userId,
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: AppColors.primary,
-          foregroundColor: AppColors.textOnPrimary,
+          backgroundColor: Theme.of(context).brightness == Brightness.dark
+              ? Theme.of(context).bottomNavigationBarTheme.backgroundColor
+              : AppColors.primary,
+          foregroundColor: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white
+              : AppColors.textOnPrimary,
           title: const Text('Profile'),
           elevation: 0,
           leading: IconButton(
@@ -38,7 +42,7 @@ class ProfilePage extends ConsumerWidget {
           ),
         ),
         body: Container(
-          color: AppColors.backgroundLight,
+          color: Theme.of(context).scaffoldBackgroundColor,
           child: SingleChildScrollView(
             child: Column(
               children: [
@@ -48,11 +52,13 @@ class ProfilePage extends ConsumerWidget {
                   margin: const EdgeInsets.all(16),
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.black.withOpacity(0.3)
+                            : Colors.black.withOpacity(0.1),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
@@ -63,23 +69,24 @@ class ProfilePage extends ConsumerWidget {
                       // Profile Picture
                       CircleAvatar(
                         radius: 50,
-                        backgroundColor: AppColors.primaryLight,
-                        child: Icon(Icons.person, size: 50, color: AppColors.primary),
+                        backgroundColor: Theme.of(context).brightness == Brightness.dark
+                            ? Theme.of(context).bottomNavigationBarTheme.backgroundColor
+                            : AppColors.primaryLight,
+                        child: Icon(Icons.person, size: 50, color: Theme.of(context).primaryColor),
                       ),
                       const SizedBox(height: 16),
                       // User Name
                       Text(
                         authState.user?.name ?? 'User',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 4),
                       // User Email
                       Text(
                         authState.user?.email ?? 'user@email.com',
-                        style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14),
                       ),
                     ],
                   ),
@@ -90,11 +97,13 @@ class ProfilePage extends ConsumerWidget {
                   width: double.infinity,
                   margin: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.black.withOpacity(0.3)
+                            : Colors.black.withOpacity(0.1),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
@@ -108,10 +117,9 @@ class ProfilePage extends ConsumerWidget {
                         padding: const EdgeInsets.all(16),
                         child: Text(
                           'Account',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                         ),
                       ),
                       // Account Options
@@ -150,11 +158,13 @@ class ProfilePage extends ConsumerWidget {
                   width: double.infinity,
                   margin: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.black.withOpacity(0.3)
+                            : Colors.black.withOpacity(0.1),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
@@ -168,10 +178,9 @@ class ProfilePage extends ConsumerWidget {
                         padding: const EdgeInsets.all(16),
                         child: Text(
                           'Support',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                         ),
                       ),
                       // Support Options
@@ -272,12 +281,15 @@ class _ProfileOption extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
-            Icon(icon, color: AppColors.primary, size: 20),
+            Icon(icon, color: Theme.of(context).iconTheme.color, size: 20),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(title, style: TextStyle(color: AppColors.textPrimary, fontSize: 16)),
+              child: Text(
+                title,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16),
+              ),
             ),
-            Icon(Icons.arrow_forward_ios, color: AppColors.primary, size: 16),
+            Icon(Icons.arrow_forward_ios, color: Theme.of(context).iconTheme.color, size: 16),
           ],
         ),
       ),

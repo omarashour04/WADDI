@@ -10,6 +10,9 @@ import 'package:waddi_platform/shared/widgets/main_scaffold.dart';
 import 'package:waddi_platform/features/auth/presentation/providers/auth_provider.dart';
 import 'package:waddi_platform/shared/themes/app_colors.dart';
 import '../../../../core/services/app_state_service.dart';
+import '../../../../shared/widgets/skeleton_loader.dart';
+import '../../../../shared/widgets/pull_to_refresh_wrapper.dart';
+import '../../../../shared/widgets/lottie_animations.dart';
 
 class VenuesPage extends ConsumerStatefulWidget {
   @override
@@ -105,120 +108,30 @@ class _VenuesPageState extends ConsumerState<VenuesPage> {
                         'Featured Venues',
                         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : AppColors.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 12),
                       SizedBox(
-                        height: 240, // Increased height to accommodate cards
+                        height: 220,
                         child: venuesAsync.when(
                           data: (venues) {
-                            if (venues.isEmpty) {
-                              return const Center(child: Text('No venues available'));
-                            }
-                            // Take first 4 venues for featured section
                             final featuredVenues = venues.take(4).toList();
                             return ListView.builder(
                               scrollDirection: Axis.horizontal,
                               itemCount: featuredVenues.length,
                               itemBuilder: (context, index) {
                                 final venue = featuredVenues[index];
-                                return Container(
-                                  width: 160,
-                                  margin: const EdgeInsets.only(right: 12),
-                                  child: Card(
-                                    elevation: 4,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: InkWell(
-                                      onTap: () {
-                                        // Navigate to venue details page
-                                        context.go('/venues/${venue.id}');
-                                      },
-                                      borderRadius: BorderRadius.circular(12),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          // Image section - reduced flex
-                                          Expanded(
-                                            flex: 2, // Reduced from 3 to 2
-                                            child: Container(
-                                              width: double.infinity,
-                                              decoration: BoxDecoration(
-                                                borderRadius: const BorderRadius.vertical(
-                                                  top: Radius.circular(12),
-                                                ),
-                                                color: AppColors.primaryLight,
-                                              ),
-                                              child: Center(
-                                                child: Icon(
-                                                  Icons.games,
-                                                  size: 40, // Reduced from 48 to 40
-                                                  color: AppColors.primary,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          // Content section - increased flex
-                                          Expanded(
-                                            flex: 3, // Increased from 2 to 3
-                                            child: Padding(
-                                              padding: const EdgeInsets.all(8.0),
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    venue.name,
-                                                    style: Theme.of(context).textTheme.titleMedium
-                                                        ?.copyWith(
-                                                          fontWeight: FontWeight.bold,
-                                                          color: AppColors.textPrimary,
-                                                        ),
-                                                    maxLines: 1,
-                                                    overflow: TextOverflow.ellipsis,
-                                                  ),
-                                                  const SizedBox(height: 2), // Reduced from 4 to 2
-                                                  Text(
-                                                    'Book your spot now!',
-                                                    style: Theme.of(context).textTheme.bodySmall
-                                                        ?.copyWith(
-                                                          color: AppColors.textSecondary,
-                                                          fontSize: 11, // Reduced font size
-                                                        ),
-                                                    maxLines: 2,
-                                                    overflow: TextOverflow.ellipsis,
-                                                  ),
-                                                  const Spacer(), // Push rating to bottom
-                                                  Row(
-                                                    children: [
-                                                      Icon(
-                                                        Icons.star,
-                                                        size: 14, // Reduced from 16 to 14
-                                                        color: Colors.amber,
-                                                      ),
-                                                      const SizedBox(
-                                                        width: 2,
-                                                      ), // Reduced from 4 to 2
-                                                      Text(
-                                                        venue.averageRating.toString(),
-                                                        style: Theme.of(context).textTheme.bodySmall
-                                                            ?.copyWith(
-                                                              fontSize: 11, // Reduced font size
-                                                            ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
+                                return VenueCard(
+                                  name: venue.name,
+                                  imageUrl: venue.images.isNotEmpty ? venue.images.first : '',
+                                  onTap: () => context.go('/venues/${venue.id}'),
                                 );
                               },
+                              shrinkWrap: true,
+                              physics: const ClampingScrollPhysics(),
                             );
                           },
                           loading: () => ListView.builder(
@@ -226,76 +139,15 @@ class _VenuesPageState extends ConsumerState<VenuesPage> {
                             itemCount: 4,
                             itemBuilder: (context, index) {
                               return Container(
-                                width: 160,
-                                margin: const EdgeInsets.only(right: 12),
-                                child: Card(
-                                  elevation: 4,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Expanded(
-                                        flex: 2,
-                                        child: Container(
-                                          width: double.infinity,
-                                          decoration: BoxDecoration(
-                                            borderRadius: const BorderRadius.vertical(
-                                              top: Radius.circular(12),
-                                            ),
-                                            color: AppColors.primaryLight,
-                                          ),
-                                          child: Center(
-                                            child: Icon(
-                                              Icons.games,
-                                              size: 40,
-                                              color: AppColors.primary,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      Expanded(
-                                        flex: 3,
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Container(
-                                                height: 16,
-                                                width: 120,
-                                                color: Colors.grey[300],
-                                              ),
-                                              const SizedBox(height: 2),
-                                              Container(
-                                                height: 12,
-                                                width: 100,
-                                                color: Colors.grey[300],
-                                              ),
-                                              const Spacer(),
-                                              Row(
-                                                children: [
-                                                  Icon(Icons.star, size: 14, color: Colors.amber),
-                                                  const SizedBox(width: 2),
-                                                  Container(
-                                                    height: 12,
-                                                    width: 20,
-                                                    color: Colors.grey[300],
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
+                                width: 180,
+                                margin: const EdgeInsets.only(right: 16),
+                                child: const VenueCardSkeleton(),
                               );
                             },
+                            shrinkWrap: true,
+                            physics: const ClampingScrollPhysics(),
                           ),
-                          error: (e, st) => const Center(child: Text('Error loading venues')),
+                          error: (e, st) => Center(child: Text('Error loading venues')),
                         ),
                       ),
                     ],
@@ -311,8 +163,8 @@ class _VenuesPageState extends ConsumerState<VenuesPage> {
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: () {
-                            // Navigate to booking flow
-                            context.go('/venues');
+                            // Navigate to search page
+                            context.go('/search');
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.secondary,
@@ -325,32 +177,6 @@ class _VenuesPageState extends ConsumerState<VenuesPage> {
                             style: Theme.of(
                               context,
                             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Quick Access',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            // Navigate to favorites
-                            context.go('/favorites');
-                          },
-                          icon: const Icon(Icons.favorite),
-                          label: const Text('Favorites'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.tertiary,
-                            foregroundColor: AppColors.textOnTertiary,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                         ),
                       ),
@@ -498,41 +324,69 @@ class _VenuesPageState extends ConsumerState<VenuesPage> {
   }
 }
 
-class _VenueCard extends StatelessWidget {
-  final VenueEntity venue;
-  const _VenueCard({required this.venue});
+class VenueCard extends StatelessWidget {
+  final String name;
+  final String imageUrl;
+  final VoidCallback onTap;
+  final String subtitle;
+  const VenueCard({
+    super.key,
+    required this.name,
+    required this.imageUrl,
+    required this.onTap,
+    this.subtitle = 'Book your spot now!',
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      label: 'Venue card for ${venue.name}, average rating ${venue.averageRating}',
-      button: true,
-      child: Card(
-        child: ListTile(
-          title: Text(
-            venue.name,
-            style: Theme.of(context).textTheme.titleMedium,
-            textScaleFactor: MediaQuery.textScaleFactorOf(context),
-          ),
-          subtitle: Text(
-            venue.address,
-            style: Theme.of(context).textTheme.bodyMedium,
-            textScaleFactor: MediaQuery.textScaleFactorOf(context),
-          ),
-          trailing: Row(
+    final screenWidth = MediaQuery.of(context).size.width;
+    final cardWidth = screenWidth * 0.45;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: cardWidth,
+        margin: const EdgeInsets.only(right: 16),
+        child: Card(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          elevation: 2,
+          child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.star, color: Colors.amber, size: 18),
-              Text(
-                venue.averageRating.toString(),
-                style: Theme.of(context).textTheme.bodyMedium,
-                textScaleFactor: MediaQuery.textScaleFactorOf(context),
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                child: AspectRatio(
+                  aspectRatio: 4 / 3, // Match screenshot aspect ratio
+                  child: Image.network(
+                    imageUrl.isNotEmpty ? imageUrl : 'https://via.placeholder.com/180x120',
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
-          onTap: () {
-            context.go('/venues/${venue.id}/rooms');
-          },
         ),
       ),
     );

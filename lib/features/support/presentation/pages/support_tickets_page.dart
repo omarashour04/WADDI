@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/support_ticket_providers.dart';
 import '../../domain/entities/support_ticket_entity.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'help_center_page.dart';
+import 'package:go_router/go_router.dart';
 
 class SupportTicketsPage extends StatelessWidget {
   final String userId;
@@ -10,46 +12,96 @@ class SupportTicketsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Support Tickets')),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('supportTickets')
-            .where('userId', isEqualTo: userId)
-            .orderBy('createdAt', descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text('No support tickets found.'));
-          }
-          final tickets = snapshot.data!.docs;
-          return ListView.builder(
-            itemCount: tickets.length,
-            itemBuilder: (context, i) {
-              final ticket = tickets[i].data() as Map<String, dynamic>;
-              return Card(
-                child: ListTile(
-                  title: Text(ticket['subject'] ?? ''),
-                  subtitle: Text(ticket['description'] ?? ''),
-                  trailing: Text(ticket['status'] ?? 'open'),
-                ),
-              );
+    return WillPopScope(
+      onWillPop: () async {
+        if (Navigator.of(context).canPop()) {
+          context.pop();
+        } else {
+          context.go('/venues');
+        }
+        return false;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Support Tickets'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              if (Navigator.of(context).canPop()) {
+                context.pop();
+              } else {
+                context.go('/venues');
+              }
             },
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          await showDialog(
-            context: context,
-            builder: (context) => _NewTicketDialog(userId: userId),
-          );
-        },
-        child: const Icon(Icons.add),
-        tooltip: 'New Ticket',
+          ),
+        ),
+        body: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.help_outline),
+                  label: const Text('Help Center'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal[50],
+                    foregroundColor: Colors.teal[800],
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  onPressed: () {
+                    Navigator.of(
+                      context,
+                    ).push(MaterialPageRoute(builder: (_) => const HelpCenterPage()));
+                  },
+                ),
+              ),
+            ),
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('supportTickets')
+                    .where('userId', isEqualTo: userId)
+                    .orderBy('createdAt', descending: true)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return const Center(child: Text('No support tickets found.'));
+                  }
+                  final tickets = snapshot.data!.docs;
+                  return ListView.builder(
+                    itemCount: tickets.length,
+                    itemBuilder: (context, i) {
+                      final ticket = tickets[i].data() as Map<String, dynamic>;
+                      return Card(
+                        child: ListTile(
+                          title: Text(ticket['subject'] ?? ''),
+                          subtitle: Text(ticket['description'] ?? ''),
+                          trailing: Text(ticket['status'] ?? 'open'),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () async {
+            await showDialog(
+              context: context,
+              builder: (context) => _NewTicketDialog(userId: userId),
+            );
+          },
+          child: const Icon(Icons.add),
+          tooltip: 'New Ticket',
+        ),
       ),
     );
   }
@@ -86,18 +138,19 @@ class _NewTicketDialogState extends State<_NewTicketDialog> {
           const SizedBox(height: 8),
           DropdownButton<String>(
             value: _category,
-            items: ['General', 'Booking', 'Payment', 'Technical', 'Other']
-                .map((cat) => DropdownMenuItem(value: cat, child: Text(cat)))
-                .toList(),
+            items: [
+              'General',
+              'Booking',
+              'Payment',
+              'Technical',
+              'Other',
+            ].map((cat) => DropdownMenuItem(value: cat, child: Text(cat))).toList(),
             onChanged: (val) => setState(() => _category = val!),
           ),
         ],
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
         ElevatedButton(
           onPressed: () async {
             await FirebaseFirestore.instance.collection('supportTickets').add({
@@ -109,9 +162,9 @@ class _NewTicketDialogState extends State<_NewTicketDialog> {
               'createdAt': FieldValue.serverTimestamp(),
               'updatedAt': FieldValue.serverTimestamp(),
             });
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Ticket submitted!')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('Ticket submitted!')));
             Navigator.of(context).pop();
           },
           child: const Text('Submit'),
@@ -140,4 +193,4 @@ class _TicketCard extends StatelessWidget {
       ),
     );
   }
-} 
+}

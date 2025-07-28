@@ -147,43 +147,43 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
                       _debouncedSetState(() {
                         isDatePickerOpen = true;
                       });
-
+                      
                       try {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: selectedDate,
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime.now().add(const Duration(days: 60)),
-                          builder: (context, child) {
-                            return Theme(
-                              data: Theme.of(context).copyWith(
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: selectedDate,
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime.now().add(const Duration(days: 60)),
+                        builder: (context, child) {
+                          return Theme(
+                            data: Theme.of(context).copyWith(
                                 colorScheme: Theme.of(
                                   context,
                                 ).colorScheme.copyWith(primary: Colors.blue),
-                              ),
-                              child: child!,
-                            );
-                          },
-                        );
-
+                            ),
+                            child: child!,
+                          );
+                        },
+                      );
+                      
                         if (mounted) {
                           _debouncedSetState(() {
-                            isDatePickerOpen = false;
-                            if (picked != null) {
-                              selectedDate = picked;
-                              selectedTimeSlot = null; // Reset time selection when date changes
+                        isDatePickerOpen = false;
+                      if (picked != null) {
+                          selectedDate = picked;
+                          selectedTimeSlot = null; // Reset time selection when date changes
                             }
-                          });
-
+                        });
+                        
                           if (picked != null) {
-                            // Show feedback to user
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
+                        // Show feedback to user
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
                                 content: Text('Date selected: ${_formatDate(picked)}'),
-                                duration: const Duration(seconds: 2),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
+                            duration: const Duration(seconds: 2),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
                           }
                         }
                       } catch (e) {
@@ -260,7 +260,7 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
                   );
                 }
                 final slots = snapshot.data as List<TimeSlot>;
-
+                
                 if (slots.isEmpty) {
                   return Card(
                     child: Padding(
@@ -275,7 +275,7 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
                     ),
                   );
                 }
-
+                
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -293,7 +293,7 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
                         final startLabel = _formatTime(slot.start);
                         final endLabel = _formatTime(slot.end);
                         final label = '$startLabel - $endLabel';
-
+                        
                         return ChoiceChip(
                           label: Text(
                             label,
@@ -380,33 +380,33 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
                         });
 
                         try {
-                          final start = selectedTimeSlot!;
-                          final end = start.add(const Duration(minutes: 30));
-                          final booking = BookingEntity(
+                        final start = selectedTimeSlot!;
+                        final end = start.add(const Duration(minutes: 30));
+                        final booking = BookingEntity(
                             id: '',
-                            userId: widget.userId,
-                            venueId: widget.venueId,
-                            roomId: widget.roomId,
-                            startTime: Timestamp.fromDate(start),
-                            endTime: Timestamp.fromDate(end),
+                          userId: widget.userId,
+                          venueId: widget.venueId,
+                          roomId: widget.roomId,
+                          startTime: Timestamp.fromDate(start),
+                          endTime: Timestamp.fromDate(end),
                             durationHours: 0,
                             roomFee: widget.hourlyPrice * 0.5,
-                            reservationFee: 0,
-                            totalAmount: widget.hourlyPrice * 0.5,
-                            paymentStatus: 'pending',
-                            bookingStatus: 'pending',
-                            paymentIntentId: null,
-                            createdAt: Timestamp.now(),
-                            updatedAt: Timestamp.now(),
-                          );
+                          reservationFee: 0,
+                          totalAmount: widget.hourlyPrice * 0.5,
+                          paymentStatus: 'pending',
+                          bookingStatus: 'pending',
+                          paymentIntentId: null,
+                          createdAt: Timestamp.now(),
+                          updatedAt: Timestamp.now(),
+                        );
 
                           await ref.read(createBookingProvider).call(booking);
 
                           if (mounted) {
                             _debouncedSetState(() {
-                              feedback = 'Booking successful!';
-                              isSubmitting = false;
-                            });
+                            feedback = 'Booking successful!';
+                            isSubmitting = false;
+                          });
 
                             // Navigate to booking confirmation page
                             final bookingId = DateTime.now().millisecondsSinceEpoch.toString();
@@ -426,16 +426,16 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
                         } catch (e) {
                           if (mounted) {
                             _debouncedSetState(() {
-                              feedback = 'Booking failed: $e';
-                              isSubmitting = false;
-                            });
+                            feedback = 'Booking failed: $e';
+                            isSubmitting = false;
+                          });
 
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Booking failed: $e'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Booking failed: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
                           }
                         }
                       },
@@ -482,4 +482,4 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
       ),
     );
   }
-}
+} 
