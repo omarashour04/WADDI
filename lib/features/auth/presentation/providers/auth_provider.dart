@@ -7,6 +7,7 @@ import 'package:waddi_platform/features/auth/auth_injection.dart';
 import 'package:waddi_platform/features/auth/domain/repositories/auth_repository.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
 
 // State for the AuthNotifier
 enum AuthStatus { initial, loading, authenticated, unauthenticated, error }
@@ -46,11 +47,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(status: AuthStatus.unauthenticated, errorMessage: error.toString());
     });
     
-    // Fallback: if still loading after 5 seconds, set as unauthenticated
-    Future.delayed(Duration(seconds: 5)).then((_) {
+    // Fallback: if still loading after 3 seconds, set as unauthenticated
+    Future.delayed(Duration(seconds: 3)).then((_) {
       if (state.status == AuthStatus.loading) {
         print('Auth initialization timeout, setting as unauthenticated');
         state = state.copyWith(status: AuthStatus.unauthenticated);
+        print('Auth state updated to: ${state.status}');
       }
     });
   }
@@ -61,17 +63,24 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       print('Starting auth state initialization...');
 
-      // Simple initialization without complex delays
-      final firebaseUser = FirebaseAuth.instance.currentUser;
+      // Add timeout to prevent hanging
+      final firebaseUser = await Future.any([
+        Future.value(FirebaseAuth.instance.currentUser),
+        Future.delayed(Duration(seconds: 3)).then((_) => null),
+      ]);
+      
       print('Firebase current user: ${firebaseUser?.uid ?? 'null'}');
 
       if (firebaseUser != null && !firebaseUser.isAnonymous) {
-        // User is signed in, try to fetch user data
+        // User is signed in, try to fetch user data with timeout
         try {
-          final userDoc = await FirebaseFirestore.instance
-              .collection('users')
-              .doc(firebaseUser.uid)
-              .get();
+          final userDoc = await Future.any([
+            FirebaseFirestore.instance
+                .collection('users')
+                .doc(firebaseUser.uid)
+                .get(),
+            Future.delayed(Duration(seconds: 5)).then((_) => throw TimeoutException('Firestore timeout')),
+          ]);
 
           if (userDoc.exists) {
             final userData = userDoc.data()!;
@@ -87,6 +96,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
             );
             print('User data found, setting authenticated state');
             state = state.copyWith(status: AuthStatus.authenticated, user: user);
+            print('Auth state updated to: ${state.status}');
           } else {
             // Create user document if it doesn't exist (only for registered users)
             final user = UserEntity(
@@ -99,14 +109,26 @@ class AuthNotifier extends StateNotifier<AuthState> {
               updatedAt: Timestamp.now(),
               isGuestUser: false,
             );
-            await saveUserToFirestore(
-              uid: user.id,
-              email: user.email,
-              name: user.name,
-              phoneNumber: user.phoneNumber,
-            );
-            print('User document created, setting authenticated state');
+            
+            // Try to save user to Firestore with timeout
+            try {
+              await Future.any([
+                saveUserToFirestore(
+                  uid: user.id,
+                  email: user.email,
+                  name: user.name,
+                  phoneNumber: user.phoneNumber,
+                ),
+                Future.delayed(Duration(seconds: 5)).then((_) => throw TimeoutException('Save user timeout')),
+              ]);
+              print('User document created, setting authenticated state');
+            } catch (e) {
+              print('Error saving user to Firestore: $e');
+              // Continue even if save fails
+            }
+            
             state = state.copyWith(status: AuthStatus.authenticated, user: user);
+            print('Auth state updated to: ${state.status}');
           }
         } catch (e) {
           print('Error fetching user data: $e');

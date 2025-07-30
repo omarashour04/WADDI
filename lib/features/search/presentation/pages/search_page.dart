@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/services/app_state_service.dart';
-import 'package:waddi_platform/features/auth/presentation/providers/auth_provider.dart';
+import 'package:go_router/go_router.dart';
 import 'package:waddi_platform/shared/widgets/main_scaffold.dart';
+import 'package:waddi_platform/shared/widgets/smart_back_button.dart';
+import 'package:waddi_platform/shared/widgets/custom_button.dart';
+import 'package:waddi_platform/shared/widgets/custom_text_field.dart';
+import 'package:waddi_platform/shared/widgets/loading_indicator.dart';
 import 'package:waddi_platform/shared/themes/app_colors.dart';
+import 'package:waddi_platform/shared/themes/app_typography.dart';
+import 'package:waddi_platform/features/auth/presentation/providers/auth_provider.dart';
 import 'package:waddi_platform/features/venues/presentation/providers/venue_providers.dart';
+import 'package:waddi_platform/shared/providers/shared_providers.dart';
+import '../../../../core/services/app_state_service.dart';
 import 'package:waddi_platform/features/venues/presentation/providers/geocoding_provider.dart';
 import 'package:waddi_platform/features/venues/domain/entities/venue_entity.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
 import '../../../../shared/widgets/pull_to_refresh_wrapper.dart';
 import '../../../../shared/widgets/lottie_animations.dart';
@@ -415,4 +421,3 @@ class _ErrorState extends StatelessWidget {
     );
   }
 }
- 

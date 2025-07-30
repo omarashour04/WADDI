@@ -27,7 +27,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Future<void> _checkNotifications() async {
     if (_hasCheckedNotifications) return;
-    
+
     final authState = ref.read(authProvider);
     // Only check notifications for authenticated users (not guests)
     if (authState.status == AuthStatus.authenticated && authState.user != null) {
@@ -51,11 +51,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           context.go('/admin');
         }
       });
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return MainScaffold(
@@ -83,7 +79,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      isGuest ? 'Welcome to WADDI!' : 'Welcome back, ${authState.user?.name ?? 'User'}!',
+                      isGuest
+                          ? 'Welcome to WADDI!'
+                          : 'Welcome back, ${authState.user?.name ?? 'User'}!',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 24,
@@ -92,37 +90,33 @@ class _HomePageState extends ConsumerState<HomePage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      isGuest 
-                        ? 'Discover amazing venues and book your next adventure'
-                        : 'Ready to explore more venues?',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
-                        fontSize: 16,
-                      ),
+                      isGuest
+                          ? 'Discover amazing venues and book your next adventure'
+                          : 'Ready to explore more venues?',
+                      style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 16),
                     ),
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Quick Actions
               Text(
                 'Quick Actions',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 16),
-              
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 1.2,
+
+              Wrap(
+                spacing: 16,
+                runSpacing: 16,
+                alignment: WrapAlignment.spaceEvenly,
                 children: [
                   _buildActionCard(
                     context,
@@ -204,19 +198,21 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ],
                 ],
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Featured Venues
               Text(
                 'Featured Venues',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               // Placeholder for featured venues
               Container(
                 height: 200,
@@ -228,18 +224,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        Icons.store_outlined,
-                        size: 48,
-                        color: Colors.grey[400],
-                      ),
+                      Icon(Icons.store_outlined, size: 48, color: Colors.grey[400]),
                       const SizedBox(height: 8),
                       Text(
                         'Featured venues coming soon',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 16,
-                        ),
+                        style: TextStyle(color: Colors.grey[600], fontSize: 16),
                       ),
                     ],
                   ),
@@ -260,47 +249,59 @@ class _HomePageState extends ConsumerState<HomePage> {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: color, size: 32),
+    return SizedBox(
+      width: (MediaQuery.of(context).size.width - 64) / 2, // Increased padding for more space
+      child: IntrinsicHeight(
+        child: Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(icon, color: color, size: 24),
+                  ),
+                  const SizedBox(height: 8),
+                  Flexible(
+                    child: Text(
+                      title,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Flexible(
+                    child: Text(
+                      subtitle,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.grey[600], fontSize: 11),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey[600],
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
-} 
+}

@@ -11,6 +11,7 @@ import 'package:waddi_platform/shared/themes/app_colors.dart';
 import 'package:waddi_platform/features/auth/presentation/providers/auth_provider.dart';
 import '../../../../shared/widgets/firebase_image_widget.dart';
 import '../../../../shared/widgets/smart_back_button.dart';
+import 'package:waddi_platform/shared/providers/shared_providers.dart';
 
 class VenueDetailsPage extends ConsumerWidget {
   final String venueId;
@@ -64,9 +65,7 @@ class VenueDetailsPage extends ConsumerWidget {
                     children: [
                       // Venue Image
                       venue.images.isNotEmpty
-                          ? FirebaseImageWidget(
-                              imageUrl: venue.images.first,
-                            )
+                          ? FirebaseImageWidget(imageUrl: venue.images.first)
                           : Container(
                               color: AppColors.primary,
                               child: const Icon(Icons.image, size: 100, color: Colors.white),
@@ -130,7 +129,7 @@ class VenueDetailsPage extends ConsumerWidget {
                             ),
                           ],
                         ),
-                      
+
                       // Email
                       if (venue.contactEmail.isNotEmpty)
                         Row(
@@ -149,15 +148,12 @@ class VenueDetailsPage extends ConsumerWidget {
                       if (venue.description.isNotEmpty) ...[
                         Text(
                           'Description',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 8),
-                        Text(
-                          venue.description,
-                          style: TextStyle(color: AppColors.textSecondary),
-                        ),
+                        Text(venue.description, style: TextStyle(color: AppColors.textSecondary)),
                         const SizedBox(height: 16),
                       ],
 
@@ -165,9 +161,9 @@ class VenueDetailsPage extends ConsumerWidget {
                       if (venue.hourlyPriceRange.isNotEmpty) ...[
                         Text(
                           'Pricing',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 8),
                         Row(
@@ -190,9 +186,9 @@ class VenueDetailsPage extends ConsumerWidget {
                       if (venue.capacityRange.isNotEmpty) ...[
                         Text(
                           'Capacity',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 8),
                         Row(
@@ -251,18 +247,18 @@ class VenueDetailsPage extends ConsumerWidget {
                         const SizedBox(height: 12),
 
                         // Amenities Grid
-                        GridView.count(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 3,
-                          children: venue.amenities.map((amenity) => _AmenityCard(
-                            icon: _getAmenityIcon(amenity),
-                            title: amenity,
-                            color: AppColors.primaryLight,
-                          )).toList(),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: venue.amenities
+                              .map(
+                                (amenity) => _AmenityCard(
+                                  icon: _getAmenityIcon(amenity),
+                                  title: amenity,
+                                  color: AppColors.primaryLight,
+                                ),
+                              )
+                              .toList(),
                         ),
                         const SizedBox(height: 24),
                       ],
@@ -311,7 +307,10 @@ class VenueDetailsPage extends ConsumerWidget {
                                   }
                                 }),
                               ),
-                              Text('${venue.totalReviews} reviews', style: TextStyle(color: AppColors.textSecondary)),
+                              Text(
+                                '${venue.totalReviews} reviews',
+                                style: TextStyle(color: AppColors.textSecondary),
+                              ),
                             ],
                           ),
                         ],
@@ -467,20 +466,25 @@ class _AmenityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.primary, size: 20),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              title,
-              style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w500),
+    return IntrinsicHeight(
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: AppColors.primary, size: 20),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                title,
+                style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w500),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

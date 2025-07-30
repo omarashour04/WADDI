@@ -28,20 +28,22 @@ class MainScaffold extends ConsumerWidget {
         foregroundColor: currentTheme == ThemeMode.dark ? Colors.white : AppColors.textOnPrimary,
         elevation: 0,
       ),
-      body: child,
+      body: SafeArea(child: child),
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
         currentIndex: currentIndex,
         onTap: (index) {
+          String targetRoute = '/home';
           switch (index) {
             case 0:
-              context.go('/home');
+              targetRoute = '/home';
               break;
             case 1:
-              context.go('/venues');
+              targetRoute = '/venues';
               break;
             case 2:
               if (!isGuest) {
-                context.go('/bookings/$userId');
+                targetRoute = '/bookings/$userId';
               } else {
                 // Show dialog for guest users
                 showDialog(
@@ -64,12 +66,17 @@ class MainScaffold extends ConsumerWidget {
                     ],
                   ),
                 );
+                return; // Don't navigate if showing dialog
               }
               break;
             case 3:
-              context.go('/profile');
+              targetRoute = '/profile';
               break;
           }
+
+          // Add route to navigation history before navigating
+          ref.read(navigationHistoryProvider.notifier).addRoute(targetRoute);
+          context.go(targetRoute);
         },
         items: [
           const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),

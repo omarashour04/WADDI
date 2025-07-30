@@ -15,6 +15,7 @@ import '../../../../shared/widgets/pull_to_refresh_wrapper.dart';
 import '../../../../shared/widgets/lottie_animations.dart';
 import '../../../../shared/widgets/firebase_image_widget.dart';
 import '../../../../shared/widgets/smart_back_button.dart';
+import 'package:waddi_platform/shared/providers/shared_providers.dart';
 
 class VenuesPage extends ConsumerStatefulWidget {
   @override
@@ -123,7 +124,7 @@ class _VenuesPageState extends ConsumerState<VenuesPage> {
                     ),
                     const SizedBox(height: 12),
                     SizedBox(
-                      height: 320, // Further increased height to fix overflow
+                      height: 300, // Fixed reasonable height
                       child: venuesAsync.when(
                         data: (venues) {
                           print('DEBUG: Loaded ${venues.length} venues');
@@ -136,24 +137,20 @@ class _VenuesPageState extends ConsumerState<VenuesPage> {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(
-                                    Icons.store_outlined,
-                                    size: 64,
-                                    color: Colors.grey[400],
-                                  ),
+                                  Icon(Icons.store_outlined, size: 64, color: Colors.grey[400]),
                                   const SizedBox(height: 16),
                                   Text(
                                     'No venues found',
-                                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                      color: Colors.grey[600],
-                                    ),
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
                                     'Please try again later',
-                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      color: Colors.grey[500],
-                                    ),
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium?.copyWith(color: Colors.grey[500]),
                                   ),
                                 ],
                               ),
@@ -173,24 +170,20 @@ class _VenuesPageState extends ConsumerState<VenuesPage> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(
-                                Icons.error_outline,
-                                size: 64,
-                                color: Colors.red[400],
-                              ),
+                              Icon(Icons.error_outline, size: 64, color: Colors.red[400]),
                               const SizedBox(height: 16),
                               Text(
                                 'Error loading venues',
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: Colors.red[600],
-                                ),
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.titleMedium?.copyWith(color: Colors.red[600]),
                               ),
                               const SizedBox(height: 8),
                               Text(
                                 'Please try again later',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: Colors.grey[500],
-                                ),
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodyMedium?.copyWith(color: Colors.grey[500]),
                               ),
                             ],
                           ),
@@ -374,7 +367,9 @@ class VenueCard extends StatelessWidget {
                 child: AspectRatio(
                   aspectRatio: 4 / 3, // Match screenshot aspect ratio
                   child: FirebaseImageWidget(
-                    imageUrl: imageUrl.isNotEmpty ? imageUrl : 'https://picsum.photos/300/200?random=${name.hashCode}',
+                    imageUrl: imageUrl.isNotEmpty
+                        ? imageUrl
+                        : 'https://picsum.photos/300/200?random=${name.hashCode}',
                     width: double.infinity,
                     fit: BoxFit.cover,
                   ),
@@ -465,7 +460,7 @@ class _VenueCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final imageUrl = venue.images.isNotEmpty ? venue.images.first : '';
-    
+
     return Container(
       width: 280,
       margin: const EdgeInsets.only(right: 16),
@@ -483,9 +478,7 @@ class _VenueCard extends StatelessWidget {
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                 child: AspectRatio(
                   aspectRatio: 16 / 9,
-                  child: FirebaseImageWidget(
-                    imageUrl: imageUrl,
-                  ),
+                  child: FirebaseImageWidget(imageUrl: imageUrl),
                 ),
               ),
               // Content Section
@@ -503,10 +496,10 @@ class _VenueCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
-                      Expanded(
+                      Flexible(
                         child: Text(
                           venue.description,
-                          style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                          style: const TextStyle(color: Colors.grey, fontSize: 13),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -523,7 +516,7 @@ class _VenueCard extends StatelessWidget {
                           const SizedBox(width: 8),
                           Text(
                             '(${venue.totalReviews})',
-                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                            style: const TextStyle(fontSize: 12, color: Colors.grey),
                           ),
                         ],
                       ),

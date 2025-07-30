@@ -21,13 +21,19 @@ class FirebaseImageWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     print('DEBUG: FirebaseImageWidget - Original URL: $imageUrl');
-    
+
     if (imageUrl.isEmpty) {
       print('DEBUG: Image URL is empty, showing placeholder');
       return _buildPlaceholder();
     }
 
-    // For Firebase Storage URLs, always try to get a fresh download URL
+    // For web, use the original URL directly to avoid authentication issues
+    if (kIsWeb) {
+      print('DEBUG: Web platform detected, using original URL directly');
+      return _buildNetworkImageWithFallback();
+    }
+
+    // For mobile, try to get fresh download URL
     if (imageUrl.contains('firebasestorage.googleapis.com')) {
       print('DEBUG: Detected Firebase Storage URL, getting fresh download URL');
       return _buildFirebaseStorageImage();
@@ -36,7 +42,7 @@ class FirebaseImageWidget extends StatelessWidget {
       return _buildGsUrlImage();
     } else {
       print('DEBUG: Treating as regular network image');
-      return _buildNetworkImage();
+      return _buildNetworkImageWithFallback();
     }
   }
 
@@ -45,16 +51,16 @@ class FirebaseImageWidget extends StatelessWidget {
       // Extract the path from the Firebase Storage URL
       final uri = Uri.parse(imageUrl);
       final pathSegments = uri.pathSegments;
-      
+
       if (pathSegments.length < 3) {
         print('DEBUG: Invalid Firebase Storage URL format: $imageUrl');
-        return _buildPlaceholder();
+        return _buildNetworkImageWithFallback();
       }
 
       // Get the object path (everything after /o/)
       final objectPath = pathSegments.sublist(2).join('/');
       final decodedPath = Uri.decodeComponent(objectPath);
-      
+
       print('DEBUG: Firebase Storage path: $decodedPath');
 
       // Get fresh download URL from Firebase Storage
@@ -66,9 +72,7 @@ class FirebaseImageWidget extends StatelessWidget {
               width: width,
               height: height,
               color: Colors.grey[200],
-              child: const Center(
-                child: CircularProgressIndicator(),
-              ),
+              child: const Center(child: CircularProgressIndicator()),
             );
           }
 
@@ -79,7 +83,7 @@ class FirebaseImageWidget extends StatelessWidget {
           }
 
           if (!snapshot.hasData) {
-            return _buildPlaceholder();
+            return _buildNetworkImageWithFallback();
           }
 
           final downloadUrl = snapshot.data!;
@@ -107,9 +111,7 @@ class FirebaseImageWidget extends StatelessWidget {
                   width: width,
                   height: height,
                   color: Colors.grey[200],
-                  child: const Center(
-                    child: CircularProgressIndicator(),
-                  ),
+                  child: const Center(child: CircularProgressIndicator()),
                 );
               },
             ),
@@ -130,12 +132,15 @@ class FirebaseImageWidget extends StatelessWidget {
         width: width,
         height: height,
         fit: fit,
-        headers: kIsWeb ? {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Origin, Content-Type, Accept, Authorization, X-Requested-With',
-          'Cache-Control': 'no-cache',
-        } : null,
+        headers: kIsWeb
+            ? {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+                'Access-Control-Allow-Headers':
+                    'Origin, Content-Type, Accept, Authorization, X-Requested-With',
+                'Cache-Control': 'no-cache',
+              }
+            : null,
         errorBuilder: (context, error, stackTrace) {
           print('DEBUG: Image failed to load with fallback: $imageUrl');
           print('DEBUG: Error: $error');
@@ -150,9 +155,7 @@ class FirebaseImageWidget extends StatelessWidget {
             width: width,
             height: height,
             color: Colors.grey[200],
-            child: const Center(
-              child: CircularProgressIndicator(),
-            ),
+            child: const Center(child: CircularProgressIndicator()),
           );
         },
       ),
@@ -164,7 +167,7 @@ class FirebaseImageWidget extends StatelessWidget {
       // Convert gs:// URL to Firebase Storage reference
       final gsUrl = imageUrl;
       final ref = FirebaseStorage.instance.refFromURL(gsUrl);
-      
+
       print('DEBUG: Converting gs:// URL to reference: $gsUrl');
 
       return FutureBuilder<String>(
@@ -175,9 +178,7 @@ class FirebaseImageWidget extends StatelessWidget {
               width: width,
               height: height,
               color: Colors.grey[200],
-              child: const Center(
-                child: CircularProgressIndicator(),
-              ),
+              child: const Center(child: CircularProgressIndicator()),
             );
           }
 
@@ -214,9 +215,7 @@ class FirebaseImageWidget extends StatelessWidget {
                   width: width,
                   height: height,
                   color: Colors.grey[200],
-                  child: const Center(
-                    child: CircularProgressIndicator(),
-                  ),
+                  child: const Center(child: CircularProgressIndicator()),
                 );
               },
             ),
@@ -237,11 +236,14 @@ class FirebaseImageWidget extends StatelessWidget {
         width: width,
         height: height,
         fit: fit,
-        headers: kIsWeb ? {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Origin, Content-Type, Accept, Authorization, X-Requested-With',
-        } : null,
+        headers: kIsWeb
+            ? {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+                'Access-Control-Allow-Headers':
+                    'Origin, Content-Type, Accept, Authorization, X-Requested-With',
+              }
+            : null,
         errorBuilder: (context, error, stackTrace) {
           print('DEBUG: Image failed to load: $imageUrl');
           print('DEBUG: Error: $error');
@@ -256,9 +258,7 @@ class FirebaseImageWidget extends StatelessWidget {
             width: width,
             height: height,
             color: Colors.grey[200],
-            child: const Center(
-              child: CircularProgressIndicator(),
-            ),
+            child: const Center(child: CircularProgressIndicator()),
           );
         },
       ),
@@ -274,22 +274,12 @@ class FirebaseImageWidget extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.image_not_supported,
-              size: 48,
-              color: Colors.grey,
-            ),
+            Icon(Icons.image_not_supported, size: 48, color: Colors.grey),
             SizedBox(height: 8),
-            Text(
-              'Image not available',
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 12,
-              ),
-            ),
+            Text('Image not available', style: TextStyle(color: Colors.grey, fontSize: 12)),
           ],
         ),
       ),
     );
   }
-} 
+}

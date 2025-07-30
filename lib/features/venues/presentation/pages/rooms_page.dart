@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/services/app_state_service.dart';
-import '../providers/venue_providers.dart';
+import 'package:go_router/go_router.dart';
+import 'package:waddi_platform/shared/widgets/main_scaffold.dart';
+import 'package:waddi_platform/shared/widgets/smart_back_button.dart';
+import 'package:waddi_platform/shared/widgets/custom_button.dart';
+import 'package:waddi_platform/shared/widgets/custom_text_field.dart';
+import 'package:waddi_platform/shared/widgets/loading_indicator.dart';
+import 'package:waddi_platform/shared/themes/app_colors.dart';
+import 'package:waddi_platform/shared/themes/app_typography.dart';
+import 'package:waddi_platform/features/auth/presentation/providers/auth_provider.dart';
+import 'package:waddi_platform/features/venues/presentation/providers/venue_providers.dart';
+import 'package:waddi_platform/shared/providers/shared_providers.dart';
 import '../../domain/entities/room_entity.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:waddi_platform/features/auth/presentation/providers/auth_provider.dart';
 import 'package:waddi_platform/features/bookings/presentation/pages/booking_flow_page.dart';
-import 'package:waddi_platform/shared/themes/app_colors.dart';
-import 'package:go_router/go_router.dart';
 
 class RoomsPage extends ConsumerStatefulWidget {
   final String venueId;
@@ -146,12 +152,8 @@ class _RoomsPageState extends ConsumerState<RoomsPage> {
                   // Navigate to booking flow for authenticated users
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (context) => BookingFlowPage(
-                        venueId: widget.venueId,
-                        roomId: selectedRoom!.id,
-                        hourlyPrice: selectedRoom!.hourlyPrice,
-                        userId: userId,
-                      ),
+                      builder: (context) =>
+                          BookingFlowPage(venueId: widget.venueId, roomId: selectedRoom!.id),
                     ),
                   );
                 },

@@ -1,484 +1,368 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/services/app_state_service.dart';
 import 'package:go_router/go_router.dart';
-import '../../domain/entities/booking_entity.dart';
-import '../../domain/entities/time_slot_entity.dart';
-import '../providers/booking_providers.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:waddi_platform/shared/widgets/main_scaffold.dart';
+import 'package:waddi_platform/shared/widgets/smart_back_button.dart';
+import 'package:waddi_platform/shared/widgets/custom_button.dart';
+import 'package:waddi_platform/shared/widgets/custom_text_field.dart';
+import 'package:waddi_platform/shared/widgets/loading_indicator.dart';
+import 'package:waddi_platform/shared/themes/app_colors.dart';
+import 'package:waddi_platform/shared/themes/app_typography.dart';
 import 'package:waddi_platform/features/auth/presentation/providers/auth_provider.dart';
+import 'package:waddi_platform/features/bookings/presentation/providers/booking_providers.dart';
+import 'package:waddi_platform/shared/providers/shared_providers.dart';
 
 class BookingFlowPage extends ConsumerStatefulWidget {
   final String venueId;
-  final String roomId;
-  final double hourlyPrice;
-  final String userId;
-  const BookingFlowPage({
-    required this.venueId,
-    required this.roomId,
-    required this.hourlyPrice,
-    required this.userId,
-    Key? key,
-  }) : super(key: key);
+  final String? roomId;
+
+  const BookingFlowPage({super.key, required this.venueId, this.roomId});
 
   @override
   ConsumerState<BookingFlowPage> createState() => _BookingFlowPageState();
 }
 
 class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
-  DateTime selectedDate = DateTime.now();
-  DateTime? selectedTimeSlot;
-  bool isSubmitting = false;
-  String? feedback;
-  bool isDatePickerOpen = false;
+  int _currentStep = 0;
+  DateTime? _selectedDate;
+  String _selectedTime = '09:00';
+  String _selectedDuration = '1 hour';
+  int _guestCount = 1;
+  String _specialRequests = '';
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _loadSavedState();
   }
 
-  Future<void> _loadSavedState() async {
-    final savedState = await AppStateService.getPageState('booking_flow');
-    if (savedState != null) {
-      setState(() {
-        if (savedState['selectedDate'] != null) {
-          selectedDate = DateTime.parse(savedState['selectedDate']);
-        }
-        if (savedState['selectedTimeSlot'] != null) {
-          selectedTimeSlot = DateTime.parse(savedState['selectedTimeSlot']);
-        }
-      });
+  void _nextStep() {
+    if (_currentStep < 3) {
+      setState(() => _currentStep++);
     }
   }
 
-  // Debounce timer for setState calls
-  bool _isUpdating = false;
-
-  // Optimized date formatting
-  String _formatDate(DateTime date) {
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  void _previousStep() {
+    if (_currentStep > 0) {
+      setState(() => _currentStep--);
+    }
   }
 
-  // Optimized time formatting
-  String _formatTime(DateTime time) {
-    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
-  }
+  Future<void> _createBooking() async {
+    if (_selectedDate == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please complete all booking details')));
+      return;
+    }
 
-  // Debounced setState to prevent rapid rebuilds
-  void _debouncedSetState(VoidCallback fn) {
-    if (!_isUpdating) {
-      setState(() {
-        _isUpdating = true;
-        fn();
-      });
-      Future.delayed(const Duration(milliseconds: 100), () {
+    setState(() => _isLoading = true);
+    try {
+      final authState = ref.read(authProvider);
+      if (authState.user == null) {
         if (mounted) {
-          setState(() {
-            _isUpdating = false;
-          });
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Please log in to create a booking')));
         }
-      });
+        return;
+      }
+
+      // For now, just navigate to confirmation
+      if (mounted) {
+        context.go('/booking-confirmation/demo-booking-id');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to create booking: $e')));
+      }
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final checkAvailability = ref.watch(checkRoomAvailabilityProvider);
     final authState = ref.watch(authProvider);
 
-    // Save booking flow state
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final currentState = {
-        'venueId': widget.venueId,
-        'roomId': widget.roomId,
-        'hourlyPrice': widget.hourlyPrice,
-        'userId': widget.userId,
-        'selectedDate': selectedDate.toIso8601String(),
-        'selectedTimeSlot': selectedTimeSlot?.toIso8601String(),
-      };
-      AppStateService.savePageState('booking_flow', currentState);
-      ref.read(navigationStateProvider.notifier).updateCurrentRoute('/booking-flow');
-    });
-
-    // Check if user is a guest user and redirect to login
-    if (authState.isGuestUser) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            title: const Text('Login Required'),
-            content: const Text('Guest users cannot make bookings. Please log in to continue.'),
-            actions: [
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  context.push('/login');
-                },
-                child: const Text('Login'),
-              ),
-            ],
-          ),
-        );
-      });
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('Book Room'),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () {
-              try {
-                context.pop();
-              } catch (e) {
-                // If pop fails, navigate to venues page
-                context.go('/venues');
-              }
-            },
-          ),
-        ),
-        body: const Center(child: Text('Redirecting to login...')),
-      );
+    if (_isLoading) {
+      return Scaffold(body: Center(child: LoadingIndicator()));
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Book Room'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            try {
-              context.pop();
-            } catch (e) {
-              // If pop fails, navigate to venues page
-              context.go('/venues');
-            }
-          },
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Select Date:', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: InkWell(
-                    onTap: () async {
-                      if (isDatePickerOpen) return; // Prevent multiple taps
-
-                      _debouncedSetState(() {
-                        isDatePickerOpen = true;
-                      });
-                      
-                      try {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: selectedDate,
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime.now().add(const Duration(days: 60)),
-                        builder: (context, child) {
-                          return Theme(
-                            data: Theme.of(context).copyWith(
-                                colorScheme: Theme.of(
-                                  context,
-                                ).colorScheme.copyWith(primary: Colors.blue),
-                            ),
-                            child: child!,
-                          );
-                        },
-                      );
-                      
-                        if (mounted) {
-                          _debouncedSetState(() {
-                        isDatePickerOpen = false;
-                      if (picked != null) {
-                          selectedDate = picked;
-                          selectedTimeSlot = null; // Reset time selection when date changes
-                            }
-                        });
-                        
-                          if (picked != null) {
-                        // Show feedback to user
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                                content: Text('Date selected: ${_formatDate(picked)}'),
-                            duration: const Duration(seconds: 2),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                          }
-                        }
-                      } catch (e) {
-                        if (mounted) {
-                          _debouncedSetState(() {
-                            isDatePickerOpen = false;
-                          });
-                        }
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.calendar_today, color: Colors.blue),
-                          const SizedBox(width: 8),
-                          Text(_formatDate(selectedDate), style: const TextStyle(fontSize: 16)),
-                          const Spacer(),
-                          Icon(Icons.arrow_drop_down, color: Colors.grey),
-                        ],
-                      ),
+    return MainScaffold(
+      currentIndex: 1,
+      userId: authState.user?.id ?? '',
+      child: Column(
+        children: [
+          // Progress indicator
+          Container(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: List.generate(4, (index) {
+                final isCompleted = index < _currentStep;
+                final isCurrent = index == _currentStep;
+                return Expanded(
+                  child: Container(
+                    height: 4,
+                    margin: EdgeInsets.only(right: index < 3 ? 8 : 0),
+                    decoration: BoxDecoration(
+                      color: isCompleted || isCurrent ? AppColors.primary : Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
                     ),
+                  ),
+                );
+              }),
+            ),
+          ),
+
+          // Step content
+          Expanded(child: _buildStepContent()),
+
+          // Navigation buttons
+          Container(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                if (_currentStep > 0)
+                  Expanded(
+                    child: CustomButton(onPressed: _previousStep, label: 'Previous'),
+                  ),
+                if (_currentStep > 0) const SizedBox(width: 16),
+                Expanded(
+                  child: CustomButton(
+                    onPressed: _currentStep == 3 ? _createBooking : _nextStep,
+                    label: _currentStep == 3 ? 'Confirm Booking' : 'Next',
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 24),
-            Text('Select Time Slot:', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            FutureBuilder(
-              future: checkAvailability.call(roomId: widget.roomId, date: selectedDate),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        children: [
-                          Icon(Icons.error, color: Colors.red, size: 48),
-                          const SizedBox(height: 8),
-                          Text('Error loading time slots: ${snapshot.error}'),
-                          const SizedBox(height: 8),
-                          ElevatedButton(
-                            onPressed: () {
-                              setState(() {
-                                // This will trigger a rebuild and retry
-                              });
-                            },
-                            child: const Text('Retry'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-                if (!snapshot.hasData) {
-                  return const Card(
-                    child: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Center(
-                        child: Column(
-                          children: [
-                            CircularProgressIndicator(),
-                            SizedBox(height: 8),
-                            Text('Loading available time slots...'),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                }
-                final slots = snapshot.data as List<TimeSlot>;
-                
-                if (slots.isEmpty) {
-                  return Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        children: [
-                          Icon(Icons.schedule, color: Colors.orange, size: 48),
-                          const SizedBox(height: 8),
-                          const Text('No time slots available for this date'),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-                
-                return Column(
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStepContent() {
+    switch (_currentStep) {
+      case 0:
+        return _buildDateTimeSelectionStep();
+      case 1:
+        return _buildDetailsStep();
+      case 2:
+        return _buildConfirmationStep();
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  Widget _buildDateTimeSelectionStep() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Select Date & Time', style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: 16),
+
+          // Date selection
+          Text('Date', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          InkWell(
+            onTap: () async {
+              final date = await showDatePicker(
+                context: context,
+                initialDate: DateTime.now().add(const Duration(days: 1)),
+                firstDate: DateTime.now(),
+                lastDate: DateTime.now().add(const Duration(days: 365)),
+              );
+              if (date != null) {
+                setState(() => _selectedDate = date);
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey[300]!),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.calendar_today),
+                  const SizedBox(width: 12),
+                  Text(
+                    _selectedDate != null
+                        ? '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}'
+                        : 'Select a date',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Time selection
+          Text('Time', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            value: _selectedTime,
+            decoration: const InputDecoration(border: OutlineInputBorder()),
+            items: [
+              '09:00',
+              '10:00',
+              '11:00',
+              '12:00',
+              '13:00',
+              '14:00',
+              '15:00',
+              '16:00',
+              '17:00',
+              '18:00',
+              '19:00',
+              '20:00',
+            ].map((time) => DropdownMenuItem(value: time, child: Text(time))).toList(),
+            onChanged: (value) => setState(() => _selectedTime = value!),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailsStep() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Booking Details', style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: 16),
+
+          // Duration selection
+          Text('Duration', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            value: _selectedDuration,
+            decoration: const InputDecoration(border: OutlineInputBorder()),
+            items: [
+              '1 hour',
+              '2 hours',
+              '3 hours',
+              '4 hours',
+              '5 hours',
+              '6 hours',
+            ].map((duration) => DropdownMenuItem(value: duration, child: Text(duration))).toList(),
+            onChanged: (value) => setState(() => _selectedDuration = value!),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Guest count
+          Text('Number of Guests', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              IconButton(
+                onPressed: () {
+                  if (_guestCount > 1) {
+                    setState(() => _guestCount--);
+                  }
+                },
+                icon: const Icon(Icons.remove_circle_outline),
+              ),
+              Expanded(
+                child: Center(
+                  child: Text('$_guestCount', style: Theme.of(context).textTheme.headlineMedium),
+                ),
+              ),
+              IconButton(
+                onPressed: () {
+                  if (_guestCount < 10) {
+                    setState(() => _guestCount++);
+                  }
+                },
+                icon: const Icon(Icons.add_circle_outline),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 24),
+
+          // Special requests
+          Text('Special Requests (Optional)', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          CustomTextField(
+            controller: TextEditingController(text: _specialRequests),
+            hintText: 'Any special requirements...',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConfirmationStep() {
+    final totalHours = int.parse(_selectedDuration.split(' ')[0]);
+    final totalPrice = 50.0 * totalHours; // Fixed price for demo
+
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Confirm Booking', style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: 16),
+
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Booking Summary', style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 16),
+
+                  _buildSummaryRow('Venue', 'Demo Venue'),
+                  _buildSummaryRow('Room', 'Demo Room'),
+                  _buildSummaryRow(
+                    'Date',
+                    _selectedDate != null
+                        ? '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}'
+                        : '',
+                  ),
+                  _buildSummaryRow('Time', _selectedTime),
+                  _buildSummaryRow('Duration', _selectedDuration),
+                  _buildSummaryRow('Guests', '$_guestCount'),
+                  _buildSummaryRow('Price per hour', '\$50.00'),
+                  const Divider(),
+                  _buildSummaryRow(
+                    'Total Price',
+                    '\$${totalPrice.toStringAsFixed(2)}',
+                    isTotal: true,
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          if (_specialRequests.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Available Time Slots:', style: Theme.of(context).textTheme.titleMedium),
+                    Text('Special Requests', style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 8),
-                    Text(
-                      'Select a 30-minute time slot:',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: slots.map((slot) {
-                        final startLabel = _formatTime(slot.start);
-                        final endLabel = _formatTime(slot.end);
-                        final label = '$startLabel - $endLabel';
-                        
-                        return ChoiceChip(
-                          label: Text(
-                            label,
-                            style: TextStyle(
-                              color: slot.isAvailable ? null : Colors.white,
-                              fontWeight: selectedTimeSlot == slot.start
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                            ),
-                          ),
-                          selected: selectedTimeSlot == slot.start,
-                          onSelected: slot.isAvailable
-                              ? (selected) {
-                                  _debouncedSetState(() {
-                                    selectedTimeSlot = selected ? slot.start : null;
-                                  });
-                                  if (selected) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Time slot selected: $label'),
-                                        duration: const Duration(seconds: 2),
-                                        backgroundColor: Colors.green,
-                                      ),
-                                    );
-                                  }
-                                }
-                              : null,
-                          selectedColor: Colors.green,
-                          disabledColor: Colors.grey.shade600,
-                          backgroundColor: Colors.grey.shade100,
-                          avatar: slot.isAvailable
-                              ? null
-                              : Icon(Icons.block, color: Colors.white, size: 16),
-                        );
-                      }).toList(),
-                    ),
+                    Text(_specialRequests),
                   ],
-                );
-              },
+                ),
+              ),
             ),
-            const SizedBox(height: 24),
-            if (selectedTimeSlot != null)
-              Card(
-                margin: const EdgeInsets.only(bottom: 16),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.receipt, color: Colors.blue),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Booking Summary',
-                            style: Theme.of(
-                              context,
-                            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      _buildSummaryRow('Date', _formatDate(selectedDate)),
-                      _buildSummaryRow(
-                        'Time',
-                        '${_formatTime(selectedTimeSlot!)} - ${_formatTime(selectedTimeSlot!.add(const Duration(minutes: 30)))}',
-                      ),
-                      _buildSummaryRow('Room', widget.roomId),
-                      _buildSummaryRow('Venue', widget.venueId),
-                      const Divider(),
-                      _buildSummaryRow('Total Amount', '${widget.hourlyPrice} SAR', isTotal: true),
-                    ],
-                  ),
-                ),
-              ),
-            if (selectedTimeSlot != null)
-              isSubmitting
-                  ? const Center(child: CircularProgressIndicator())
-                  : ElevatedButton(
-                      onPressed: () async {
-                        _debouncedSetState(() {
-                          isSubmitting = true;
-                          feedback = null;
-                        });
-
-                        try {
-                        final start = selectedTimeSlot!;
-                        final end = start.add(const Duration(minutes: 30));
-                        final booking = BookingEntity(
-                            id: '',
-                          userId: widget.userId,
-                          venueId: widget.venueId,
-                          roomId: widget.roomId,
-                          startTime: Timestamp.fromDate(start),
-                          endTime: Timestamp.fromDate(end),
-                            durationHours: 0,
-                            roomFee: widget.hourlyPrice * 0.5,
-                          reservationFee: 0,
-                          totalAmount: widget.hourlyPrice * 0.5,
-                          paymentStatus: 'pending',
-                          bookingStatus: 'pending',
-                          paymentIntentId: null,
-                          createdAt: Timestamp.now(),
-                          updatedAt: Timestamp.now(),
-                        );
-
-                          await ref.read(createBookingProvider).call(booking);
-
-                          if (mounted) {
-                            _debouncedSetState(() {
-                            feedback = 'Booking successful!';
-                            isSubmitting = false;
-                          });
-
-                            // Navigate to booking confirmation page
-                            final bookingId = DateTime.now().millisecondsSinceEpoch.toString();
-                            final venueName =
-                                'The Pixel Palace'; // This should come from venue data
-                            final roomName =
-                                'Room ${widget.roomId}'; // This should come from room data
-                            final bookingDate = selectedTimeSlot!;
-                            final durationHours =
-                                1; // 30 minutes = 0.5 hours, but showing as 1 hour for demo
-                            final totalPrice = widget.hourlyPrice * 0.5;
-
-                            context.go(
-                              '/booking-confirmation?bookingId=$bookingId&venueName=${Uri.encodeComponent(venueName)}&roomName=${Uri.encodeComponent(roomName)}&bookingDate=${bookingDate.toIso8601String()}&durationHours=$durationHours&totalPrice=$totalPrice',
-                            );
-                          }
-                        } catch (e) {
-                          if (mounted) {
-                            _debouncedSetState(() {
-                            feedback = 'Booking failed: $e';
-                            isSubmitting = false;
-                          });
-
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Booking failed: $e'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                          }
-                        }
-                      },
-                      child: const Text('Confirm Booking'),
-                    ),
-            if (feedback != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 16.0),
-                child: Text(
-                  feedback!,
-                  style: TextStyle(
-                    color: feedback!.contains('success') ? Colors.green : Colors.red,
-                  ),
-                ),
-              ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -491,21 +375,18 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
         children: [
           Text(
             label,
-            style: TextStyle(
-              fontSize: isTotal ? 18 : 16,
-              fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-            ),
+            style: isTotal
+                ? Theme.of(context).textTheme.titleMedium
+                : Theme.of(context).textTheme.bodyMedium,
           ),
           Text(
             value,
-            style: TextStyle(
-              fontSize: isTotal ? 18 : 16,
-              fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-              color: isTotal ? Colors.green : null,
-            ),
+            style: isTotal
+                ? Theme.of(context).textTheme.titleMedium
+                : Theme.of(context).textTheme.bodyMedium,
           ),
         ],
       ),
     );
   }
-} 
+}

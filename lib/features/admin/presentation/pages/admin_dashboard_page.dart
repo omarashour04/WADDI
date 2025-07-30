@@ -55,17 +55,14 @@ class AdminDashboardPage extends ConsumerWidget {
                     const SizedBox(height: 8),
                     Text(
                       'Manage your platform and monitor performance',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 16),
                     ),
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Statistics Grid
               StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance.collection('users').snapshots(),
@@ -79,47 +76,58 @@ class AdminDashboardPage extends ConsumerWidget {
                           final totalUsers = usersSnapshot.data?.docs.length ?? 0;
                           final totalVenues = venuesSnapshot.data?.docs.length ?? 0;
                           final totalBookings = bookingsSnapshot.data?.docs.length ?? 0;
-                          final totalRevenue = _calculateTotalRevenue(bookingsSnapshot.data?.docs ?? []);
-                          
-                          return GridView.count(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                            childAspectRatio: 1.2,
+                          final totalRevenue = _calculateTotalRevenue(
+                            bookingsSnapshot.data?.docs ?? [],
+                          );
+
+                          return Wrap(
+                            spacing: 16,
+                            runSpacing: 16,
+                            alignment: WrapAlignment.spaceEvenly,
                             children: [
-                              _buildStatCard(
-                                context,
-                                title: 'Total Users',
-                                value: totalUsers.toString(),
-                                icon: Icons.people,
-                                color: Colors.blue,
-                                onTap: () => context.go('/admin/users'),
+                              SizedBox(
+                                width: (MediaQuery.of(context).size.width - 64) / 2,
+                                child: _buildStatCard(
+                                  context,
+                                  title: 'Total Users',
+                                  value: totalUsers.toString(),
+                                  icon: Icons.people,
+                                  color: Colors.blue,
+                                  onTap: () => context.go('/admin/users'),
+                                ),
                               ),
-                              _buildStatCard(
-                                context,
-                                title: 'Total Venues',
-                                value: totalVenues.toString(),
-                                icon: Icons.store,
-                                color: Colors.green,
-                                onTap: () => context.go('/admin/venues'),
+                              SizedBox(
+                                width: (MediaQuery.of(context).size.width - 64) / 2,
+                                child: _buildStatCard(
+                                  context,
+                                  title: 'Total Venues',
+                                  value: totalVenues.toString(),
+                                  icon: Icons.store,
+                                  color: Colors.green,
+                                  onTap: () => context.go('/admin/venues'),
+                                ),
                               ),
-                              _buildStatCard(
-                                context,
-                                title: 'Total Bookings',
-                                value: totalBookings.toString(),
-                                icon: Icons.book_online,
-                                color: Colors.orange,
-                                onTap: () => context.go('/admin/bookings'),
+                              SizedBox(
+                                width: (MediaQuery.of(context).size.width - 64) / 2,
+                                child: _buildStatCard(
+                                  context,
+                                  title: 'Total Bookings',
+                                  value: totalBookings.toString(),
+                                  icon: Icons.book_online,
+                                  color: Colors.orange,
+                                  onTap: () => context.go('/admin/bookings'),
+                                ),
                               ),
-                              _buildStatCard(
-                                context,
-                                title: 'Total Revenue',
-                                value: '\$${totalRevenue.toStringAsFixed(0)}',
-                                icon: Icons.attach_money,
-                                color: Colors.purple,
-                                onTap: () => context.go('/admin/analytics'),
+                              SizedBox(
+                                width: (MediaQuery.of(context).size.width - 64) / 2,
+                                child: _buildStatCard(
+                                  context,
+                                  title: 'Total Revenue',
+                                  value: '\$${totalRevenue.toStringAsFixed(0)}',
+                                  icon: Icons.attach_money,
+                                  color: Colors.purple,
+                                  onTap: () => context.go('/admin/analytics'),
+                                ),
                               ),
                             ],
                           );
@@ -129,91 +137,110 @@ class AdminDashboardPage extends ConsumerWidget {
                   );
                 },
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Quick Actions
               Text(
                 'Quick Actions',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               // Action Cards
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 1.5,
+              Wrap(
+                spacing: 16,
+                runSpacing: 16,
+                alignment: WrapAlignment.spaceEvenly,
                 children: [
-                  _buildActionCard(
-                    context,
-                    icon: Icons.people,
-                    title: 'Manage Users',
-                    subtitle: 'View and manage user accounts',
-                    color: Colors.blue,
-                    onTap: () => context.go('/admin/users'),
+                  SizedBox(
+                    width: (MediaQuery.of(context).size.width - 64) / 2,
+                    child: _buildActionCard(
+                      context,
+                      icon: Icons.people,
+                      title: 'Manage Users',
+                      subtitle: 'View and manage user accounts',
+                      color: Colors.blue,
+                      onTap: () => context.go('/admin/users'),
+                    ),
                   ),
-                  _buildActionCard(
-                    context,
-                    icon: Icons.store,
-                    title: 'Manage Venues',
-                    subtitle: 'Approve and manage venues',
-                    color: Colors.green,
-                    onTap: () => context.go('/admin/venues'),
+                  SizedBox(
+                    width: (MediaQuery.of(context).size.width - 64) / 2,
+                    child: _buildActionCard(
+                      context,
+                      icon: Icons.store,
+                      title: 'Manage Venues',
+                      subtitle: 'Approve and manage venues',
+                      color: Colors.green,
+                      onTap: () => context.go('/admin/venues'),
+                    ),
                   ),
-                  _buildActionCard(
-                    context,
-                    icon: Icons.book_online,
-                    title: 'Manage Bookings',
-                    subtitle: 'View and manage bookings',
-                    color: Colors.orange,
-                    onTap: () => context.go('/admin/bookings'),
+                  SizedBox(
+                    width: (MediaQuery.of(context).size.width - 64) / 2,
+                    child: _buildActionCard(
+                      context,
+                      icon: Icons.book_online,
+                      title: 'Manage Bookings',
+                      subtitle: 'View and manage bookings',
+                      color: Colors.orange,
+                      onTap: () => context.go('/admin/bookings'),
+                    ),
                   ),
-                  _buildActionCard(
-                    context,
-                    icon: Icons.analytics,
-                    title: 'Analytics',
-                    subtitle: 'View platform analytics',
-                    color: Colors.purple,
-                    onTap: () => context.go('/admin/analytics'),
+                  SizedBox(
+                    width: (MediaQuery.of(context).size.width - 64) / 2,
+                    child: _buildActionCard(
+                      context,
+                      icon: Icons.analytics,
+                      title: 'Analytics',
+                      subtitle: 'View platform analytics',
+                      color: Colors.purple,
+                      onTap: () => context.go('/admin/analytics'),
+                    ),
                   ),
-                  _buildActionCard(
-                    context,
-                    icon: Icons.content_copy,
-                    title: 'Content',
-                    subtitle: 'Manage platform content',
-                    color: Colors.teal,
-                    onTap: () => context.go('/admin/content'),
+                  SizedBox(
+                    width: (MediaQuery.of(context).size.width - 64) / 2,
+                    child: _buildActionCard(
+                      context,
+                      icon: Icons.content_copy,
+                      title: 'Content',
+                      subtitle: 'Manage platform content',
+                      color: Colors.teal,
+                      onTap: () => context.go('/admin/content'),
+                    ),
                   ),
-                  _buildActionCard(
-                    context,
-                    icon: Icons.notifications,
-                    title: 'Notifications',
-                    subtitle: 'Send broadcast notifications',
-                    color: Colors.red,
-                    onTap: () => context.go('/admin/notifications'),
+                  SizedBox(
+                    width: (MediaQuery.of(context).size.width - 64) / 2,
+                    child: _buildActionCard(
+                      context,
+                      icon: Icons.notifications,
+                      title: 'Notifications',
+                      subtitle: 'Send broadcast notifications',
+                      color: Colors.red,
+                      onTap: () => context.go('/admin/notifications'),
+                    ),
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Recent Activity
               Text(
                 'Recent Activity',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection('bookings')
@@ -224,7 +251,7 @@ class AdminDashboardPage extends ConsumerWidget {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
-                  
+
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                     return Container(
                       padding: const EdgeInsets.all(16),
@@ -235,7 +262,7 @@ class AdminDashboardPage extends ConsumerWidget {
                       child: const Text('No recent activity'),
                     );
                   }
-                  
+
                   return Column(
                     children: snapshot.data!.docs.map((doc) {
                       final data = doc.data() as Map<String, dynamic>;
@@ -255,19 +282,21 @@ class AdminDashboardPage extends ConsumerWidget {
                   );
                 },
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Database Maintenance Section
               Text(
                 'Database Maintenance',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -276,16 +305,16 @@ class AdminDashboardPage extends ConsumerWidget {
                     children: [
                       Text(
                         'Update Database Schema',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Add status field to existing venues and clean up guest users',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey[600],
-                        ),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
                       ),
                       const SizedBox(height: 16),
                       Row(
@@ -319,7 +348,7 @@ class AdminDashboardPage extends ConsumerWidget {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 24),
             ],
           ),
@@ -336,42 +365,49 @@ class AdminDashboardPage extends ConsumerWidget {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+    return IntrinsicHeight(
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(icon, color: color, size: 32),
                 ),
-                child: Icon(icon, color: color, size: 32),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                value,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: color,
+                const SizedBox(height: 12),
+                Flexible(
+                  child: Text(
+                    value,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: color),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                title,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey[600],
+                const SizedBox(height: 4),
+                Flexible(
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                textAlign: TextAlign.center,
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -386,44 +422,51 @@ class AdminDashboardPage extends ConsumerWidget {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+    return IntrinsicHeight(
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(icon, color: color, size: 32),
                 ),
-                child: Icon(icon, color: color, size: 32),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+                const SizedBox(height: 12),
+                Flexible(
+                  child: Text(
+                    title,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey[600],
+                const SizedBox(height: 4),
+                Flexible(
+                  child: Text(
+                    subtitle,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -465,12 +508,12 @@ class AdminDashboardPage extends ConsumerWidget {
       // Get all venues and update them
       final venuesRef = FirebaseFirestore.instance.collection('venues');
       final snapshot = await venuesRef.get();
-      
+
       if (snapshot.docs.isEmpty) {
         Navigator.of(context).pop(); // Close loading dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No venues found to update')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('No venues found to update')));
         return;
       }
 
@@ -499,17 +542,14 @@ class AdminDashboardPage extends ConsumerWidget {
         );
       } else {
         Navigator.of(context).pop(); // Close loading dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('All venues already have status field')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('All venues already have status field')));
       }
     } catch (e) {
       Navigator.of(context).pop(); // Close loading dialog
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error updating venues: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Error updating venues: $e'), backgroundColor: Colors.red),
       );
     }
   }
@@ -522,7 +562,7 @@ class AdminDashboardPage extends ConsumerWidget {
         builder: (context) => AlertDialog(
           title: const Text('Clean Up Guest Users'),
           content: const Text(
-            'This will delete all guest users from the database. This action cannot be undone. Are you sure?'
+            'This will delete all guest users from the database. This action cannot be undone. Are you sure?',
           ),
           actions: [
             TextButton(
@@ -558,12 +598,12 @@ class AdminDashboardPage extends ConsumerWidget {
       // Get all guest users (users with empty email)
       final usersRef = FirebaseFirestore.instance.collection('users');
       final snapshot = await usersRef.where('email', isEqualTo: '').get();
-      
+
       if (snapshot.docs.isEmpty) {
         Navigator.of(context).pop(); // Close loading dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No guest users found to clean up')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('No guest users found to clean up')));
         return;
       }
 
@@ -576,7 +616,7 @@ class AdminDashboardPage extends ConsumerWidget {
       }
 
       await batch.commit();
-      
+
       Navigator.of(context).pop(); // Close loading dialog
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -587,11 +627,8 @@ class AdminDashboardPage extends ConsumerWidget {
     } catch (e) {
       Navigator.of(context).pop(); // Close loading dialog
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error cleaning up guest users: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Error cleaning up guest users: $e'), backgroundColor: Colors.red),
       );
     }
   }
-} 
+}

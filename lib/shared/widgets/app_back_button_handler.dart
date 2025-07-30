@@ -2,94 +2,108 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/shared_providers.dart';
 import '../../core/services/app_state_service.dart';
+import 'package:flutter/foundation.dart';
 
-class AppBackButtonHandler extends ConsumerWidget {
+class AppBackButtonHandler extends ConsumerStatefulWidget {
   final Widget child;
   final String? fallbackRoute;
 
   const AppBackButtonHandler({super.key, required this.child, this.fallbackRoute});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return PopScope(
-      canPop: false,
-      onPopInvoked: (didPop) {
-        if (didPop) return;
+  ConsumerState<AppBackButtonHandler> createState() => _AppBackButtonHandlerState();
+}
 
-        // Handle back button press
+class _AppBackButtonHandlerState extends ConsumerState<AppBackButtonHandler>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+      onWillPop: () async {
+        print('DEBUG: WillPopScope onWillPop called');
         _handleBackButton(context, ref);
+        return false; // Prevent default back behavior
       },
-      child: child,
+              child: PopScope(
+          canPop: false,
+          onPopInvoked: (didPop) {
+            print('DEBUG: PopScope onPopInvoked called, didPop: $didPop');
+            if (didPop) return;
+            _handleBackButton(context, ref);
+          },
+          child: Focus(
+            autofocus: true,
+            onKeyEvent: (node, event) {
+              print('DEBUG: Focus onKeyEvent called: ${event.logicalKey}');
+              if (event.logicalKey == LogicalKeyboardKey.goBack) {
+                print('DEBUG: Back key detected via Focus');
+                _handleBackButton(context, ref);
+                return KeyEventResult.handled;
+              }
+              return KeyEventResult.ignored;
+            },
+            child: widget.child,
+          ),
+        ),
     );
+  }
+
+  @override
+  Future<bool> didPopRoute() async {
+    print('DEBUG: didPopRoute called - Android back button pressed');
+    _handleBackButton(context, ref);
+    return true; // Prevent default back behavior
   }
 
   void _handleBackButton(BuildContext context, WidgetRef ref) {
     final location = GoRouterState.of(context).uri.path;
+    final navigationHistory = ref.read(navigationHistoryProvider);
+    final stackSize = ref.read(navigationHistoryProvider.notifier).stackSize;
 
-    // Define navigation hierarchy
-    final navigationHierarchy = {
-      '/venues': null, // Root level
-      '/search': '/venues',
-      '/profile': '/venues',
-      '/bookings': '/venues',
-      '/admin': '/venues',
-      '/users': '/venues',
-      '/reviews': '/venues',
-      '/support': '/venues',
-      '/login': '/venues',
-      '/register': '/venues',
-      '/reset-password': '/venues',
-    };
+    print('DEBUG: Back button pressed at location: $location');
+    print('DEBUG: Stack size: $stackSize');
+    print('DEBUG: Navigation history: $navigationHistory');
 
-    // Check if current location is in hierarchy
-    String? targetRoute;
+    // Stack-based navigation: pop current route and navigate to top of stack
+    if (stackSize > 1) {
+      print('DEBUG: Popping current route from stack');
+      ref.read(navigationHistoryProvider.notifier).popRoute();
 
-    // Handle nested routes first
-    if (location.startsWith('/venues/') && location.contains('/rooms')) {
-      // From rooms page, go back to venue details
-      final venueId = location.split('/')[2];
-      targetRoute = '/venues/$venueId';
-    } else if (location.startsWith('/venues/') && !location.contains('/rooms')) {
-      // From venue details, go back to venues list
-      targetRoute = '/venues';
-    } else if (location.startsWith('/booking-details/')) {
-      // From booking details, go back to bookings list
-      targetRoute = '/venues';
-    } else if (location.startsWith('/booking-confirmation')) {
-      // From booking confirmation, go back to venues
-      targetRoute = '/venues';
-    } else {
-      // Check exact matches first
-      if (navigationHierarchy.containsKey(location)) {
-        targetRoute = navigationHierarchy[location];
+      final topRoute = ref.read(navigationHistoryProvider.notifier).getTopRoute();
+      print('DEBUG: Navigating to top of stack: $topRoute');
+
+      if (topRoute != null) {
+        context.go(topRoute);
       } else {
-        // Check pattern matches for dynamic routes
-        for (final entry in navigationHierarchy.entries) {
-          final pattern = entry.key;
-          if (location.startsWith(pattern)) {
-            targetRoute = entry.value;
-            break;
-          }
-        }
+        print('DEBUG: No top route available, going to home');
+        context.go('/home');
       }
-    }
-
-    // Update navigation state
-    ref.read(navigationStateProvider.notifier).updateCurrentRoute(targetRoute ?? '/venues');
-
-    // If we have a target route, navigate there
-    if (targetRoute != null) {
-      context.go(targetRoute);
-    } else if (fallbackRoute != null) {
-      // Use fallback route if provided
-      context.go(fallbackRoute!);
-    } else if (location == '/venues') {
-      // If we're at the root level, show exit confirmation
-      _showExitConfirmation(context);
     } else {
-      // Default fallback to venues
-      context.go('/venues');
+      // Stack has only one route, check if we're at a root level
+      final rootRoutes = ['/home', '/venues', '/profile'];
+      final isAtRoot = rootRoutes.any((route) => location == route || location.startsWith(route));
+
+      if (isAtRoot) {
+        print('DEBUG: At root level, showing exit confirmation');
+        _showExitConfirmation(context);
+      } else {
+        print('DEBUG: No history, navigating to home');
+        context.go('/home');
+      }
     }
   }
 

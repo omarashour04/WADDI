@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../features/auth/presentation/providers/auth_provider.dart';
+import '../shared/providers/shared_providers.dart';
 
 import '../shared/widgets/page_transitions.dart';
 // Auth pages
@@ -75,7 +76,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       final authState = ref.read(authProvider);
 
       print(
-        'Router redirect - Location: ${state.matchedLocation}, Auth Status: ${authState.status}, Loading: ${authState.isLoading}',
+        'Router redirect - Location: ${state.matchedLocation}, Auth Status: ${authState.status}, Loading: ${authState.isLoading}, User: ${authState.user?.name ?? 'null'}',
       );
 
       // If auth state is still loading, redirect to a simple loading page
@@ -84,10 +85,30 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         return '/loading';
       }
 
-      // If at root, redirect to home
-      if (state.matchedLocation == '/') {
-        print('At root, redirecting to home');
+      // Force redirect to home if stuck on loading page for too long
+      if (state.matchedLocation == '/loading') {
+        print('Stuck on loading page, forcing redirect to home');
         return '/home';
+      }
+
+      // If at root, try to restore last known route
+      if (state.matchedLocation == '/') {
+        try {
+          final localStorage = ref.read(localStorageProvider);
+          final lastRoute = await localStorage.getCurrentRoute();
+
+          // Only restore if it's a valid route and user is authenticated
+          if (lastRoute != '/home' && authState.status == AuthStatus.authenticated) {
+            print('Restoring last known route: $lastRoute');
+            return lastRoute;
+          } else {
+            print('At root, redirecting to home');
+            return '/home';
+          }
+        } catch (e) {
+          print('Failed to restore last route, redirecting to home: $e');
+          return '/home';
+        }
       }
 
       // If user is authenticated and trying to access auth pages, redirect to home
@@ -110,6 +131,14 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           protectedPages.any((page) => state.matchedLocation.startsWith(page))) {
         print('Unauthenticated user accessing protected page, redirecting to login');
         return '/login';
+      }
+
+      // Track navigation history for all valid routes
+      if (state.matchedLocation != '/loading') {
+        print('DEBUG: Adding route to history: ${state.matchedLocation}');
+        ref.read(navigationHistoryProvider.notifier).addRoute(state.matchedLocation);
+        // Save current route for app restart
+        ref.read(localStorageProvider).saveCurrentRoute(state.matchedLocation);
       }
 
       print('No redirect needed');
@@ -138,22 +167,25 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
     ),
     routes: [
-      // Loading route
+      // Debug route
       GoRoute(
-        path: '/loading',
+        path: '/debug',
         builder: (context, state) => Scaffold(
+          appBar: AppBar(title: Text('Debug Page')),
           body: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                CircularProgressIndicator(),
+                Text('Debug Page - Router is working!'),
                 SizedBox(height: 16),
-                Text('Loading WADDI Platform...'),
+                ElevatedButton(onPressed: () => context.go('/home'), child: Text('Go to Home')),
               ],
             ),
           ),
         ),
       ),
+      // Loading route
+      GoRoute(path: '/loading', builder: (context, state) => _LoadingPage()),
       // Root route
       GoRoute(
         path: '/',
@@ -167,10 +199,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
       // Home page route
-      GoRoute(
-        path: '/home',
-        builder: (context, state) => const HomePage(),
-      ),
+      GoRoute(path: '/home', builder: (context, state) => const HomePage()),
       GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
       GoRoute(path: '/register', builder: (context, state) => const RegisterPage()),
       GoRoute(path: '/reset-password', builder: (context, state) => const ResetPasswordPage()),
@@ -424,3 +453,47 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+// Loading page widget with timeout
+class _LoadingPage extends StatefulWidget {
+  @override
+  _LoadingPageState createState() => _LoadingPageState();
+}
+
+class _LoadingPageState extends State<_LoadingPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Auto-redirect to home after 5 seconds to prevent infinite loading
+    Future.delayed(Duration(seconds: 5)).then((_) {
+      if (mounted) {
+        context.go('/home');
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Loading WADDI Platform...'),
+            SizedBox(height: 8),
+            Text(
+              'Redirecting to home in 5 seconds...',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+            ),
+            SizedBox(height: 16),
+            ElevatedButton(onPressed: () => context.go('/home'), child: Text('Go to Home Now')),
+            SizedBox(height: 8),
+            ElevatedButton(onPressed: () => context.go('/debug'), child: Text('Debug Router')),
+          ],
+        ),
+      ),
+    );
+  }
+}

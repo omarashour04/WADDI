@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/services/app_state_service.dart';
-import 'package:waddi_platform/features/auth/presentation/providers/auth_provider.dart';
-import 'package:waddi_platform/shared/widgets/main_scaffold.dart';
-import 'package:waddi_platform/shared/themes/app_colors.dart';
-import 'package:waddi_platform/shared/services/notification_service.dart';
 import 'package:go_router/go_router.dart';
+import 'package:waddi_platform/shared/widgets/main_scaffold.dart';
+import 'package:waddi_platform/shared/widgets/smart_back_button.dart';
+import 'package:waddi_platform/shared/widgets/custom_button.dart';
+import 'package:waddi_platform/shared/widgets/custom_text_field.dart';
+import 'package:waddi_platform/shared/widgets/loading_indicator.dart';
+import 'package:waddi_platform/shared/themes/app_colors.dart';
+import 'package:waddi_platform/shared/themes/app_typography.dart';
+import 'package:waddi_platform/features/auth/presentation/providers/auth_provider.dart';
+import 'package:waddi_platform/shared/providers/shared_providers.dart';
+import '../../../../core/services/app_state_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../../../shared/widgets/smart_back_button.dart';
 
 class ProfilePage extends ConsumerWidget {
   @override
@@ -68,7 +72,11 @@ class ProfilePage extends ConsumerWidget {
                           backgroundColor: Theme.of(context).brightness == Brightness.dark
                               ? Theme.of(context).bottomNavigationBarTheme.backgroundColor
                               : AppColors.primaryLight,
-                          child: Icon(Icons.person, size: 50, color: Theme.of(context).primaryColor),
+                          child: Icon(
+                            Icons.person,
+                            size: 50,
+                            color: Theme.of(context).primaryColor,
+                          ),
                         ),
                         const SizedBox(height: 16),
                         // User Name
@@ -142,10 +150,9 @@ class ProfilePage extends ConsumerWidget {
                         const SizedBox(height: 8),
                         Text(
                           'Sign in to access your account',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey[600],
-                            fontSize: 14,
-                          ),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600], fontSize: 14),
                         ),
                         const SizedBox(height: 24),
                         // Sign In Button
@@ -157,7 +164,9 @@ class ProfilePage extends ConsumerWidget {
                               backgroundColor: AppColors.primary,
                               foregroundColor: AppColors.textOnPrimary,
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                             child: const Text(
                               'Sign In',
@@ -175,7 +184,9 @@ class ProfilePage extends ConsumerWidget {
                               foregroundColor: AppColors.primary,
                               side: BorderSide(color: AppColors.primary),
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                             child: const Text(
                               'Create Account',
@@ -247,7 +258,7 @@ class ProfilePage extends ConsumerWidget {
                 // if (authState.user?.role == 'admin') _buildAdminSection(context, ref),
                 if (authState.user?.role == 'admin') _buildAdminAccessSection(context, ref),
                 if (authState.user?.role == 'venue_owner') _buildVenueOwnerSection(context, ref),
-                
+
                 const SizedBox(height: 16),
 
                 // Support Tickets Section
@@ -304,15 +315,18 @@ class ProfilePage extends ConsumerWidget {
                 const SizedBox(height: 16),
 
                 // Notifications Section (for authenticated users)
-                if (authState.status == AuthStatus.authenticated) _buildNotificationsSection(context, ref),
-                
+                if (authState.status == AuthStatus.authenticated)
+                  _buildNotificationsSection(context, ref),
+
                 const SizedBox(height: 16),
 
                 // Role Management Section (for testing)
-                if (authState.user?.role == 'user' && authState.status == AuthStatus.authenticated) _buildRolePromotionSection(context, ref),
-                
+                if (authState.user?.role == 'user' && authState.status == AuthStatus.authenticated)
+                  _buildRolePromotionSection(context, ref),
+
                 // Guest User Conversion Section
-                if (authState.status == AuthStatus.unauthenticated) _buildGuestConversionSection(context, ref),
+                if (authState.status == AuthStatus.unauthenticated)
+                  _buildGuestConversionSection(context, ref),
 
                 // Settings Section (for all users including guests)
                 _buildSettingsSection(context, ref),
@@ -433,10 +447,9 @@ class ProfilePage extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             child: Text(
               'Admin Panel',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Colors.red,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.red),
             ),
           ),
           _ProfileOption(
@@ -444,13 +457,10 @@ class ProfilePage extends ConsumerWidget {
             icon: Icons.dashboard,
             onTap: () => context.go('/admin'),
           ),
-          
+
           // Role Switching Section
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Divider(),
-          ),
-          
+          const Padding(padding: EdgeInsets.all(16), child: Divider()),
+
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
@@ -462,7 +472,7 @@ class ProfilePage extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 8),
-          
+
           // Switch to User Role
           _ProfileOption(
             title: 'Switch to User Role',
@@ -472,7 +482,9 @@ class ProfilePage extends ConsumerWidget {
                 context: context,
                 builder: (context) => AlertDialog(
                   title: const Text('Switch to User Role'),
-                  content: const Text('Are you sure you want to switch to user role? You will lose admin privileges.'),
+                  content: const Text(
+                    'Are you sure you want to switch to user role? You will lose admin privileges.',
+                  ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(false),
@@ -515,7 +527,7 @@ class ProfilePage extends ConsumerWidget {
               }
             },
           ),
-          
+
           // Switch to Venue Owner Role
           _ProfileOption(
             title: 'Switch to Venue Owner Role',
@@ -525,7 +537,9 @@ class ProfilePage extends ConsumerWidget {
                 context: context,
                 builder: (context) => AlertDialog(
                   title: const Text('Switch to Venue Owner Role'),
-                  content: const Text('Are you sure you want to switch to venue owner role? You will lose admin privileges.'),
+                  content: const Text(
+                    'Are you sure you want to switch to venue owner role? You will lose admin privileges.',
+                  ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(false),
@@ -597,10 +611,9 @@ class ProfilePage extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             child: Text(
               'Admin Panel',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Colors.red,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.red),
             ),
           ),
           _ProfileOption(
@@ -668,10 +681,9 @@ class ProfilePage extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             child: Text(
               'Venue Management',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Colors.orange,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.orange),
             ),
           ),
           _ProfileOption(
@@ -713,10 +725,9 @@ class ProfilePage extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             child: Text(
               'Role Management (Testing)',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Colors.purple,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.purple),
             ),
           ),
           _ProfileOption(
@@ -725,9 +736,9 @@ class ProfilePage extends ConsumerWidget {
             onTap: () async {
               await ref.read(authProvider.notifier).promoteToAdmin();
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Promoted to Admin!')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('Promoted to Admin!')));
               }
             },
           ),
@@ -737,9 +748,9 @@ class ProfilePage extends ConsumerWidget {
             onTap: () async {
               await ref.read(authProvider.notifier).promoteToVenueOwner();
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Promoted to Venue Owner!')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('Promoted to Venue Owner!')));
               }
             },
           ),
@@ -772,19 +783,16 @@ class ProfilePage extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             child: Text(
               'Guest User',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Colors.orange,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.orange),
             ),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
               'You are currently using the app as a guest. Create an account to save your preferences and access all features.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.grey[600],
-              ),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
             ),
           ),
           const SizedBox(height: 16),
@@ -848,10 +856,9 @@ class ProfilePage extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             child: Text(
               'Notifications',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Colors.purple,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.purple),
             ),
           ),
           _ProfileOption(
@@ -893,10 +900,9 @@ class ProfilePage extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             child: Text(
               'Settings',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Colors.teal,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.teal),
             ),
           ),
           _ProfileOption(
