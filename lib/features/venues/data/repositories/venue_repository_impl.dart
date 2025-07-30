@@ -16,12 +16,19 @@ class VenueRepositoryImpl implements VenueRepository {
   }
 
   @override
-  Future<List<VenueEntity>> getAllVenues() async {
+  Future<List<VenueEntity>> getAllVenues({bool includePending = false}) async {
     try {
-      print('Fetching all venues from Firestore...');
-    final snapshot = await firestore.collection('venues').get();
+      print('Fetching venues from Firestore...');
+      Query query = firestore.collection('venues');
+      
+      // Only return approved venues unless specifically requested to include pending
+      if (!includePending) {
+        query = query.where('status', isEqualTo: 'approved');
+      }
+      
+      final snapshot = await query.get();
       print('Found ${snapshot.docs.length} venues');
-      final venues = snapshot.docs.map((doc) => VenueEntity.fromMap(doc.data(), doc.id)).toList();
+      final venues = snapshot.docs.map((doc) => VenueEntity.fromMap(doc.data() as Map<String, dynamic>, doc.id)).toList();
       print('Successfully loaded ${venues.length} venues');
       return venues;
     } catch (e, stackTrace) {
@@ -46,11 +53,42 @@ class VenueRepositoryImpl implements VenueRepository {
     await firestore.collection('venues').doc(id).delete();
   }
 
+  // Admin methods for venue approval
+  @override
+  Future<void> approveVenue(String id) async {
+    await firestore.collection('venues').doc(id).update({
+      'status': 'approved',
+      'updatedAt': Timestamp.now(),
+    });
+  }
+
+  @override
+  Future<void> rejectVenue(String id) async {
+    await firestore.collection('venues').doc(id).update({
+      'status': 'rejected',
+      'updatedAt': Timestamp.now(),
+    });
+  }
+
+  @override
+  Future<List<VenueEntity>> getPendingVenues() async {
+    try {
+      final snapshot = await firestore
+          .collection('venues')
+          .where('status', isEqualTo: 'pending')
+          .get();
+      return snapshot.docs.map((doc) => VenueEntity.fromMap(doc.data(), doc.id)).toList();
+    } catch (e) {
+      print('Error getting pending venues: $e');
+      rethrow;
+    }
+  }
+
   // Rooms subcollection
   @override
   Future<List<RoomEntity>> getRoomsForVenue(String venueId) async {
     final snapshot = await firestore.collection('venues').doc(venueId).collection('rooms').get();
-    return snapshot.docs.map((doc) => RoomEntity.fromMap(doc.data(), doc.id)).toList();
+    return snapshot.docs.map((doc) => RoomEntity.fromMap(doc.data() as Map<String, dynamic>, doc.id)).toList();
   }
 
   @override
@@ -93,9 +131,15 @@ class VenueRepositoryImpl implements VenueRepository {
   }
 
   @override
-  Future<List<VenueEntity>> searchAndFilterVenues({String? query, VenueFilter? filter}) async {
+  Future<List<VenueEntity>> searchAndFilterVenues({String? query, VenueFilter? filter, bool includePending = false}) async {
     var collection = firestore.collection('venues');
     Query venuesQuery = collection;
+    
+    // Only return approved venues unless specifically requested to include pending
+    if (!includePending) {
+      venuesQuery = venuesQuery.where('status', isEqualTo: 'approved');
+    }
+    
     if (filter != null) {
       if (filter.minRating != null) {
         venuesQuery = venuesQuery.where('averageRating', isGreaterThanOrEqualTo: filter.minRating);

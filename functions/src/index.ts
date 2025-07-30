@@ -110,4 +110,93 @@ export const sendBroadcastNotification = functions.https.onCall(async (data, con
     // Implement FCM logic here (send to all or segment)
     // ...
     return { success: true };
+});
+
+// Cloud Function to add status field to existing venues
+export const updateVenuesWithStatus = functions.https.onCall(async (data, context) => {
+    try {
+        // Check if user is admin
+        if (!context.auth || context.auth.token.role !== 'admin') {
+            throw new functions.https.HttpsError('permission-denied', 'Only admins can run this function');
+        }
+
+        const db = admin.firestore();
+        const venuesRef = db.collection('venues');
+
+        // Get all venues
+        const snapshot = await venuesRef.get();
+
+        if (snapshot.empty) {
+            return { message: 'No venues found to update' };
+        }
+
+        const batch = db.batch();
+        let updatedCount = 0;
+
+        snapshot.docs.forEach((doc) => {
+            const venueData = doc.data();
+
+            // Only update if status field doesn't exist
+            if (!venueData.status) {
+                batch.update(doc.ref, {
+                    status: 'approved', // Set existing venues as approved
+                    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+                updatedCount++;
+            }
+        });
+
+        if (updatedCount > 0) {
+            await batch.commit();
+            return {
+                message: `Successfully updated ${updatedCount} venues with status field`,
+                updatedCount
+            };
+        } else {
+            return { message: 'All venues already have status field' };
+        }
+
+    } catch (error) {
+        console.error('Error updating venues:', error);
+        throw new functions.https.HttpsError('internal', 'Failed to update venues');
+    }
+});
+
+// Cloud Function to clean up guest users
+export const cleanupGuestUsers = functions.https.onCall(async (data, context) => {
+    try {
+        // Check if user is admin
+        if (!context.auth || context.auth.token.role !== 'admin') {
+            throw new functions.https.HttpsError('permission-denied', 'Only admins can run this function');
+        }
+
+        const db = admin.firestore();
+        const usersRef = db.collection('users');
+
+        // Get all users with empty email (guest users)
+        const snapshot = await usersRef.where('email', '==', '').get();
+
+        if (snapshot.empty) {
+            return { message: 'No guest users found to clean up' };
+        }
+
+        const batch = db.batch();
+        let deletedCount = 0;
+
+        snapshot.docs.forEach((doc) => {
+            batch.delete(doc.ref);
+            deletedCount++;
+        });
+
+        await batch.commit();
+
+        return {
+            message: `Successfully deleted ${deletedCount} guest users`,
+            deletedCount
+        };
+
+    } catch (error) {
+        console.error('Error cleaning up guest users:', error);
+        throw new functions.https.HttpsError('internal', 'Failed to clean up guest users');
+    }
 }); 

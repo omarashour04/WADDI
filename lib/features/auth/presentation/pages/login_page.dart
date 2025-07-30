@@ -23,8 +23,18 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
     ref.listen<AuthState>(authProvider, (previous, next) {
       if (next.status == AuthStatus.authenticated) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          context.go('/venues');
+        // Use a microtask to avoid router assertion errors
+        Future.microtask(() {
+          if (context.mounted) {
+            context.go('/home');
+          }
+        });
+      } else if (next.status == AuthStatus.unauthenticated && next.user?.isGuestUser == true) {
+        // Guest user signed in, redirect to home
+        Future.microtask(() {
+          if (context.mounted) {
+            context.go('/home');
+          }
         });
       }
     });
@@ -143,7 +153,17 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             onPressed: () async {
                               final email = _emailController.text.trim();
                               final password = _passwordController.text.trim();
-                              await authNotifier.login(email, password);
+                              
+                              // Check if current user is a guest user
+                              final authState = ref.read(authProvider);
+                              if (authState.status == AuthStatus.unauthenticated && authState.user?.isGuestUser == true) {
+                                // For guest users, we need to sign out first, then sign in
+                                await authNotifier.logout();
+                                await authNotifier.login(email, password);
+                              } else {
+                                // Regular login
+                                await authNotifier.login(email, password);
+                              }
                             },
                             child: const Text('Login'),
                           ),

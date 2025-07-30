@@ -18,6 +18,7 @@ class VenueEntity {
   final Map<String, dynamic> capacityRange;
   final Map<String, dynamic> operatingHours;
   final List<Timestamp> blockedDates;
+  final String status; // 'pending', 'approved', 'rejected'
   final Timestamp createdAt;
   final Timestamp updatedAt;
 
@@ -38,6 +39,7 @@ class VenueEntity {
     required this.capacityRange,
     required this.operatingHours,
     required this.blockedDates,
+    required this.status,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -78,6 +80,7 @@ class VenueEntity {
         blockedDates: data['blockedDates'] != null
             ? List<Timestamp>.from(data['blockedDates'])
             : [],
+        status: data['status'] ?? 'pending',
         createdAt: data['createdAt'] is Timestamp ? data['createdAt'] : Timestamp.now(),
         updatedAt: data['updatedAt'] is Timestamp ? data['updatedAt'] : Timestamp.now(),
       );
@@ -100,6 +103,7 @@ class VenueEntity {
         capacityRange: {'min': 0, 'max': 0},
         operatingHours: {},
         blockedDates: [],
+        status: 'pending',
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       );
@@ -123,6 +127,7 @@ class VenueEntity {
       'capacityRange': capacityRange,
       'operatingHours': operatingHours,
       'blockedDates': blockedDates,
+      'status': status,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
     };

@@ -31,7 +31,13 @@ class VenueReportsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Venue Reports')),
+      appBar: AppBar(
+        title: const Text('Venue Reports'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
       body: FutureBuilder<Map<String, dynamic>>(
         future: _fetchReport(),
         builder: (context, snapshot) {

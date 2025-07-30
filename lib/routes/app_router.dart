@@ -10,6 +10,8 @@ import '../features/auth/presentation/pages/register_page.dart';
 import '../features/auth/presentation/pages/reset_password_page.dart';
 import '../features/auth/presentation/pages/change_password_page.dart';
 import '../features/profile/presentation/pages/profile_page.dart';
+import '../features/profile/presentation/pages/edit_profile_page.dart';
+import '../features/settings/presentation/pages/settings_page.dart';
 // Core feature pages
 import '../features/venues/presentation/pages/venues_page.dart';
 import '../features/venues/presentation/pages/rooms_page.dart';
@@ -24,10 +26,16 @@ import '../features/admin/presentation/pages/admin_bookings_page.dart';
 import '../features/admin/presentation/pages/admin_analytics_page.dart';
 import '../features/admin/presentation/pages/admin_content_page.dart';
 import '../features/admin/presentation/pages/admin_notifications_page.dart';
+import '../features/venue_owner/presentation/pages/venue_owner_dashboard_page.dart';
+import '../features/venue_owner/presentation/pages/venue_form_page.dart';
+import '../features/venue_owner/presentation/pages/room_management_page.dart';
+import '../features/venue_owner/presentation/pages/venue_bookings_page.dart';
+import '../features/venue_owner/presentation/pages/venue_reports_page.dart';
 import 'package:waddi_platform/features/search/presentation/pages/search_page.dart';
 import '../features/venues/presentation/pages/venue_details_page.dart';
 import '../features/bookings/presentation/pages/booking_confirmation_page.dart';
 import '../features/bookings/presentation/pages/booking_details_page.dart';
+import '../features/home/presentation/pages/home_page.dart';
 
 // Helper function to validate if a route is accessible for current auth state
 bool _isValidRoute(String route, AuthState authState) {
@@ -64,48 +72,37 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     debugLogDiagnostics: true,
     redirect: (context, state) async {
-      final authState = ref.watch(authProvider);
+      final authState = ref.read(authProvider);
 
       print(
         'Router redirect - Location: ${state.matchedLocation}, Auth Status: ${authState.status}, Loading: ${authState.isLoading}',
       );
 
-      // If auth state is still loading, don't redirect yet
+      // If auth state is still loading, redirect to a simple loading page
       if (authState.isLoading) {
-        print('Auth still loading, staying at current location');
-        return null;
+        print('Auth still loading, redirecting to loading page');
+        return '/loading';
       }
 
-      // TODO: Implement state restoration in a separate method to avoid conflicts
-
-      print(
-        'Router redirect - Location: ${state.matchedLocation}, Auth Status: ${authState.status}, Loading: ${authState.isLoading}',
-      );
-
-      // If auth state is still loading, don't redirect yet
-      if (authState.isLoading) {
-        print('Auth still loading, staying at current location');
-        return null;
+      // If at root, redirect to home
+      if (state.matchedLocation == '/') {
+        print('At root, redirecting to home');
+        return '/home';
       }
 
-      // If user is authenticated (but not guest) and trying to access auth pages, redirect to home
+      // If user is authenticated and trying to access auth pages, redirect to home
       if (authState.status == AuthStatus.authenticated &&
-          !authState.isGuestUser &&
           (state.matchedLocation == '/login' || state.matchedLocation == '/register')) {
-        print('Authenticated user accessing login/register, redirecting to venues');
-        return '/venues';
+        print('Authenticated user accessing login/register, redirecting to home');
+        return '/home';
       }
 
-      // Define protected pages that require authentication
+      // Define protected pages that require authentication (only booking and profile editing)
       final protectedPages = [
-        '/profile',
         '/bookings',
         '/booking-details',
         '/booking-confirmation',
-        '/users',
-        '/reviews',
-        '/support',
-        '/admin',
+        '/profile/edit',
       ];
 
       // If user is not authenticated and trying to access protected pages, redirect to login
@@ -113,24 +110,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           protectedPages.any((page) => state.matchedLocation.startsWith(page))) {
         print('Unauthenticated user accessing protected page, redirecting to login');
         return '/login';
-      }
-
-      // If at root and authenticated, redirect to venues
-      if (state.matchedLocation == '/' && authState.status == AuthStatus.authenticated) {
-        print('Authenticated user at root, redirecting to venues');
-        return '/venues';
-      }
-
-      // If at root and not authenticated, redirect to venues (allow guest access)
-      if (state.matchedLocation == '/' && authState.status == AuthStatus.unauthenticated) {
-        print('Unauthenticated user at root, redirecting to venues (guest access)');
-        return '/venues';
-      }
-
-      // If at root and authenticated, redirect to venues
-      if (state.matchedLocation == '/' && authState.status == AuthStatus.authenticated) {
-        print('Authenticated user at root, redirecting to venues');
-        return '/venues';
       }
 
       print('No redirect needed');
@@ -153,13 +132,29 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
             ),
             const SizedBox(height: 24),
-            ElevatedButton(onPressed: () => context.go('/venues'), child: const Text('Go to Home')),
+            ElevatedButton(onPressed: () => context.go('/home'), child: const Text('Go to Home')),
           ],
         ),
       ),
     ),
     routes: [
-      // Root route for loading state
+      // Loading route
+      GoRoute(
+        path: '/loading',
+        builder: (context, state) => Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Loading WADDI Platform...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+      // Root route
       GoRoute(
         path: '/',
         builder: (context, state) => Scaffold(
@@ -171,11 +166,40 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           ),
         ),
       ),
+      // Home page route
+      GoRoute(
+        path: '/home',
+        builder: (context, state) => const HomePage(),
+      ),
       GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
       GoRoute(path: '/register', builder: (context, state) => const RegisterPage()),
       GoRoute(path: '/reset-password', builder: (context, state) => const ResetPasswordPage()),
       GoRoute(path: '/change-password', builder: (context, state) => const ChangePasswordPage()),
       GoRoute(path: '/profile', builder: (context, state) => ProfilePage()),
+      GoRoute(
+        path: '/profile/edit',
+        builder: (context, state) => const EditProfilePage(),
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.user == null) {
+            return '/login';
+          }
+          return null;
+        },
+      ),
+      GoRoute(
+        path: '/settings',
+        builder: (context, state) => const SettingsPage(),
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.user == null) {
+            return '/login';
+          }
+          return null;
+        },
+      ),
       GoRoute(path: '/venues', builder: (context, state) => VenuesPage()),
       GoRoute(
         path: '/venues/:venueId',
@@ -255,6 +279,33 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
+        path: '/admin/venues/add',
+        builder: (context, state) => VenueFormPage(ownerId: 'admin', venueId: null),
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.user == null || authState.user!.role != 'admin') {
+            return '/login';
+          }
+          return null;
+        },
+      ),
+      GoRoute(
+        path: '/admin/venues/:venueId/edit',
+        builder: (context, state) {
+          final venueId = state.pathParameters['venueId']!;
+          return VenueFormPage(ownerId: 'admin', venueId: venueId);
+        },
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.user == null || authState.user!.role != 'admin') {
+            return '/login';
+          }
+          return null;
+        },
+      ),
+      GoRoute(
         path: '/admin/bookings',
         builder: (context, state) => AdminBookingsPage(),
         redirect: (context, state) {
@@ -297,6 +348,74 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           final container = ProviderScope.containerOf(context);
           final authState = container.read(authProvider);
           if (authState.user == null || authState.user!.role != 'admin') {
+            return '/login';
+          }
+          return null;
+        },
+      ),
+      // Venue Owner Routes
+      GoRoute(
+        path: '/venue-owner',
+        builder: (context, state) {
+          final ownerId = state.uri.queryParameters['ownerId'] ?? '';
+          return VenueOwnerDashboardPage(ownerId: ownerId);
+        },
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.user == null || authState.user!.role != 'venue_owner') {
+            return '/login';
+          }
+          return null;
+        },
+      ),
+      GoRoute(
+        path: '/venue-owner/venue-form',
+        builder: (context, state) {
+          final ownerId = state.uri.queryParameters['ownerId'] ?? '';
+          final venueId = state.uri.queryParameters['venueId'];
+          return VenueFormPage(ownerId: ownerId, venueId: venueId);
+        },
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.user == null || authState.user!.role != 'venue_owner') {
+            return '/login';
+          }
+          return null;
+        },
+      ),
+      GoRoute(
+        path: '/venue-owner/rooms/:venueId',
+        builder: (context, state) => RoomManagementPage(venueId: state.pathParameters['venueId']!),
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.user == null || authState.user!.role != 'venue_owner') {
+            return '/login';
+          }
+          return null;
+        },
+      ),
+      GoRoute(
+        path: '/venue-owner/bookings/:venueId',
+        builder: (context, state) => VenueBookingsPage(venueId: state.pathParameters['venueId']!),
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.user == null || authState.user!.role != 'venue_owner') {
+            return '/login';
+          }
+          return null;
+        },
+      ),
+      GoRoute(
+        path: '/venue-owner/reports/:venueId',
+        builder: (context, state) => VenueReportsPage(venueId: state.pathParameters['venueId']!),
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.user == null || authState.user!.role != 'venue_owner') {
             return '/login';
           }
           return null;

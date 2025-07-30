@@ -11,6 +11,7 @@ class UserEntity {
   final int points;
   final String? venueId;
   final List<String>? fcmTokens;
+  final bool isGuestUser;
 
   UserEntity({
     required this.id,
@@ -23,6 +24,7 @@ class UserEntity {
     this.points = 0,
     this.venueId,
     this.fcmTokens,
+    this.isGuestUser = false,
   });
 
   factory UserEntity.fromMap(Map<String, dynamic> data, String documentId) {
@@ -37,6 +39,7 @@ class UserEntity {
       points: (data['points'] ?? 0),
       venueId: data['venueId'],
       fcmTokens: data['fcmTokens'] != null ? List<String>.from(data['fcmTokens']) : null,
+      isGuestUser: data['isGuestUser'] ?? false,
     );
   }
 
@@ -51,6 +54,35 @@ class UserEntity {
       'points': points,
       'venueId': venueId,
       'fcmTokens': fcmTokens,
+      'isGuestUser': isGuestUser,
     };
+  }
+
+  UserEntity copyWith({
+    String? id,
+    String? email,
+    String? name,
+    String? role,
+    String? phoneNumber,
+    Timestamp? createdAt,
+    Timestamp? updatedAt,
+    int? points,
+    String? venueId,
+    List<String>? fcmTokens,
+    bool? isGuestUser,
+  }) {
+    return UserEntity(
+      id: id ?? this.id,
+      email: email ?? this.email,
+      name: name ?? this.name,
+      role: role ?? this.role,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      points: points ?? this.points,
+      venueId: venueId ?? this.venueId,
+      fcmTokens: fcmTokens ?? this.fcmTokens,
+      isGuestUser: isGuestUser ?? this.isGuestUser,
+    );
   }
 } 

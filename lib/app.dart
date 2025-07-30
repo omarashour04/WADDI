@@ -6,7 +6,7 @@ import 'package:waddi_platform/shared/themes/app_theme.dart';
 import 'package:waddi_platform/l10n/app_localizations.dart';
 import 'package:waddi_platform/shared/widgets/main_scaffold.dart';
 import 'package:waddi_platform/shared/widgets/app_back_button_handler.dart';
-import 'package:waddi_platform/core/services/app_state_service.dart';
+import 'package:waddi_platform/shared/providers/shared_providers.dart';
 
 class WaddiApp extends ConsumerWidget {
   const WaddiApp({Key? key}) : super(key: key);

@@ -15,7 +15,17 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _phoneController = TextEditingController();
   bool _obscurePassword = true;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -98,6 +108,22 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
               ),
               const SizedBox(height: 16),
               TextField(
+                controller: _phoneController,
+                  style: const TextStyle(fontFamily: null),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.6),
+                    labelText: 'Phone Number',
+                    labelStyle: const TextStyle(color: Colors.black54, fontFamily: null),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 16),
+              TextField(
                 controller: _passwordController,
                   style: const TextStyle(fontFamily: null),
                   decoration: InputDecoration(
@@ -149,7 +175,22 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                               final name = _nameController.text.trim();
                               final email = _emailController.text.trim();
                               final password = _passwordController.text.trim();
-                              await authNotifier.register(name, email, password);
+                              final phoneNumber = _phoneController.text.trim();
+                              
+                              // Check if current user is a guest user
+                              final authState = ref.read(authProvider);
+                              if (authState.status == AuthStatus.unauthenticated && authState.user?.isGuestUser == true) {
+                                // Convert guest user to registered user
+                                await authNotifier.convertGuestToUser(
+                                  email: email,
+                                  password: password,
+                                  name: name,
+                                  phoneNumber: phoneNumber,
+                                );
+                              } else {
+                                // Regular registration
+                                await authNotifier.register(name, email, password);
+                              }
                             },
                             child: const Text('Register'),
                           ),

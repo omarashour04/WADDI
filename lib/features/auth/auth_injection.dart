@@ -44,4 +44,7 @@ final changePasswordUseCaseProvider = Provider<ChangePassword>((ref) {
 // Presentation Layer Providers
 final authStateNotifierProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   return AuthNotifier(ref.read(loginUserUseCaseProvider), ref.read(registerUserUseCaseProvider));
-}); 
+});
+
+// Provider alias for backward compatibility
+final authProvider = authStateNotifierProvider; 

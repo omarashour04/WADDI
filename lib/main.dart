@@ -13,23 +13,29 @@ void main() async {
   try {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-    // Initialize Firebase App Check
-    await FirebaseAppCheck.instance.activate(
-      androidProvider: AndroidProvider.debug,
-      appleProvider: AppleProvider.debug,
-    );
+    // Skip App Check and Crashlytics for web platform
+    if (!kIsWeb) {
+      // Initialize Firebase App Check (mobile only)
+      await FirebaseAppCheck.instance.activate(
+        androidProvider: AndroidProvider.debug,
+        appleProvider: AppleProvider.debug,
+      );
 
-    // Initialize Crashlytics error forwarding
-    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
-    PlatformDispatcher.instance.onError = (error, stack) {
-      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-      return true;
-    };
+      // Initialize Crashlytics error forwarding (mobile only)
+      FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+      PlatformDispatcher.instance.onError = (error, stack) {
+        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+        return true;
+      };
+    }
 
     print('Firebase initialized successfully');
   } catch (e) {
     print('Firebase initialization error: $e');
-    rethrow;
+    // Don't rethrow on web to prevent app crash
+    if (!kIsWeb) {
+      rethrow;
+    }
   }
 
   runApp(const ProviderScope(child: WaddiApp()));

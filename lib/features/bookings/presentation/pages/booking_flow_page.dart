@@ -123,13 +123,39 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
         );
       });
       return Scaffold(
-        appBar: AppBar(title: const Text('Book Room')),
+        appBar: AppBar(
+          title: const Text('Book Room'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              try {
+                context.pop();
+              } catch (e) {
+                // If pop fails, navigate to venues page
+                context.go('/venues');
+              }
+            },
+          ),
+        ),
         body: const Center(child: Text('Redirecting to login...')),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Book Room')),
+      appBar: AppBar(
+        title: const Text('Book Room'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            try {
+              context.pop();
+            } catch (e) {
+              // If pop fails, navigate to venues page
+              context.go('/venues');
+            }
+          },
+        ),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(

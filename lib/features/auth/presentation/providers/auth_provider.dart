@@ -41,7 +41,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final RegisterUser _registerUser;
   AuthNotifier(this._loginUser, this._registerUser) : super(AuthState()) {
     // Initialize auth state when the notifier is created
-    _initializeAuthState();
+    _initializeAuthState().catchError((error) {
+      print('Error in auth initialization: $error');
+      state = state.copyWith(status: AuthStatus.unauthenticated, errorMessage: error.toString());
+    });
+    
+    // Fallback: if still loading after 5 seconds, set as unauthenticated
+    Future.delayed(Duration(seconds: 5)).then((_) {
+      if (state.status == AuthStatus.loading) {
+        print('Auth initialization timeout, setting as unauthenticated');
+        state = state.copyWith(status: AuthStatus.unauthenticated);
+      }
+    });
   }
 
   // Initialize authentication state by checking Firebase Auth
@@ -50,53 +61,56 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       print('Starting auth state initialization...');
 
-      // Wait a bit to ensure Firebase Auth is fully initialized
-      await Future.delayed(Duration(milliseconds: 500));
-
+      // Simple initialization without complex delays
       final firebaseUser = FirebaseAuth.instance.currentUser;
       print('Firebase current user: ${firebaseUser?.uid ?? 'null'}');
 
-      if (firebaseUser != null) {
-        // Check if this is a guest user (anonymous user)
-        if (firebaseUser.isAnonymous) {
-          print('Guest user detected, creating guest user entity');
-          // Create a guest user entity but keep them authenticated
-          final guestUser = UserEntity(
-            id: firebaseUser.uid,
-            name: 'Guest',
-            email: '',
-            phoneNumber: '',
-            role: 'guest',
-            createdAt: Timestamp.now(),
-            updatedAt: Timestamp.now(),
-          );
-          state = state.copyWith(status: AuthStatus.authenticated, user: guestUser);
-          return;
-        }
+      if (firebaseUser != null && !firebaseUser.isAnonymous) {
+        // User is signed in, try to fetch user data
+        try {
+          final userDoc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(firebaseUser.uid)
+              .get();
 
-        // User is already signed in, fetch user data from Firestore
-        print('User found, fetching from Firestore...');
-        final userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(firebaseUser.uid)
-            .get();
-
-        if (userDoc.exists) {
-          final userData = userDoc.data()!;
-          final user = UserEntity(
-            id: firebaseUser.uid,
-            name: userData['name'] ?? '',
-            email: userData['email'] ?? firebaseUser.email ?? '',
-            phoneNumber: userData['phoneNumber'] ?? '',
-            role: userData['role'] ?? 'user',
-            createdAt: userData['createdAt'] ?? Timestamp.now(),
-            updatedAt: userData['updatedAt'] ?? Timestamp.now(),
-          );
-          print('User data found, setting authenticated state');
-          state = state.copyWith(status: AuthStatus.authenticated, user: user);
-        } else {
-          // User exists in Firebase Auth but not in Firestore, create user document
-          print('User not in Firestore, creating user document...');
+          if (userDoc.exists) {
+            final userData = userDoc.data()!;
+            final user = UserEntity(
+              id: firebaseUser.uid,
+              name: userData['name'] ?? '',
+              email: userData['email'] ?? firebaseUser.email ?? '',
+              phoneNumber: userData['phoneNumber'] ?? '',
+              role: userData['role'] ?? 'user',
+              createdAt: userData['createdAt'] ?? Timestamp.now(),
+              updatedAt: userData['updatedAt'] ?? Timestamp.now(),
+              isGuestUser: false,
+            );
+            print('User data found, setting authenticated state');
+            state = state.copyWith(status: AuthStatus.authenticated, user: user);
+          } else {
+            // Create user document if it doesn't exist (only for registered users)
+            final user = UserEntity(
+              id: firebaseUser.uid,
+              name: firebaseUser.displayName ?? '',
+              email: firebaseUser.email ?? '',
+              phoneNumber: firebaseUser.phoneNumber ?? '',
+              role: 'user',
+              createdAt: Timestamp.now(),
+              updatedAt: Timestamp.now(),
+              isGuestUser: false,
+            );
+            await saveUserToFirestore(
+              uid: user.id,
+              email: user.email,
+              name: user.name,
+              phoneNumber: user.phoneNumber,
+            );
+            print('User document created, setting authenticated state');
+            state = state.copyWith(status: AuthStatus.authenticated, user: user);
+          }
+        } catch (e) {
+          print('Error fetching user data: $e');
+          // If there's an error fetching user data, still set as authenticated
           final user = UserEntity(
             id: firebaseUser.uid,
             name: firebaseUser.displayName ?? '',
@@ -105,24 +119,33 @@ class AuthNotifier extends StateNotifier<AuthState> {
             role: 'user',
             createdAt: Timestamp.now(),
             updatedAt: Timestamp.now(),
+            isGuestUser: false,
           );
-          await saveUserToFirestore(
-            uid: user.id,
-            email: user.email,
-            name: user.name,
-            phoneNumber: user.phoneNumber,
-          );
-          print('User document created, setting authenticated state');
           state = state.copyWith(status: AuthStatus.authenticated, user: user);
         }
+      } else if (firebaseUser != null && firebaseUser.isAnonymous) {
+        // Anonymous user - create local guest user entity (not saved to database)
+        print('Anonymous user detected, creating guest user entity');
+        final guestUser = UserEntity(
+          id: firebaseUser.uid,
+          name: 'Guest User',
+          email: '',
+          phoneNumber: '',
+          role: 'guest',
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+          isGuestUser: true,
+        );
+        state = state.copyWith(status: AuthStatus.unauthenticated, user: guestUser);
       } else {
-        // No user is signed in
-        print('No user found, setting unauthenticated state');
+        // No user is signed in - start as guest
+        print('No user found, starting as guest');
         state = state.copyWith(status: AuthStatus.unauthenticated);
       }
     } catch (e) {
       print('Error initializing auth state: $e');
-      state = state.copyWith(status: AuthStatus.error, errorMessage: e.toString());
+      // On any error, set as unauthenticated to prevent infinite loading
+      state = state.copyWith(status: AuthStatus.unauthenticated, errorMessage: e.toString());
     }
   }
 
@@ -177,6 +200,133 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(status: AuthStatus.initial);
   }
 
+  Future<void> updateUserRole(String newRole) async {
+    try {
+      // Don't allow role updates for guest users
+      if (state.user?.role == 'guest' || state.user?.isGuestUser == true) {
+        print('Cannot update role for guest users');
+        return;
+      }
+      
+      state = state.copyWith(status: AuthStatus.loading);
+      
+      // Check if user document exists in Firestore
+      final userDoc = FirebaseFirestore.instance.collection('users').doc(state.user!.id);
+      final docSnapshot = await userDoc.get();
+      
+      if (docSnapshot.exists) {
+        // Update existing document
+        await userDoc.update({
+          'role': newRole,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        // Create new document if it doesn't exist
+        await userDoc.set({
+          'email': state.user!.email,
+          'name': state.user!.name,
+          'role': newRole,
+          'phoneNumber': state.user!.phoneNumber,
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+          'points': 0,
+          'venueId': '',
+          'fcmTokens': [],
+        });
+      }
+      
+      // Update local state
+      final updatedUser = state.user!.copyWith(role: newRole);
+      state = state.copyWith(
+        status: AuthStatus.authenticated,
+        user: updatedUser,
+      );
+      
+      print('User role updated to: $newRole');
+    } catch (e) {
+      print('Error updating user role: $e');
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: 'Failed to update role: $e',
+      );
+    }
+  }
+
+  // Promote user to admin (for testing purposes)
+  Future<void> promoteToAdmin() async {
+    await updateUserRole('admin');
+  }
+
+  // Promote user to venue owner
+  Future<void> promoteToVenueOwner() async {
+    await updateUserRole('venue_owner');
+  }
+
+  // Demote user to regular user
+  Future<void> demoteToUser() async {
+    await updateUserRole('user');
+  }
+
+  // Convert guest user to registered user
+  Future<void> convertGuestToUser({
+    required String email,
+    required String password,
+    required String name,
+    String? phoneNumber,
+  }) async {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null || !currentUser.isAnonymous) {
+        throw Exception('No guest user to convert');
+      }
+
+      // Create credential with email and password
+      final credential = EmailAuthProvider.credential(
+        email: email,
+        password: password,
+      );
+
+      // Link the anonymous account with email/password
+      final userCredential = await currentUser.linkWithCredential(credential);
+      final user = userCredential.user;
+
+      if (user != null) {
+        // Update display name
+        await user.updateDisplayName(name);
+
+        // Save to Firestore as a registered user
+        await saveUserToFirestore(
+          uid: user.uid,
+          email: email,
+          name: name,
+          phoneNumber: phoneNumber,
+        );
+
+        // Update local state
+        final userEntity = UserEntity(
+          id: user.uid,
+          name: name,
+          email: email,
+          phoneNumber: phoneNumber ?? '',
+          role: 'user',
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+          isGuestUser: false,
+        );
+
+        state = state.copyWith(
+          status: AuthStatus.authenticated,
+          user: userEntity,
+        );
+
+        print('Guest user converted to registered user: ${user.uid}');
+      }
+    } catch (e) {
+      print('Error converting guest to user: $e');
+      throw Exception('Failed to convert guest user: $e');
+    }
+  }
+
   Future<void> signInWithGoogle() async {
     state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
     try {
@@ -202,29 +352,65 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  // Sign in anonymously (guest user - no database entry)
   Future<void> signInAnonymously() async {
-    state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
     try {
-      final repo = _loginUser.repository as AuthRepository;
-      final user = await repo.signInAnonymously();
-      if (user != null) {
-        // Create a guest user entity (no Firestore save)
+      state = state.copyWith(status: AuthStatus.loading);
+      
+      // Check if user is already signed in as anonymous
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null && currentUser.isAnonymous) {
+        // User is already signed in as guest, just update state
         final guestUser = UserEntity(
-          id: user.id,
-          name: 'Guest',
+          id: currentUser.uid,
+          name: 'Guest User',
           email: '',
           phoneNumber: '',
           role: 'guest',
           createdAt: Timestamp.now(),
           updatedAt: Timestamp.now(),
+          isGuestUser: true,
         );
-        print('Guest user signed in anonymously, creating guest entity');
-        state = state.copyWith(status: AuthStatus.authenticated, user: guestUser);
-      } else {
-        state = state.copyWith(status: AuthStatus.error, errorMessage: 'Anonymous sign-in failed');
+        
+        state = state.copyWith(
+          status: AuthStatus.unauthenticated,
+          user: guestUser,
+        );
+        
+        print('User already signed in as guest, updating state');
+        return;
+      }
+      
+      // Sign in anonymously
+      final userCredential = await FirebaseAuth.instance.signInAnonymously();
+      final user = userCredential.user;
+      
+      if (user != null) {
+        // Create a local user entity for guest users (not saved to Firestore)
+        final guestUser = UserEntity(
+          id: user.uid,
+          name: 'Guest User',
+          email: '',
+          phoneNumber: '',
+          role: 'guest',
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+          isGuestUser: true,
+        );
+        
+        state = state.copyWith(
+          status: AuthStatus.unauthenticated, // Keep as unauthenticated for guest access
+          user: guestUser,
+        );
+        
+        print('Guest user signed in anonymously, setting as unauthenticated');
       }
     } catch (e) {
-      state = state.copyWith(status: AuthStatus.error, errorMessage: e.toString());
+      print('Error signing in anonymously: $e');
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: 'Failed to sign in anonymously: $e',
+      );
     }
   }
 
@@ -236,6 +422,37 @@ class AuthNotifier extends StateNotifier<AuthState> {
       return null;
     } catch (e) {
       return e.toString();
+    }
+  }
+
+  // Refresh user data from Firestore
+  Future<void> refreshUser() async {
+    try {
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      if (firebaseUser != null && !firebaseUser.isAnonymous) {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(firebaseUser.uid)
+            .get();
+
+        if (userDoc.exists) {
+          final userData = userDoc.data()!;
+          final user = UserEntity(
+            id: firebaseUser.uid,
+            name: userData['name'] ?? '',
+            email: userData['email'] ?? firebaseUser.email ?? '',
+            phoneNumber: userData['phoneNumber'] ?? '',
+            role: userData['role'] ?? 'user',
+            createdAt: userData['createdAt'] ?? Timestamp.now(),
+            updatedAt: userData['updatedAt'] ?? Timestamp.now(),
+            isGuestUser: false,
+          );
+          state = state.copyWith(user: user);
+          print('User data refreshed from Firestore');
+        }
+      }
+    } catch (e) {
+      print('Error refreshing user data: $e');
     }
   }
 
@@ -260,22 +477,33 @@ final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   return AuthNotifier(loginUser, registerUser);
 });
 
+// Save user to Firestore (only for registered users, not guests)
 Future<void> saveUserToFirestore({
   required String uid,
   required String email,
   required String name,
   String? phoneNumber,
 }) async {
-  final now = FieldValue.serverTimestamp();
-  await FirebaseFirestore.instance.collection('users').doc(uid).set({
-    'email': email,
-    'name': name,
-    'role': 'user',
-    'phoneNumber': phoneNumber ?? '',
-    'createdAt': now,
-    'updatedAt': now,
-    'points': 0,
-    'venueId': '',
-    'fcmTokens': [],
-  });
+  try {
+    // Only save to Firestore if this is a registered user (not anonymous)
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null && !currentUser.isAnonymous) {
+      await FirebaseFirestore.instance.collection('users').doc(uid).set({
+        'name': name,
+        'email': email,
+        'phoneNumber': phoneNumber ?? '',
+        'role': 'user',
+        'points': 0,
+        'createdAt': Timestamp.now(),
+        'updatedAt': Timestamp.now(),
+        'isGuestUser': false,
+      });
+      print('User saved to Firestore: $uid');
+    } else {
+      print('Skipping Firestore save for guest user: $uid');
+    }
+  } catch (e) {
+    print('Error saving user to Firestore: $e');
+    throw Exception('Failed to save user: $e');
+  }
 }
