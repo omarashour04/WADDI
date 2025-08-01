@@ -30,14 +30,13 @@ class _RoomsPageState extends ConsumerState<RoomsPage> {
   @override
   Widget build(BuildContext context) {
     final roomsAsync = ref.watch(roomsForVenueProvider(widget.venueId));
+    final venueAsync = ref.watch(venueProvider(widget.venueId));
     final authState = ref.watch(authProvider);
 
     // Update navigation state
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref
-          .read(navigationStateProvider.notifier)
-          .updateCurrentRoute('/venues/${widget.venueId}/rooms');
-    });
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   ref.read(navigationStateProvider.notifier).updateCurrentRoute('/venues/${widget.venueId}/rooms');
+    // });
     final userId = authState.user?.id ?? '';
 
     return Scaffold(
@@ -58,53 +57,74 @@ class _RoomsPageState extends ConsumerState<RoomsPage> {
           },
         ),
       ),
-      body: roomsAsync.when(
-        data: (rooms) {
-          if (rooms.isEmpty) {
-            return const _EmptyState(message: 'No rooms found for this venue.');
+      body: venueAsync.when(
+        data: (venue) {
+          if (venue == null) {
+            return const Center(child: Text('Venue not found'));
           }
-          return Column(
-            children: [
-              // Available Rooms Header
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  'Available Rooms',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+
+          return roomsAsync.when(
+            data: (rooms) {
+              if (rooms.isEmpty) {
+                return const _EmptyState(message: 'No rooms found for this venue.');
+              }
+              return Column(
+                children: [
+                  // Available Rooms Header
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          venue.name,
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Available Rooms',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ),
-              // Rooms List
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: rooms.length,
-                  itemBuilder: (context, i) {
-                    final room = rooms[i];
-                    final isSelected = selectedRoom?.id == room.id;
-                    return _RoomCard(
-                      room: room,
-                      isSelected: isSelected,
-                      onSelect: () {
-                        setState(() {
-                          selectedRoom = room;
-                        });
+                  // Rooms List
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: rooms.length,
+                      itemBuilder: (context, i) {
+                        final room = rooms[i];
+                        final isSelected = selectedRoom?.id == room.id;
+                        return _RoomCard(
+                          room: room,
+                          venueId: widget.venueId,
+                          venueName: venue.name,
+                          isSelected: isSelected,
+                          onSelect: () {
+                            setState(() {
+                              selectedRoom = room;
+                            });
+                          },
+                        );
                       },
-                    );
-                  },
-                ),
-              ),
-            ],
+                    ),
+                  ),
+                ],
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, stack) => Center(child: Text('Error: $error')),
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, st) => _ErrorState(
-          message: 'Something went wrong. Please try again.',
-          onRetry: () => ref.refresh(roomsForVenueProvider(widget.venueId)),
-        ),
+        error: (error, stack) => Center(child: Text('Error: $error')),
       ),
       bottomNavigationBar: selectedRoom != null
           ? Container(
@@ -176,10 +196,18 @@ class _RoomsPageState extends ConsumerState<RoomsPage> {
 
 class _RoomCard extends StatelessWidget {
   final RoomEntity room;
+  final String venueId;
+  final String venueName;
   final bool isSelected;
   final VoidCallback onSelect;
 
-  const _RoomCard({required this.room, required this.isSelected, required this.onSelect});
+  const _RoomCard({
+    required this.room, 
+    required this.venueId,
+    required this.venueName,
+    required this.isSelected, 
+    required this.onSelect
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -268,20 +296,30 @@ class _RoomCard extends StatelessWidget {
                       ),
                     ),
                     ElevatedButton(
-                      onPressed: onSelect,
+                      onPressed: () {
+                        // Navigate to booking form
+                        final queryParams = {
+                          'venueId': venueId,
+                          'venueName': venueName,
+                          'roomId': room.id,
+                          'roomName': room.name,
+                          'hourlyPrice': room.hourlyPrice.toString(),
+                        };
+                        
+                        final uri = Uri(path: '/book-room', queryParameters: queryParams);
+                        context.push(uri.toString());
+                      },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: isSelected ? AppColors.primary : Colors.grey[300],
-                        foregroundColor: isSelected
-                            ? AppColors.textOnPrimary
-                            : AppColors.textPrimary,
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: AppColors.textOnPrimary,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
-                      child: Row(
+                      child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(isSelected ? 'Selected' : 'Select'),
-                          const SizedBox(width: 4),
-                          Icon(isSelected ? Icons.check : Icons.arrow_forward, size: 16),
+                          Text('Book Now'),
+                          SizedBox(width: 4),
+                          Icon(Icons.book_online, size: 16),
                         ],
                       ),
                     ),
@@ -296,30 +334,10 @@ class _RoomCard extends StatelessWidget {
   }
 
   Widget _getRoomImage(String roomName) {
-    // Return different local assets based on room name
-    String imagePath = 'assets/images/rooms/room1.jpg';
-
-    if (roomName.toLowerCase().contains('arena')) {
-      imagePath = 'assets/images/rooms/arena.jpg';
-    } else if (roomName.toLowerCase().contains('vault')) {
-      imagePath = 'assets/images/rooms/vault.jpg';
-    } else if (roomName.toLowerCase().contains('lounge')) {
-      imagePath = 'assets/images/rooms/lounge.jpg';
-    } else if (roomName.toLowerCase().contains('private')) {
-      imagePath = 'assets/images/rooms/private.jpg';
-    } else if (roomName.toLowerCase().contains('vip')) {
-      imagePath = 'assets/images/rooms/vip.jpg';
-    }
-
-    return Image.asset(
-      imagePath,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) {
-        return Container(
-          color: AppColors.primaryLight,
-          child: const Icon(Icons.games, size: 60, color: Colors.white),
-        );
-      },
+    // Use a placeholder icon instead of hardcoded assets
+    return Container(
+      color: AppColors.primaryLight,
+      child: const Icon(Icons.games, size: 60, color: Colors.white),
     );
   }
 

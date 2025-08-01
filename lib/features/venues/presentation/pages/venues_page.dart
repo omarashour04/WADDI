@@ -37,9 +37,9 @@ class _VenuesPageState extends ConsumerState<VenuesPage> {
     CameraPosition? _searchedCameraPosition;
 
     // Update navigation state when page is built
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(navigationStateProvider.notifier).updateCurrentRoute('/venues');
-    });
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   ref.read(navigationStateProvider.notifier).updateCurrentRoute('/venues');
+    // });
 
     return MainScaffold(
       currentIndex: 1, // Venues tab
@@ -496,6 +496,32 @@ class _VenueCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
+                      // Maintenance status indicator
+                      if (venue.isClosedForMaintenance)
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.orange[100],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.orange[300]!),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.engineering, size: 12, color: Colors.orange[700]),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Under Maintenance',
+                                style: TextStyle(
+                                  color: Colors.orange[700],
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       Flexible(
                         child: Text(
                           venue.description,

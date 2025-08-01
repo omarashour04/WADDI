@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../features/auth/presentation/providers/auth_provider.dart';
 import '../shared/providers/shared_providers.dart';
 
@@ -17,7 +18,10 @@ import '../features/settings/presentation/pages/settings_page.dart';
 import '../features/venues/presentation/pages/venues_page.dart';
 import '../features/venues/presentation/pages/rooms_page.dart';
 import '../features/users/presentation/pages/users_page.dart';
-import '../features/bookings/presentation/pages/bookings_page.dart';
+import '../features/bookings/presentation/pages/booking_confirmation_page.dart';
+import '../features/bookings/presentation/pages/booking_details_page.dart';
+import '../features/bookings/presentation/pages/booking_flow_page.dart';
+import '../features/bookings/presentation/pages/user_bookings_page.dart';
 import '../features/reviews/presentation/pages/reviews_page.dart';
 import '../features/support/presentation/pages/support_tickets_page.dart';
 import '../features/admin/presentation/pages/admin_dashboard_page.dart';
@@ -32,11 +36,36 @@ import '../features/venue_owner/presentation/pages/venue_form_page.dart';
 import '../features/venue_owner/presentation/pages/room_management_page.dart';
 import '../features/venue_owner/presentation/pages/venue_bookings_page.dart';
 import '../features/venue_owner/presentation/pages/venue_reports_page.dart';
+import '../features/venue_owner/presentation/pages/venue_maintenance_page.dart';
 import 'package:waddi_platform/features/search/presentation/pages/search_page.dart';
 import '../features/venues/presentation/pages/venue_details_page.dart';
 import '../features/bookings/presentation/pages/booking_confirmation_page.dart';
 import '../features/bookings/presentation/pages/booking_details_page.dart';
 import '../features/home/presentation/pages/home_page.dart';
+import '../features/admin/presentation/pages/admin_create_venue_owner_page.dart';
+import '../features/admin/presentation/pages/admin_database_setup_page.dart';
+import '../features/bookings/presentation/widgets/booking_form.dart';
+import '../features/venues/presentation/pages/advanced_search_page.dart';
+import '../features/venues/presentation/pages/venues_map_page.dart';
+import '../features/favorites/presentation/pages/favorites_page.dart';
+import '../features/venue_owner/presentation/pages/room_form_page.dart';
+import '../features/accessibility/presentation/pages/accessibility_settings_page.dart';
+import '../features/notifications/presentation/pages/notifications_page.dart';
+
+// Helper function to check if user needs to change password on first login
+Future<bool> _checkFirstLogin(String userId) async {
+  try {
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    if (userDoc.exists) {
+      final userData = userDoc.data();
+      return userData?['isFirstLogin'] == true;
+    }
+    return false;
+  } catch (e) {
+    print('Error checking first login: $e');
+    return false;
+  }
+}
 
 // Helper function to validate if a route is accessible for current auth state
 bool _isValidRoute(String route, AuthState authState) {
@@ -97,18 +126,23 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           final localStorage = ref.read(localStorageProvider);
           final lastRoute = await localStorage.getCurrentRoute();
 
-          // Only restore if it's a valid route and user is authenticated
-          if (lastRoute != '/home' && authState.status == AuthStatus.authenticated) {
-            print('Restoring last known route: $lastRoute');
+          // Check if user needs to change password on first login
+          if (authState.status == AuthStatus.authenticated && authState.user != null) {
+            final isFirstLogin = await _checkFirstLogin(authState.user!.id);
+            if (isFirstLogin) {
+              return '/change-password';
+            }
+          }
+
+          if (lastRoute != null && lastRoute != '/') {
+            print('Restoring last route: $lastRoute');
             return lastRoute;
-          } else {
-            print('At root, redirecting to home');
-            return '/home';
           }
         } catch (e) {
-          print('Failed to restore last route, redirecting to home: $e');
-          return '/home';
+          print('Error restoring last route: $e');
         }
+        print('No last route found, redirecting to home');
+        return '/home';
       }
 
       // If user is authenticated and trying to access auth pages, redirect to home
@@ -201,9 +235,31 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       // Home page route
       GoRoute(path: '/home', builder: (context, state) => const HomePage()),
       GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
-      GoRoute(path: '/register', builder: (context, state) => const RegisterPage()),
+      GoRoute(
+        path: '/register',
+        builder: (context, state) => const RegisterPage(),
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.status == AuthStatus.authenticated) {
+            return '/home';
+          }
+          return null;
+        },
+      ),
+      GoRoute(
+        path: '/change-password',
+        builder: (context, state) => const ChangePasswordPage(),
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.status != AuthStatus.authenticated) {
+            return '/login';
+          }
+          return null;
+        },
+      ),
       GoRoute(path: '/reset-password', builder: (context, state) => const ResetPasswordPage()),
-      GoRoute(path: '/change-password', builder: (context, state) => const ChangePasswordPage()),
       GoRoute(path: '/profile', builder: (context, state) => ProfilePage()),
       GoRoute(
         path: '/profile/edit',
@@ -259,10 +315,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/users', builder: (context, state) => UsersPage()),
       GoRoute(
-        path: '/bookings/:userId',
-        builder: (context, state) => BookingsPage(userId: state.pathParameters['userId']!),
-      ),
-      GoRoute(
         path: '/reviews/:venueId',
         builder: (context, state) => ReviewsPage(venueId: state.pathParameters['venueId']!),
       ),
@@ -271,6 +323,18 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => SupportTicketsPage(userId: state.pathParameters['userId']!),
       ),
       GoRoute(path: '/search', builder: (context, state) => SearchPage()),
+      GoRoute(
+        path: '/advanced-search',
+        builder: (context, state) => const AdvancedSearchPage(),
+      ),
+      GoRoute(
+        path: '/venues-map',
+        builder: (context, state) => const VenuesMapPage(),
+      ),
+      GoRoute(
+        path: '/favorites',
+        builder: (context, state) => const FavoritesPage(),
+      ),
       GoRoute(
         path: '/admin',
         builder: (context, state) => AdminDashboardPage(),
@@ -382,6 +446,30 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           return null;
         },
       ),
+      GoRoute(
+        path: '/admin/create-venue-owner',
+        builder: (context, state) => const AdminCreateVenueOwnerPage(),
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.user == null || authState.user!.role != 'admin') {
+            return '/login';
+          }
+          return null;
+        },
+      ),
+      GoRoute(
+        path: '/admin/database-setup',
+        builder: (context, state) => const AdminDatabaseSetupPage(),
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.user == null || authState.user!.role != 'admin') {
+            return '/login';
+          }
+          return null;
+        },
+      ),
       // Venue Owner Routes
       GoRoute(
         path: '/venue-owner',
@@ -441,6 +529,110 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/venue-owner/reports/:venueId',
         builder: (context, state) => VenueReportsPage(venueId: state.pathParameters['venueId']!),
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.user == null || authState.user!.role != 'venue_owner') {
+            return '/login';
+          }
+          return null;
+        },
+      ),
+      GoRoute(
+        path: '/venue-owner/maintenance/:venueId',
+        builder: (context, state) => VenueMaintenancePage(venueId: state.pathParameters['venueId']!),
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.user == null || authState.user!.role != 'venue_owner') {
+            return '/login';
+          }
+          return null;
+        },
+      ),
+      // Booking Routes
+      GoRoute(
+        path: '/bookings',
+        builder: (context, state) => const UserBookingsPage(),
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.user == null || authState.user!.isGuestUser) {
+            return '/login';
+          }
+          return null;
+        },
+      ),
+      GoRoute(
+        path: '/book-room',
+        builder: (context, state) {
+          final queryParams = state.uri.queryParameters;
+          return BookingForm(
+            venueId: queryParams['venueId'] ?? '',
+            venueName: queryParams['venueName'] ?? '',
+            roomId: queryParams['roomId'] ?? '',
+            roomName: queryParams['roomName'] ?? '',
+            hourlyPrice: double.tryParse(queryParams['hourlyPrice'] ?? '0') ?? 0,
+          );
+        },
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.user == null || authState.user!.isGuestUser) {
+            return '/login';
+          }
+          return null;
+        },
+      ),
+      // Search and Discovery Routes
+      GoRoute(
+        path: '/search',
+        builder: (context, state) => const AdvancedSearchPage(),
+      ),
+      GoRoute(
+        path: '/venues-map',
+        builder: (context, state) => const VenuesMapPage(),
+      ),
+      GoRoute(
+        path: '/favorites',
+        builder: (context, state) => const FavoritesPage(),
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.user == null || authState.user!.isGuestUser) {
+            return '/login';
+          }
+          return null;
+        },
+      ),
+      // Accessibility and Settings Routes
+      GoRoute(
+        path: '/accessibility',
+        redirect: (context, state) => '/accessibility-settings',
+      ),
+      GoRoute(
+        path: '/accessibility-settings',
+        builder: (context, state) => const AccessibilitySettingsPage(),
+      ),
+      GoRoute(
+        path: '/notifications',
+        builder: (context, state) => const NotificationsPage(),
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.user == null || authState.user!.isGuestUser) {
+            return '/login';
+          }
+          return null;
+        },
+      ),
+      GoRoute(
+        path: '/venue-owner/room-form',
+        builder: (context, state) {
+          final venueId = state.uri.queryParameters['venueId'] ?? '';
+          final roomId = state.uri.queryParameters['roomId'];
+          return RoomFormPage(venueId: venueId, roomId: roomId);
+        },
         redirect: (context, state) {
           final container = ProviderScope.containerOf(context);
           final authState = container.read(authProvider);

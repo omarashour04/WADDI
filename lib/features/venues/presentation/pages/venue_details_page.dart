@@ -23,9 +23,9 @@ class VenueDetailsPage extends ConsumerWidget {
     final reviewsAsync = ref.watch(reviewsForVenueProvider(venueId));
 
     // Update navigation state
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(navigationStateProvider.notifier).updateCurrentRoute('/venues/$venueId');
-    });
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   ref.read(navigationStateProvider.notifier).updateCurrentRoute('/venues/$venueId');
+    // });
 
     return venueAsync.when(
       data: (venue) {

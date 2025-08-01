@@ -159,6 +159,31 @@ class VenueOwnerDashboardPage extends ConsumerWidget {
                         ),
                       ),
                     ),
+                    // Maintenance status indicator
+                    if (data['isClosedForMaintenance'] == true)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.orange[100],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.orange[300]!),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.engineering, size: 16, color: Colors.orange[700]),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Maintenance',
+                              style: TextStyle(
+                                color: Colors.orange[700],
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     PopupMenuButton<String>(
                       onSelected: (value) => _handleMenuAction(context, value, venueId),
                       itemBuilder: (context) => [
@@ -166,6 +191,7 @@ class VenueOwnerDashboardPage extends ConsumerWidget {
                         const PopupMenuItem(value: 'rooms', child: Text('Manage Rooms')),
                         const PopupMenuItem(value: 'bookings', child: Text('View Bookings')),
                         const PopupMenuItem(value: 'reports', child: Text('Reports')),
+                        const PopupMenuItem(value: 'maintenance', child: Text('Maintenance Status')),
                         const PopupMenuItem(value: 'delete', child: Text('Delete')),
                       ],
                     ),
@@ -177,6 +203,39 @@ class VenueOwnerDashboardPage extends ConsumerWidget {
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Colors.grey[600],
                   ),
+                ),
+                const SizedBox(height: 8),
+                // Room count information
+                StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('venues')
+                      .doc(venueId)
+                      .collection('rooms')
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    final roomCount = snapshot.data?.docs.length ?? 0;
+                    return Row(
+                      children: [
+                        Icon(Icons.meeting_room, size: 16, color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          '$roomCount room${roomCount != 1 ? 's' : ''}',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Icon(Icons.attach_money, size: 16, color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${data['hourlyPriceRange']?['min'] ?? 0} - ${data['hourlyPriceRange']?['max'] ?? 0} EGP/hr',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -219,6 +278,9 @@ class VenueOwnerDashboardPage extends ConsumerWidget {
         break;
       case 'reports':
         context.go('/venue-owner/reports/$venueId');
+        break;
+      case 'maintenance':
+        context.go('/venue-owner/maintenance/$venueId');
         break;
       case 'delete':
         _deleteVenue(context, venueId);

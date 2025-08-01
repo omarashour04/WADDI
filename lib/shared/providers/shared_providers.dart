@@ -1,94 +1,174 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/services/local_storage_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 
-// Theme provider with persistence
+// Theme Provider with automatic system theme detection
+class ThemeNotifier extends StateNotifier<ThemeMode> {
+  ThemeNotifier() : super(ThemeMode.system) {
+    _loadTheme();
+  }
+
+  Future<void> _loadTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    final themeString = prefs.getString('themeMode') ?? 'system';
+    switch (themeString) {
+      case 'light':
+        state = ThemeMode.light;
+        break;
+      case 'dark':
+        state = ThemeMode.dark;
+        break;
+      case 'system':
+      default:
+        state = ThemeMode.system;
+        break;
+    }
+  }
+
+  Future<void> setTheme(ThemeMode theme) async {
+    final prefs = await SharedPreferences.getInstance();
+    String themeString;
+    switch (theme) {
+      case ThemeMode.light:
+        themeString = 'light';
+        break;
+      case ThemeMode.dark:
+        themeString = 'dark';
+        break;
+      case ThemeMode.system:
+        themeString = 'system';
+        break;
+    }
+    await prefs.setString('themeMode', themeString);
+    state = theme;
+  }
+}
+
 final themeProvider = StateNotifierProvider<ThemeNotifier, ThemeMode>((ref) {
   return ThemeNotifier();
 });
 
-class ThemeNotifier extends StateNotifier<ThemeMode> {
-  ThemeNotifier() : super(ThemeMode.system);
-
-  void setTheme(ThemeMode themeMode) {
-    state = themeMode;
+// Language Provider with device language detection
+class LanguageNotifier extends StateNotifier<Locale> {
+  LanguageNotifier() : super(const Locale('en')) {
+    _loadLanguage();
   }
 
-  void toggleTheme() {
-    switch (state) {
-      case ThemeMode.light:
-        setTheme(ThemeMode.dark);
-        break;
-      case ThemeMode.dark:
-        setTheme(ThemeMode.system);
-        break;
-      case ThemeMode.system:
-        setTheme(ThemeMode.light);
-        break;
+  Future<void> _loadLanguage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedLanguage = prefs.getString('selectedLanguage');
+    
+    if (savedLanguage != null) {
+      // Use saved language preference
+      state = Locale(savedLanguage);
+    } else {
+      // Detect device language
+      final deviceLocale = await _getDeviceLocale();
+      state = deviceLocale;
+    }
+  }
+
+  Future<Locale> _getDeviceLocale() async {
+    try {
+      // Get device locale using Platform.localeName
+      final String deviceLocale = WidgetsBinding.instance.platformDispatcher.locale.languageCode;
+      
+      // Check if device language is supported
+      if (['en', 'ar', 'fr', 'es', 'de'].contains(deviceLocale)) {
+        return Locale(deviceLocale);
+      }
+    } catch (e) {
+      print('Error getting device language: $e');
+    }
+    
+    // Fallback to English
+    return const Locale('en');
+  }
+
+  Future<void> setLanguage(String languageCode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('selectedLanguage', languageCode);
+    state = Locale(languageCode);
+  }
+
+  String getLanguageDisplayName(String languageCode) {
+    switch (languageCode) {
+      case 'en':
+        return 'English';
+      case 'ar':
+        return 'العربية';
+      case 'fr':
+        return 'Français';
+      case 'es':
+        return 'Español';
+      case 'de':
+        return 'Deutsch';
+      default:
+        return 'English';
+    }
+  }
+
+  String getLanguageCode(String displayName) {
+    switch (displayName) {
+      case 'English':
+        return 'en';
+      case 'العربية':
+        return 'ar';
+      case 'Français':
+        return 'fr';
+      case 'Español':
+        return 'es';
+      case 'Deutsch':
+        return 'de';
+      default:
+        return 'en';
     }
   }
 }
 
-// Navigation state provider
-final navigationStateProvider = StateNotifierProvider<NavigationStateNotifier, NavigationState>((
-  ref,
-) {
-  return NavigationStateNotifier();
+final languageProvider = StateNotifierProvider<LanguageNotifier, Locale>((ref) {
+  return LanguageNotifier();
 });
 
-class NavigationState {
-  final int currentIndex;
-  final String? userId;
+// Navigation State Provider (simplified)
+final navigationStateProvider = StateNotifierProvider<NavigationHistoryNotifier, List<String>>((ref) {
+  return NavigationHistoryNotifier(ref.read(localStorageProvider));
+});
 
-  NavigationState({this.currentIndex = 0, this.userId});
+// Local Storage Provider
+class LocalStorageService {
+  static const String _currentRouteKey = 'current_route';
+  static const String _navigationHistoryKey = 'navigation_history';
 
-  NavigationState copyWith({int? currentIndex, String? userId}) {
-    return NavigationState(
-      currentIndex: currentIndex ?? this.currentIndex,
-      userId: userId ?? this.userId,
-    );
+  Future<void> saveCurrentRoute(String route) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_currentRouteKey, route);
+  }
+
+  Future<String?> getCurrentRoute() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_currentRouteKey);
+  }
+
+  Future<void> saveNavigationHistory(List<String> history) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_navigationHistoryKey, history);
+  }
+
+  Future<List<String>> getNavigationHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getStringList(_navigationHistoryKey) ?? [];
   }
 }
 
-class NavigationStateNotifier extends StateNotifier<NavigationState> {
-  NavigationStateNotifier() : super(NavigationState());
-
-  void updateCurrentRoute(String route) {
-    // Update navigation state based on route
-    int currentIndex = 0;
-    switch (route) {
-      case '/home':
-        currentIndex = 0;
-        break;
-      case '/venues':
-        currentIndex = 1;
-        break;
-      case '/bookings':
-        currentIndex = 2;
-        break;
-      case '/profile':
-        currentIndex = 3;
-        break;
-      default:
-        currentIndex = 0;
-    }
-    state = state.copyWith(currentIndex: currentIndex);
-  }
-
-  void setUserId(String userId) {
-    state = state.copyWith(userId: userId);
-  }
-}
-
-// Local storage service provider
 final localStorageProvider = Provider<LocalStorageService>((ref) {
   return LocalStorageService();
 });
 
 // Navigation history provider for proper back button behavior
-final navigationHistoryProvider = StateNotifierProvider<NavigationHistoryNotifier, List<String>>((
-  ref,
-) {
+final navigationHistoryProvider = StateNotifierProvider<NavigationHistoryNotifier, List<String>>((ref) {
   return NavigationHistoryNotifier(ref.read(localStorageProvider));
 });
 
@@ -126,16 +206,10 @@ class NavigationHistoryNotifier extends StateNotifier<List<String>> {
   }
 
   void addRoute(String route) {
-    print('DEBUG: NavigationHistoryNotifier.addRoute called with: $route');
-    print('DEBUG: Current state before adding: $state');
-
     // Don't add duplicate consecutive routes
     if (state.isEmpty || state.last != route) {
       state = [...state, route];
-      print('DEBUG: Route added, new state: $state');
       _saveState();
-    } else {
-      print('DEBUG: Route not added (duplicate): $route');
     }
   }
 
@@ -146,63 +220,17 @@ class NavigationHistoryNotifier extends StateNotifier<List<String>> {
     }
   }
 
-  // Stack-based navigation methods
   void popRoute() {
-    print('DEBUG: NavigationHistoryNotifier.popRoute called');
-    print('DEBUG: Current state before popping: $state');
-    
     if (state.isNotEmpty) {
       state = state.sublist(0, state.length - 1);
-      print('DEBUG: Route popped, new state: $state');
       _saveState();
-    } else {
-      print('DEBUG: No routes to pop');
     }
   }
 
   String? getTopRoute() {
-    print('DEBUG: NavigationHistoryNotifier.getTopRoute called');
-    print('DEBUG: Current state: $state');
-    
     if (state.isNotEmpty) {
-      final topRoute = state.last;
-      print('DEBUG: Returning top route: $topRoute');
-      return topRoute;
+      return state.last;
     }
-    print('DEBUG: No routes available');
-    return null;
-  }
-
-  // Peek at the top of the stack without popping
-  String? peekTopRoute() {
-    print('DEBUG: NavigationHistoryNotifier.peekTopRoute called');
-    print('DEBUG: Current state: $state');
-    
-    if (state.isNotEmpty) {
-      final topRoute = state.last;
-      print('DEBUG: Peeking top route: $topRoute');
-      return topRoute;
-    }
-    print('DEBUG: No routes available to peek');
-    return null;
-  }
-
-  // Get stack size
-  int get stackSize {
-    return state.length;
-  }
-
-  String? getPreviousRoute() {
-    print('DEBUG: NavigationHistoryNotifier.getPreviousRoute called');
-    print('DEBUG: Current state: $state');
-    print('DEBUG: State length: ${state.length}');
-
-    if (state.length > 1) {
-      final previousRoute = state[state.length - 2];
-      print('DEBUG: Returning previous route: $previousRoute');
-      return previousRoute;
-    }
-    print('DEBUG: No previous route available');
     return null;
   }
 
@@ -211,25 +239,10 @@ class NavigationHistoryNotifier extends StateNotifier<List<String>> {
     _saveState();
   }
 
-  void replaceCurrentRoute(String route) {
-    if (state.isNotEmpty) {
-      state = [...state.sublist(0, state.length - 1), route];
-    } else {
-      state = [route];
-    }
-    _saveState();
+  void updateCurrentRoute(String route) {
+    // Update the current route by adding it to the history
+    addRoute(route);
   }
 
-  void removeRoute(String route) {
-    state = state.where((r) => r != route).toList();
-    _saveState();
-  }
-
-  // Restore state from saved data
-  Future<void> restoreState(List<String> savedHistory) async {
-    if (savedHistory.isNotEmpty) {
-      state = savedHistory;
-      await _saveState();
-    }
-  }
+  int get stackSize => state.length;
 }

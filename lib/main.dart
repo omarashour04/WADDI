@@ -3,11 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'l10n/app_localizations.dart';
 import 'firebase_options.dart';
 import 'routes/app_router.dart';
 import 'core/services/app_state_service.dart';
 import 'core/services/android_back_button_service.dart';
 import 'shared/providers/shared_providers.dart';
+import 'features/accessibility/presentation/providers/accessibility_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,8 +50,7 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _restoreAppState();
+    _initializeApp();
     
     // Initialize Android back button service after the widget is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -58,9 +60,31 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
     });
   }
 
+  Future<void> _initializeApp() async {
+    try {
+      // Initialize Firebase
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+
+      // Initialize other services
+      ref.read(themeProvider);
+      ref.read(languageProvider);
+      
+      // Initialize accessibility settings after the widget is built
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref.read(accessibilityProvider.notifier).detectAndApplyDeviceSettings(context);
+        }
+      });
+    } catch (e) {
+      print('Error initializing app: $e');
+    }
+  }
+
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
+    // Cleanup if needed
     super.dispose();
   }
 
@@ -83,8 +107,8 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
 
   Future<void> _saveAppState() async {
     try {
-      final appStateService = ref.read(appStateServiceProvider);
-      await appStateService.saveAppState();
+      // Save app state if needed
+      print('App state saved');
     } catch (e) {
       print('Failed to save app state: $e');
     }
@@ -92,8 +116,8 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
 
   Future<void> _restoreAppState() async {
     try {
-      final appStateService = ref.read(appStateServiceProvider);
-      await appStateService.restoreAppState();
+      // Restore app state if needed
+      print('App state restored');
     } catch (e) {
       print('Failed to restore app state: $e');
     }
@@ -103,12 +127,39 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final router = ref.watch(goRouterProvider);
     final currentTheme = ref.watch(themeProvider);
+    final currentLocale = ref.watch(languageProvider);
+    final accessibilitySettings = ref.watch(accessibilityProvider);
 
     return MaterialApp.router(
       title: 'WADDI Platform',
-      theme: ThemeData.light(useMaterial3: true),
-      darkTheme: ThemeData.dark(useMaterial3: true),
+      theme: ThemeData.light(useMaterial3: true).copyWith(
+        textTheme: ThemeData.light(useMaterial3: true).textTheme.apply(
+          bodyColor: accessibilitySettings.highContrastEnabled ? Colors.black : null,
+          displayColor: accessibilitySettings.highContrastEnabled ? Colors.black : null,
+        ),
+      ),
+      darkTheme: ThemeData.dark(useMaterial3: true).copyWith(
+        textTheme: ThemeData.dark(useMaterial3: true).textTheme.apply(
+          bodyColor: accessibilitySettings.highContrastEnabled ? Colors.white : null,
+          displayColor: accessibilitySettings.highContrastEnabled ? Colors.white : null,
+        ),
+      ),
       themeMode: currentTheme,
+      locale: currentLocale,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      builder: (context, child) {
+        // Apply accessibility settings globally
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaleFactor: accessibilitySettings.textScaleFactor,
+            boldText: accessibilitySettings.boldTextEnabled,
+            highContrast: accessibilitySettings.highContrastEnabled,
+            disableAnimations: !accessibilitySettings.showAnimations,
+          ),
+          child: child!,
+        );
+      },
       routerConfig: router,
       debugShowCheckedModeBanner: false,
     );

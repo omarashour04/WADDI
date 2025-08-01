@@ -234,6 +234,46 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
                 ),
               ),
+
+              const SizedBox(height: 24),
+
+              // Search and Discovery Section
+              _buildSectionHeader('Search & Discovery'),
+              Card(
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.search, color: Colors.blue),
+                      title: const Text('Advanced Search'),
+                      subtitle: const Text('Filter by price, capacity, amenities'),
+                      trailing: const Icon(Icons.arrow_forward_ios),
+                      onTap: () => context.go('/search'),
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.map, color: Colors.green),
+                      title: const Text('Venues Map'),
+                      subtitle: const Text('Find venues near you'),
+                      trailing: const Icon(Icons.arrow_forward_ios),
+                      onTap: () => context.go('/venues-map'),
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.favorite, color: Colors.red),
+                      title: const Text('My Favorites'),
+                      subtitle: const Text('Your saved venues'),
+                      trailing: const Icon(Icons.arrow_forward_ios),
+                      onTap: () {
+                        if (authState.user?.isGuestUser == true) {
+                          _showLoginPrompt(context);
+                        } else {
+                          context.go('/favorites');
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -300,6 +340,44 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  void _showLoginPrompt(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Login Required'),
+        content: const Text('Please log in to view your favorites.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              context.push('/login');
+            },
+            child: const Text('Login'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Text(
+        title,
+        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white
+              : AppColors.textPrimary,
         ),
       ),
     );

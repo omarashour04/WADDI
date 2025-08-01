@@ -61,9 +61,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     final venuesAsync = ref.watch(filteredVenuesProvider);
 
     // Update navigation state
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(navigationStateProvider.notifier).updateCurrentRoute('/search');
-    });
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   ref.read(navigationStateProvider.notifier).updateCurrentRoute('/search');
+    // });
     final geocodingService = ref.read(geocodingProvider);
 
     return MainScaffold(

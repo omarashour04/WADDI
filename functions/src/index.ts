@@ -199,4 +199,75 @@ export const cleanupGuestUsers = functions.https.onCall(async (data, context) =>
         console.error('Error cleaning up guest users:', error);
         throw new functions.https.HttpsError('internal', 'Failed to clean up guest users');
     }
+});
+
+// Cloud Function to add maintenance fields to existing venues and rooms
+export const addMaintenanceFields = functions.https.onCall(async (data, context) => {
+    try {
+        // Check if user is admin
+        if (!context.auth || context.auth.token.role !== 'admin') {
+            throw new functions.https.HttpsError('permission-denied', 'Only admins can run this function');
+        }
+
+        const db = admin.firestore();
+        const venuesRef = db.collection('venues');
+
+        // Get all venues
+        const venuesSnapshot = await venuesRef.get();
+
+        if (venuesSnapshot.empty) {
+            return { message: 'No venues found to update' };
+        }
+
+        let venuesUpdated = 0;
+        let roomsUpdated = 0;
+
+        // Process each venue
+        for (const venueDoc of venuesSnapshot.docs) {
+            const venueData = venueDoc.data();
+            const venueBatch = db.batch();
+            let venueNeedsUpdate = false;
+
+            // Check if venue needs maintenance field
+            if (venueData.isClosedForMaintenance === undefined) {
+                venueBatch.update(venueDoc.ref, {
+                    isClosedForMaintenance: false,
+                    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+                venueNeedsUpdate = true;
+                venuesUpdated++;
+            }
+
+            // Get all rooms for this venue
+            const roomsSnapshot = await venueDoc.ref.collection('rooms').get();
+
+            for (const roomDoc of roomsSnapshot.docs) {
+                const roomData = roomDoc.data();
+
+                // Check if room needs maintenance field
+                if (roomData.isClosedForMaintenance === undefined) {
+                    venueBatch.update(roomDoc.ref, {
+                        isClosedForMaintenance: false,
+                        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                    });
+                    roomsUpdated++;
+                }
+            }
+
+            // Commit batch if there were updates
+            if (venueNeedsUpdate || roomsUpdated > 0) {
+                await venueBatch.commit();
+            }
+        }
+
+        return {
+            message: `Successfully updated ${venuesUpdated} venues and ${roomsUpdated} rooms with maintenance fields`,
+            venuesUpdated,
+            roomsUpdated
+        };
+
+    } catch (error) {
+        console.error('Error adding maintenance fields:', error);
+        throw new functions.https.HttpsError('internal', 'Failed to add maintenance fields');
+    }
 }); 

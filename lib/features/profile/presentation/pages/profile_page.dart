@@ -20,9 +20,9 @@ class ProfilePage extends ConsumerWidget {
     final userId = authState.user?.id ?? '';
 
     // Update navigation state
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(navigationStateProvider.notifier).updateCurrentRoute('/profile');
-    });
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   ref.read(navigationStateProvider.notifier).updateCurrentRoute('/profile');
+    // });
 
     return MainScaffold(
       currentIndex: 3,

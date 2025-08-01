@@ -176,12 +176,33 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final user = await _loginUser(email, password);
       if (user != null) {
-        state = state.copyWith(status: AuthStatus.authenticated, user: user);
+        // Check if this is the user's first login
+        final isFirstLogin = await _checkFirstLogin(user.id);
+        if (isFirstLogin) {
+          // Don't set authenticated state yet, let the router handle redirect to change password
+          state = state.copyWith(status: AuthStatus.authenticated, user: user);
+        } else {
+          state = state.copyWith(status: AuthStatus.authenticated, user: user);
+        }
       } else {
         state = state.copyWith(status: AuthStatus.error, errorMessage: 'Login failed');
       }
     } catch (e) {
       state = state.copyWith(status: AuthStatus.error, errorMessage: e.toString());
+    }
+  }
+
+  Future<bool> _checkFirstLogin(String userId) async {
+    try {
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+      if (userDoc.exists) {
+        final userData = userDoc.data();
+        return userData?['isFirstLogin'] == true;
+      }
+      return false;
+    } catch (e) {
+      print('Error checking first login: $e');
+      return false;
     }
   }
 
@@ -216,10 +237,33 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> resetPassword(String email) async {
-    // TODO: Implement reset password logic
-    state = state.copyWith(status: AuthStatus.loading);
-    await Future.delayed(Duration(seconds: 1));
-    state = state.copyWith(status: AuthStatus.initial);
+    try {
+      state = state.copyWith(status: AuthStatus.loading);
+      
+      // Use the current user's email if no email is provided
+      final emailToUse = email.isNotEmpty ? email : state.user?.email ?? '';
+      
+      if (emailToUse.isEmpty) {
+        throw Exception('No email provided for password reset');
+      }
+      
+      // Send password reset email using Firebase Auth
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: emailToUse);
+      
+      // Keep the user authenticated, don't change the status
+      state = state.copyWith(
+        status: AuthStatus.authenticated,
+        errorMessage: null,
+      );
+      
+      print('Password reset email sent to: $emailToUse');
+    } catch (e) {
+      print('Error sending password reset email: $e');
+      state = state.copyWith(
+        status: AuthStatus.authenticated, // Keep authenticated even on error
+        errorMessage: 'Failed to send reset email: $e',
+      );
+    }
   }
 
   Future<void> updateUserRole(String newRole) async {
@@ -270,6 +314,49 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(
         status: AuthStatus.error,
         errorMessage: 'Failed to update role: $e',
+      );
+    }
+  }
+
+  Future<void> updateUser({
+    String? name,
+    String? phoneNumber,
+  }) async {
+    try {
+      if (state.user == null) {
+        throw Exception('No user to update');
+      }
+      
+      state = state.copyWith(status: AuthStatus.loading);
+      
+      // Update Firestore document
+      final userDoc = FirebaseFirestore.instance.collection('users').doc(state.user!.id);
+      final updateData = <String, dynamic>{
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+      
+      if (name != null) updateData['name'] = name;
+      if (phoneNumber != null) updateData['phoneNumber'] = phoneNumber;
+      
+      await userDoc.update(updateData);
+      
+      // Update local state
+      final updatedUser = state.user!.copyWith(
+        name: name ?? state.user!.name,
+        phoneNumber: phoneNumber ?? state.user!.phoneNumber,
+      );
+      
+      state = state.copyWith(
+        status: AuthStatus.authenticated,
+        user: updatedUser,
+      );
+      
+      print('User profile updated successfully');
+    } catch (e) {
+      print('Error updating user profile: $e');
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: 'Failed to update profile: $e',
       );
     }
   }

@@ -14,6 +14,7 @@ class WaddiApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final goRouter = ref.read(goRouterProvider);
     final currentTheme = ref.watch(themeProvider);
+    final currentLocale = ref.watch(languageProvider);
 
     return AppBackButtonHandler(
       child: MaterialApp.router(
@@ -30,7 +31,14 @@ class WaddiApp extends ConsumerWidget {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        supportedLocales: AppLocalizations.supportedLocales,
+        supportedLocales: const [
+          Locale('en'), // English
+          Locale('ar'), // Arabic
+          Locale('fr'), // French
+          Locale('es'), // Spanish
+          Locale('de'), // German
+        ],
+        locale: currentLocale,
       ),
     );
   }

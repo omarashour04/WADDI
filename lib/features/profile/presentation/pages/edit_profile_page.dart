@@ -72,18 +72,19 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
       });
 
       // Update local state
-      await ref.read(authProvider.notifier).refreshUser();
+      await ref.read(authProvider.notifier).updateUser(
+        name: _nameController.text.trim(),
+        phoneNumber: _phoneController.text.trim(),
+      );
 
       setState(() {
         _success = 'Profile updated successfully!';
       });
 
-      // Clear success message after 3 seconds
-      Future.delayed(const Duration(seconds: 3), () {
+      // Redirect back to profile page after successful update
+      Future.delayed(const Duration(seconds: 1), () {
         if (mounted) {
-          setState(() {
-            _success = null;
-          });
+          context.go('/profile');
         }
       });
 

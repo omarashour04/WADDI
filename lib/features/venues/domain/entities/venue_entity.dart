@@ -19,6 +19,10 @@ class VenueEntity {
   final Map<String, dynamic> operatingHours;
   final List<Timestamp> blockedDates;
   final String status; // 'pending', 'approved', 'rejected'
+  final bool isClosedForMaintenance;
+  final String openTime; // Format: "09:00"
+  final String closeTime; // Format: "22:00"
+  final int timeSlotDuration; // Duration in minutes (30, 60, etc.)
   final Timestamp createdAt;
   final Timestamp updatedAt;
 
@@ -40,15 +44,28 @@ class VenueEntity {
     required this.operatingHours,
     required this.blockedDates,
     required this.status,
+    required this.isClosedForMaintenance,
+    required this.openTime,
+    required this.closeTime,
+    required this.timeSlotDuration,
     required this.createdAt,
     required this.updatedAt,
   });
 
   factory VenueEntity.fromMap(Map<String, dynamic> data, String documentId) {
     try {
+      print('DEBUG: Parsing venue data for document $documentId');
+      print('DEBUG: Data keys: ${data.keys.toList()}');
+      
+      // Check for required fields
+      if (data['name'] == null) {
+        print('DEBUG: Missing name field for venue $documentId');
+        throw Exception('Missing name field');
+      }
+      
       return VenueEntity(
         id: documentId,
-        name: data['name'] ?? '',
+        name: data['name'] ?? 'Unnamed Venue',
         description: data['description'] ?? '',
         address: data['address'] ?? '',
         location: data['location'] is GeoPoint
@@ -75,16 +92,26 @@ class VenueEntity {
             ? Map<String, dynamic>.from(data['capacityRange'])
             : {'min': 0, 'max': 0},
         operatingHours: data['operatingHours'] != null
-            ? Map<String, dynamic>.from(data['operatingHours'])
+            ? (data['operatingHours'] is Map 
+                ? Map<String, dynamic>.from(data['operatingHours'])
+                : {'general': data['operatingHours'].toString()})
             : {},
         blockedDates: data['blockedDates'] != null
             ? List<Timestamp>.from(data['blockedDates'])
             : [],
         status: data['status'] ?? 'pending',
+        isClosedForMaintenance: data['isClosedForMaintenance'] ?? false,
+        openTime: data['openTime'] ?? '00:00',
+        closeTime: data['closeTime'] ?? '00:00',
+        timeSlotDuration: data['timeSlotDuration'] ?? 30,
         createdAt: data['createdAt'] is Timestamp ? data['createdAt'] : Timestamp.now(),
         updatedAt: data['updatedAt'] is Timestamp ? data['updatedAt'] : Timestamp.now(),
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('DEBUG: Error parsing venue $documentId: $e');
+      print('DEBUG: Stack trace: $stackTrace');
+      print('DEBUG: Raw data: $data');
+      
       // Return a default venue entity instead of throwing
       return VenueEntity(
         id: documentId,
@@ -104,6 +131,10 @@ class VenueEntity {
         operatingHours: {},
         blockedDates: [],
         status: 'pending',
+        isClosedForMaintenance: false,
+        openTime: '00:00',
+        closeTime: '00:00',
+        timeSlotDuration: 30,
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       );
@@ -128,6 +159,10 @@ class VenueEntity {
       'operatingHours': operatingHours,
       'blockedDates': blockedDates,
       'status': status,
+      'isClosedForMaintenance': isClosedForMaintenance,
+      'openTime': openTime,
+      'closeTime': closeTime,
+      'timeSlotDuration': timeSlotDuration,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
     };
@@ -139,14 +174,16 @@ class VenueRoom extends Equatable {
   final String name;
   final int capacity;
   final List<String> amenities;
+  final bool isClosedForMaintenance;
 
   const VenueRoom({
     required this.id,
     required this.name,
     required this.capacity,
     required this.amenities,
+    this.isClosedForMaintenance = false,
   });
 
   @override
-  List<Object?> get props => [id, name, capacity, amenities];
+  List<Object?> get props => [id, name, capacity, amenities, isClosedForMaintenance];
 }

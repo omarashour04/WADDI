@@ -1,10 +1,10 @@
 {
   "@@locale": "ar",
-  "appTitle": "يداو ﺔﺼﻨﻣ",
-  "loginButtonText": "لﻮﺧﺪﻟا ﻞﻴﺠﺴﺗ",
-  "emailHint": "ﻲﻧوﺮﺘﻜﻟﻹا ﺪﻳﺮﺒﻟا ناﻮﻨﻋ",
-  "passwordHint": "روﺮﻤﻟا ﺔﻤﻠﻛ",
-  "welcomeMessage": "ﻚﺑ ﻼﻫأ، {userName}",
+  "appTitle": "منصة وادي",
+  "loginButtonText": "تسجيل الدخول",
+  "emailHint": "البريد الإلكتروني",
+  "passwordHint": "كلمة المرور",
+  "welcomeMessage": "أهلاً بك، {userName}",
   "@welcomeMessage": {
     "placeholders": {
       "userName": {

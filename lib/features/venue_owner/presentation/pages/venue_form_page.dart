@@ -5,6 +5,81 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:go_router/go_router.dart';
 
+// Room data model
+class RoomData {
+  String? id;
+  String name;
+  String description;
+  int capacity;
+  double hourlyPrice;
+  List<String> images;
+  List<String> amenities;
+  bool isClosedForMaintenance;
+  String? error;
+
+  RoomData({
+    this.id,
+    required this.name,
+    required this.description,
+    required this.capacity,
+    required this.hourlyPrice,
+    required this.images,
+    required this.amenities,
+    this.isClosedForMaintenance = false,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'name': name,
+      'description': description,
+      'capacity': capacity,
+      'hourlyPrice': hourlyPrice,
+      'images': images,
+      'amenities': amenities,
+      'isClosedForMaintenance': isClosedForMaintenance,
+      'venueId': '', // Will be set when saving
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+  }
+
+  factory RoomData.fromMap(Map<String, dynamic> map, String roomId) {
+    return RoomData(
+      id: roomId,
+      name: map['name'] ?? '',
+      description: map['description'] ?? '',
+      capacity: map['capacity'] ?? 0,
+      hourlyPrice: (map['hourlyPrice'] ?? 0.0).toDouble(),
+      images: List<String>.from(map['images'] ?? []),
+      amenities: List<String>.from(map['amenities'] ?? []),
+      isClosedForMaintenance: map['isClosedForMaintenance'] ?? false,
+    );
+  }
+
+  RoomData copyWith({
+    String? id,
+    String? name,
+    String? description,
+    int? capacity,
+    double? hourlyPrice,
+    List<String>? images,
+    List<String>? amenities,
+    bool? isClosedForMaintenance,
+    String? error,
+  }) {
+    return RoomData(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      capacity: capacity ?? this.capacity,
+      hourlyPrice: hourlyPrice ?? this.hourlyPrice,
+      images: images ?? this.images,
+      amenities: amenities ?? this.amenities,
+      isClosedForMaintenance: isClosedForMaintenance ?? this.isClosedForMaintenance,
+    );
+  }
+}
+
 class VenueFormPage extends StatefulWidget {
   final String ownerId;
   final String? venueId; // null for add, not null for edit
@@ -27,10 +102,18 @@ class _VenueFormPageState extends State<VenueFormPage> {
   final _maxPriceController = TextEditingController();
   final _minCapacityController = TextEditingController();
   final _maxCapacityController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _openTimeController = TextEditingController();
+  final TextEditingController _closeTimeController = TextEditingController();
+  final TextEditingController _timeSlotDurationController = TextEditingController();
   
   List<String> imageUrls = [];
   List<String> selectedAmenities = [];
+  List<RoomData> rooms = [];
   bool isSubmitting = false;
+  bool isClosedForMaintenance = false;
   String? error;
 
   // Available amenities options
@@ -76,31 +159,83 @@ class _VenueFormPageState extends State<VenueFormPage> {
   }
 
   Future<void> _loadVenue() async {
-    final doc = await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).get();
-    final data = doc.data();
-    if (data != null) {
-      _nameController.text = data['name'] ?? '';
-      _descController.text = data['description'] ?? '';
-      _addressController.text = data['address'] ?? '';
-      _contactPhoneController.text = data['contactPhone'] ?? '';
-      _contactEmailController.text = data['contactEmail'] ?? '';
-      imageUrls = List<String>.from(data['images'] ?? []);
-      
-      // Load price range
-      final hourlyPriceRange = data['hourlyPriceRange'] as Map<String, dynamic>? ?? {};
-      _minPriceController.text = (hourlyPriceRange['min'] ?? 0).toString();
-      _maxPriceController.text = (hourlyPriceRange['max'] ?? 0).toString();
-      
-      // Load capacity range
-      final capacityRange = data['capacityRange'] as Map<String, dynamic>? ?? {};
-      _minCapacityController.text = (capacityRange['min'] ?? 0).toString();
-      _maxCapacityController.text = (capacityRange['max'] ?? 0).toString();
-      
-      // Load amenities
-      selectedAmenities = List<String>.from(data['amenities'] ?? []);
-      
-      setState(() {});
+    try {
+      final doc = await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).get();
+      final data = doc.data();
+      if (data != null) {
+        _nameController.text = data['name'] ?? '';
+        _descController.text = data['description'] ?? '';
+        _addressController.text = data['address'] ?? '';
+        _contactPhoneController.text = data['contactPhone'] ?? '';
+        _contactEmailController.text = data['contactEmail'] ?? '';
+        imageUrls = List<String>.from(data['images'] ?? []);
+        
+        // Load price range
+        final hourlyPriceRange = data['hourlyPriceRange'] as Map<String, dynamic>? ?? {};
+        _minPriceController.text = (hourlyPriceRange['min'] ?? 0).toString();
+        _maxPriceController.text = (hourlyPriceRange['max'] ?? 0).toString();
+        
+        // Load capacity range
+        final capacityRange = data['capacityRange'] as Map<String, dynamic>? ?? {};
+        _minCapacityController.text = (capacityRange['min'] ?? 0).toString();
+        _maxCapacityController.text = (capacityRange['max'] ?? 0).toString();
+        
+        // Load amenities
+        selectedAmenities = List<String>.from(data['amenities'] ?? []);
+
+        // Load maintenance status
+        isClosedForMaintenance = data['isClosedForMaintenance'] ?? false;
+
+        // Load rooms
+        await _loadRooms();
+        
+        setState(() {});
+      }
+    } catch (e) {
+      setState(() => error = 'Failed to load venue: $e');
     }
+  }
+
+  Future<void> _loadRooms() async {
+    try {
+      final roomsSnapshot = await FirebaseFirestore.instance
+          .collection('venues')
+          .doc(widget.venueId)
+          .collection('rooms')
+          .get();
+      
+      rooms = roomsSnapshot.docs.map((doc) {
+        return RoomData.fromMap(doc.data(), doc.id);
+      }).toList();
+    } catch (e) {
+      print('Error loading rooms: $e');
+    }
+  }
+
+  void _addRoom() {
+    setState(() {
+      rooms.add(RoomData(
+        name: '',
+        description: '',
+        capacity: 0,
+        hourlyPrice: 0.0,
+        images: [],
+        amenities: [],
+        isClosedForMaintenance: false,
+      ));
+    });
+  }
+
+  void _removeRoom(int index) {
+    setState(() {
+      rooms.removeAt(index);
+    });
+  }
+
+  void _updateRoom(int index, RoomData room) {
+    setState(() {
+      rooms[index] = room;
+    });
   }
 
   Future<void> _pickAndUploadImage() async {
@@ -117,6 +252,24 @@ class _VenueFormPageState extends State<VenueFormPage> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    
+    // Validate rooms
+    for (int i = 0; i < rooms.length; i++) {
+      final room = rooms[i];
+      if (room.name.trim().isEmpty) {
+        setState(() => error = 'Room ${i + 1}: Name is required');
+        return;
+      }
+      if (room.capacity <= 0) {
+        setState(() => error = 'Room ${i + 1}: Capacity must be greater than 0');
+        return;
+      }
+      if (room.hourlyPrice <= 0) {
+        setState(() => error = 'Room ${i + 1}: Hourly price must be greater than 0');
+        return;
+      }
+    }
+    
     setState(() {
       isSubmitting = true;
       error = null;
@@ -142,6 +295,10 @@ class _VenueFormPageState extends State<VenueFormPage> {
         'status': status, // 'approved' for admin, 'pending' for venue owners
         'averageRating': 0.0,
         'totalReviews': 0,
+        'isClosedForMaintenance': isClosedForMaintenance,
+        'openTime': _openTimeController.text.trim(),
+        'closeTime': _closeTimeController.text.trim(),
+        'timeSlotDuration': int.tryParse(_timeSlotDurationController.text) ?? 30,
         'hourlyPriceRange': {
           'min': minPrice,
           'max': maxPrice,
@@ -150,7 +307,7 @@ class _VenueFormPageState extends State<VenueFormPage> {
           'min': minCapacity,
           'max': maxCapacity,
         },
-        'operatingHours': {},
+        'operatingHours': '${_openTimeController.text.trim()} - ${_closeTimeController.text.trim()}',
         'blockedDates': [],
         'amenities': selectedAmenities,
         'location': GeoPoint(0, 0), // Default location
@@ -158,11 +315,19 @@ class _VenueFormPageState extends State<VenueFormPage> {
         'updatedAt': FieldValue.serverTimestamp(),
       };
       
+      String venueId;
       if (widget.venueId == null) {
-        await FirebaseFirestore.instance.collection('venues').add(data);
+        // Create new venue
+        final venueDoc = await FirebaseFirestore.instance.collection('venues').add(data);
+        venueId = venueDoc.id;
       } else {
+        // Update existing venue
         await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).update(data);
+        venueId = widget.venueId!;
       }
+      
+      // Save rooms
+      await _saveRooms(venueId);
       
       // Show success message
       if (context.mounted) {
@@ -192,6 +357,265 @@ class _VenueFormPageState extends State<VenueFormPage> {
       }
     } finally {
       setState(() => isSubmitting = false);
+    }
+  }
+
+  Future<void> _saveRooms(String venueId) async {
+    final roomsRef = FirebaseFirestore.instance.collection('venues').doc(venueId).collection('rooms');
+    
+    for (final room in rooms) {
+      final roomData = room.toMap();
+      roomData['venueId'] = venueId;
+      
+      if (room.id == null) {
+        // Create new room
+        await roomsRef.add(roomData);
+      } else {
+        // Update existing room
+        await roomsRef.doc(room.id).update(roomData);
+      }
+    }
+  }
+
+  Widget _buildRoomCard(int index, RoomData room) {
+    final nameController = TextEditingController(text: room.name);
+    final descController = TextEditingController(text: room.description);
+    final capacityController = TextEditingController(text: room.capacity.toString());
+    final priceController = TextEditingController(text: room.hourlyPrice.toString());
+
+    return Card(
+      elevation: 2.0,
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Room ${index + 1}',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () => _removeRoom(index),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'Room Name *',
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (value) => _updateRoom(index, room.copyWith(name: value)),
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: descController,
+              decoration: const InputDecoration(
+                labelText: 'Description',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 2,
+              onChanged: (value) => _updateRoom(index, room.copyWith(description: value)),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: capacityController,
+                    decoration: const InputDecoration(
+                      labelText: 'Capacity *',
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) => _updateRoom(index, room.copyWith(capacity: int.tryParse(value) ?? 0)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextFormField(
+                    controller: priceController,
+                    decoration: const InputDecoration(
+                      labelText: 'Hourly Price *',
+                      border: OutlineInputBorder(),
+                      prefixText: '\$',
+                    ),
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) => _updateRoom(index, room.copyWith(hourlyPrice: double.tryParse(value) ?? 0.0)),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Amenities',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: availableAmenities.map((amenity) {
+                final isSelected = room.amenities.contains(amenity);
+                return FilterChip(
+                  label: Text(amenity),
+                  selected: isSelected,
+                  onSelected: (selected) {
+                    final updatedRoom = room.copyWith(
+                      amenities: selected 
+                        ? [...room.amenities, amenity]
+                        : room.amenities.where((a) => a != amenity).toList(),
+                    );
+                    _updateRoom(index, updatedRoom);
+                  },
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Room Images',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                ...room.images.map((url) => Stack(
+                  children: [
+                    Image.network(
+                      url,
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        width: 80,
+                        height: 80,
+                        color: Colors.grey[300],
+                        child: const Icon(Icons.image, color: Colors.grey),
+                      ),
+                    ),
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: GestureDetector(
+                        onTap: () {
+                          final updatedRoom = room.copyWith(
+                            images: room.images.where((img) => img != url).toList(),
+                          );
+                          _updateRoom(index, updatedRoom);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.close,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                )),
+                GestureDetector(
+                  onTap: () => _pickAndUploadRoomImage(index),
+                  child: Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.add_a_photo,
+                      size: 24,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Room Maintenance Status
+            SwitchListTile(
+              title: const Text('Closed for Maintenance'),
+              subtitle: const Text('Mark this room as temporarily closed'),
+              value: room.isClosedForMaintenance,
+              onChanged: (value) {
+                final updatedRoom = room.copyWith(isClosedForMaintenance: value);
+                _updateRoom(index, updatedRoom);
+              },
+              secondary: Icon(
+                room.isClosedForMaintenance ? Icons.engineering : Icons.engineering_outlined,
+                color: room.isClosedForMaintenance ? Colors.orange : Colors.grey,
+              ),
+              contentPadding: EdgeInsets.zero,
+            ),
+            if (room.isClosedForMaintenance)
+              Container(
+                margin: const EdgeInsets.only(top: 8),
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.orange[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange[200]!),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.orange[700], size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'This room will be marked as closed for maintenance.',
+                        style: TextStyle(
+                          color: Colors.orange[700],
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickAndUploadRoomImage(int roomIndex) async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(source: ImageSource.gallery);
+      if (picked != null) {
+        final file = File(picked.path);
+        final ref = FirebaseStorage.instance.ref().child('room_images/${DateTime.now().millisecondsSinceEpoch}_${picked.name}');
+        final uploadTask = await ref.putFile(file);
+        final url = await uploadTask.ref.getDownloadURL();
+        
+        final room = rooms[roomIndex];
+        final updatedRoom = room.copyWith(
+          images: [...room.images, url],
+        );
+        _updateRoom(roomIndex, updatedRoom);
+      }
+    } catch (e) {
+      setState(() => error = 'Failed to upload image: $e');
     }
   }
 
@@ -393,7 +817,200 @@ class _VenueFormPageState extends State<VenueFormPage> {
                   );
                 }).toList(),
               ),
+              const SizedBox(height: 24),
+              
+              // Maintenance Status Section
+              Text(
+                'Maintenance Status',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Mark your venue as closed for maintenance if needed.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey[600],
+                ),
+              ),
               const SizedBox(height: 16),
+              
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SwitchListTile(
+                        title: const Text('Closed for Maintenance'),
+                        subtitle: const Text('Mark venue as temporarily closed'),
+                        value: isClosedForMaintenance,
+                        onChanged: (value) {
+                          setState(() {
+                            isClosedForMaintenance = value;
+                          });
+                        },
+                        secondary: Icon(
+                          isClosedForMaintenance ? Icons.engineering : Icons.engineering_outlined,
+                          color: isClosedForMaintenance ? Colors.orange : Colors.grey,
+                        ),
+                      ),
+                      if (isClosedForMaintenance)
+                        Container(
+                          margin: const EdgeInsets.only(top: 8),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange[50],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.orange[200]!),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.info_outline, color: Colors.orange[700], size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Venue will be marked as closed for maintenance. Users will not be able to book during this time.',
+                                  style: TextStyle(
+                                    color: Colors.orange[700],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              
+              // Operating Hours Section
+              Text(
+                'Operating Hours',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Operating Hours',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _openTimeController,
+                              decoration: const InputDecoration(
+                                labelText: 'Open Time',
+                                hintText: '09:00',
+                                border: OutlineInputBorder(),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter open time';
+                                }
+                                // Validate time format (HH:MM)
+                                if (!RegExp(r'^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$').hasMatch(value)) {
+                                  return 'Please enter time in HH:MM format';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _closeTimeController,
+                              decoration: const InputDecoration(
+                                labelText: 'Close Time',
+                                hintText: '22:00',
+                                border: OutlineInputBorder(),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter close time';
+                                }
+                                // Validate time format (HH:MM)
+                                if (!RegExp(r'^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$').hasMatch(value)) {
+                                  return 'Please enter time in HH:MM format';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _timeSlotDurationController,
+                        decoration: const InputDecoration(
+                          labelText: 'Time Slot Duration (minutes)',
+                          hintText: '30',
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter time slot duration';
+                          }
+                          final duration = int.tryParse(value);
+                          if (duration == null || duration <= 0) {
+                            return 'Please enter a valid duration';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              
+              // Room Management Section
+              Text(
+                'Room Management',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Add rooms to your venue. Each room will have its own ID and details.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Rooms List
+              ...rooms.asMap().entries.map((entry) {
+                final index = entry.key;
+                final room = entry.value;
+                return _buildRoomCard(index, room);
+              }).toList(),
+              
+              // Add Room Button
+              OutlinedButton.icon(
+                onPressed: _addRoom,
+                icon: const Icon(Icons.add),
+                label: const Text('Add Room'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+              const SizedBox(height: 24),
               
               // Images Section
               Text(

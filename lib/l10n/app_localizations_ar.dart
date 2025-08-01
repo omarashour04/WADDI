@@ -9,19 +9,19 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
-  String get appTitle => 'يداو ﺔﺼﻨﻣ';
+  String get appTitle => 'منصة وادي';
 
   @override
-  String get loginButtonText => 'لﻮﺧﺪﻟا ﻞﻴﺠﺴﺗ';
+  String get loginButtonText => 'تسجيل الدخول';
 
   @override
-  String get emailHint => 'ﻲﻧوﺮﺘﻜﻟﻹا ﺪﻳﺮﺒﻟا ناﻮﻨﻋ';
+  String get emailHint => 'البريد الإلكتروني';
 
   @override
-  String get passwordHint => 'روﺮﻤﻟا ﺔﻤﻠﻛ';
+  String get passwordHint => 'كلمة المرور';
 
   @override
   String welcomeMessage(String userName) {
-    return 'ﻚﺑ ﻼﻫأ، $userName';
+    return 'أهلاً بك، $userName';
   }
 }

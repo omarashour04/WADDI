@@ -90,15 +90,40 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                               setState(() => _feedback = 'Please enter your email.');
                               return;
                             }
+                            
+                            // Validate email format
+                            final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                            if (!emailRegex.hasMatch(email)) {
+                              setState(() => _feedback = 'Please enter a valid email address.');
+                              return;
+                            }
+                            
                             setState(() {
                               _isLoading = true;
                               _feedback = null;
                             });
-                            await authNotifier.resetPassword(email);
-                            setState(() {
-                              _isLoading = false;
-                              _feedback = 'Password reset email sent (if account exists).';
-                            });
+                            
+                            try {
+                              await authNotifier.resetPassword(email);
+                              final authState = ref.read(authProvider);
+                              
+                              if (authState.status == AuthStatus.authenticated) {
+                                setState(() {
+                                  _isLoading = false;
+                                  _feedback = 'Password reset email sent successfully!';
+                                });
+                              } else {
+                                setState(() {
+                                  _isLoading = false;
+                                  _feedback = authState.errorMessage ?? 'Failed to send reset email.';
+                                });
+                              }
+                            } catch (e) {
+                              setState(() {
+                                _isLoading = false;
+                                _feedback = 'Failed to send reset email: $e';
+                              });
+                            }
                           },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,

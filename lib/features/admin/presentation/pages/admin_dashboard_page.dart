@@ -224,6 +224,28 @@ class AdminDashboardPage extends ConsumerWidget {
                       onTap: () => context.go('/admin/notifications'),
                     ),
                   ),
+                  SizedBox(
+                    width: (MediaQuery.of(context).size.width - 64) / 2,
+                    child: _buildActionCard(
+                      context,
+                      icon: Icons.person_add,
+                      title: 'Create Venue Owner',
+                      subtitle: 'Create new venue owner accounts',
+                      color: Colors.indigo,
+                      onTap: () => context.go('/admin/create-venue-owner'),
+                    ),
+                  ),
+                  SizedBox(
+                    width: (MediaQuery.of(context).size.width - 64) / 2,
+                    child: _buildActionCard(
+                      context,
+                      icon: Icons.storage,
+                      title: 'Database Setup',
+                      subtitle: 'Update database schema and maintenance',
+                      color: Colors.brown,
+                      onTap: () => context.go('/admin/database-setup'),
+                    ),
+                  ),
                 ],
               ),
 
@@ -338,6 +360,22 @@ class AdminDashboardPage extends ConsumerWidget {
                               label: const Text('Clean Guest Users'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.orange,
+                                foregroundColor: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () => _addMaintenanceFields(context),
+                              icon: const Icon(Icons.engineering),
+                              label: const Text('Add Maintenance Fields'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
                                 foregroundColor: Colors.white,
                               ),
                             ),
@@ -628,6 +666,115 @@ class AdminDashboardPage extends ConsumerWidget {
       Navigator.of(context).pop(); // Close loading dialog
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error cleaning up guest users: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  Future<void> _addMaintenanceFields(BuildContext context) async {
+    try {
+      // Show confirmation dialog
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Add Maintenance Fields'),
+          content: const Text(
+            'This will add isClosedForMaintenance field to all venues and rooms. This action cannot be undone. Are you sure?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(foregroundColor: Colors.green),
+              child: const Text('Add'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed != true) return;
+
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Adding maintenance fields...'),
+            ],
+          ),
+        ),
+      );
+
+      // Get all venues
+      final venuesRef = FirebaseFirestore.instance.collection('venues');
+      final venuesSnapshot = await venuesRef.get();
+
+      if (venuesSnapshot.docs.isEmpty) {
+        Navigator.of(context).pop(); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No venues found to update')),
+        );
+        return;
+      }
+
+      int venuesUpdated = 0;
+      int roomsUpdated = 0;
+
+      // Process each venue
+      for (final venueDoc in venuesSnapshot.docs) {
+        final venueData = venueDoc.data();
+        final batch = FirebaseFirestore.instance.batch();
+        bool venueNeedsUpdate = false;
+
+        // Check if venue needs maintenance field
+        if (venueData['isClosedForMaintenance'] == null) {
+          batch.update(venueDoc.reference, {
+            'isClosedForMaintenance': false,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+          venueNeedsUpdate = true;
+          venuesUpdated++;
+        }
+
+        // Get all rooms for this venue
+        final roomsSnapshot = await venueDoc.reference.collection('rooms').get();
+        
+        for (final roomDoc in roomsSnapshot.docs) {
+          final roomData = roomDoc.data();
+          
+          // Check if room needs maintenance field
+          if (roomData['isClosedForMaintenance'] == null) {
+            batch.update(roomDoc.reference, {
+              'isClosedForMaintenance': false,
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
+            roomsUpdated++;
+          }
+        }
+
+        // Commit batch if there were updates
+        if (venueNeedsUpdate || roomsUpdated > 0) {
+          await batch.commit();
+        }
+      }
+
+      Navigator.of(context).pop(); // Close loading dialog
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Successfully updated $venuesUpdated venues and $roomsUpdated rooms with maintenance fields'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      Navigator.of(context).pop(); // Close loading dialog
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error adding maintenance fields: $e'), backgroundColor: Colors.red),
       );
     }
   }

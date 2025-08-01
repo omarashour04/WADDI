@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../shared/widgets/smart_back_button.dart';
 import 'room_form_page.dart';
 
 class RoomManagementPage extends StatelessWidget {
@@ -11,10 +13,7 @@ class RoomManagementPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Manage Rooms'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+        leading: SmartBackButton(),
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
@@ -38,16 +37,41 @@ class RoomManagementPage extends StatelessWidget {
               return Card(
                 child: ListTile(
                   title: Text(data['name'] ?? 'Room'),
-                  subtitle: Text('Capacity: ${data['capacity'] ?? '-'} | Price: ${data['hourlyPrice'] ?? '-'} EGP'),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Capacity: ${data['capacity'] ?? '-'} | Price: ${data['hourlyPrice'] ?? '-'} EGP'),
+                      if (data['isClosedForMaintenance'] == true)
+                        Container(
+                          margin: const EdgeInsets.only(top: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.orange[100],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.orange[300]!),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.engineering, size: 12, color: Colors.orange[700]),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Under Maintenance',
+                                style: TextStyle(
+                                  color: Colors.orange[700],
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
                   trailing: PopupMenuButton<String>(
                     onSelected: (value) {
                       if (value == 'edit') {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => RoomFormPage(venueId: venueId, roomId: roomId),
-                          ),
-                        );
+                        context.go('/venue-owner/room-form?venueId=$venueId&roomId=$roomId');
                       } else if (value == 'delete') {
                         _deleteRoom(context, venueId, roomId);
                       }
@@ -65,12 +89,7 @@ class RoomManagementPage extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => RoomFormPage(venueId: venueId),
-            ),
-          );
+          context.go('/venue-owner/room-form?venueId=$venueId');
         },
         child: const Icon(Icons.add),
         tooltip: 'Add Room',
@@ -91,8 +110,18 @@ class RoomManagementPage extends StatelessWidget {
       ),
     );
     if (confirm == true) {
-      await FirebaseFirestore.instance.collection('venues').doc(venueId).collection('rooms').doc(roomId).delete();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Room deleted.')));
+      try {
+        await FirebaseFirestore.instance.collection('venues').doc(venueId).collection('rooms').doc(roomId).delete();
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Room deleted.')));
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error deleting room: $e')),
+          );
+        }
+      }
     }
   }
 } 

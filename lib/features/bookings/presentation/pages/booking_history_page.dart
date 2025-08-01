@@ -40,7 +40,7 @@ class _BookingHistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isUpcoming = booking.startTime.toDate().isAfter(DateTime.now());
+    final isUpcoming = booking.startTime.isAfter(DateTime.now());
     return Semantics(
       label: 'Booking card for room ${booking.roomId}, status ${booking.bookingStatus}',
       button: true,
@@ -52,7 +52,7 @@ class _BookingHistoryCard extends StatelessWidget {
             textScaleFactor: MediaQuery.textScaleFactorOf(context),
           ),
           subtitle: Text(
-            'Date: ${booking.startTime.toDate()}\nStatus: ${booking.bookingStatus}',
+            'Date: ${booking.startTime}\nStatus: ${booking.actualStatus}',
             style: Theme.of(context).textTheme.bodyMedium,
             textScaleFactor: MediaQuery.textScaleFactorOf(context),
           ),
@@ -86,7 +86,7 @@ class _BookingHistoryCard extends StatelessWidget {
               context: context,
               builder: (context) => AlertDialog(
                 title: const Text('Booking Details'),
-                content: Text('Room: ${booking.roomId}\nVenue: ${booking.venueId}\nDate: ${booking.startTime.toDate()}\nDuration: ${booking.durationHours}h\nTotal: ${booking.totalAmount} EGP\nStatus: ${booking.bookingStatus}'),
+                content: Text('Room: ${booking.roomId}\nVenue: ${booking.venueId}\nDate: ${booking.startTime}\nDuration: ${booking.durationHours}h\nTotal: ${booking.totalPrice} EGP\nStatus: ${booking.actualStatus}'),
                 actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
               ),
             );

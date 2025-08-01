@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../shared/widgets/smart_back_button.dart';
 
 class VenueBookingsPage extends StatelessWidget {
   final String venueId;
@@ -10,10 +12,7 @@ class VenueBookingsPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Venue Bookings'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+        leading: SmartBackButton(),
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance

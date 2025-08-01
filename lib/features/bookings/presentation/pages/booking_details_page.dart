@@ -8,7 +8,7 @@ import 'package:waddi_platform/features/auth/presentation/providers/auth_provide
 import 'package:waddi_platform/features/bookings/domain/entities/booking_entity.dart';
 import 'package:waddi_platform/features/venues/domain/entities/venue_entity.dart';
 import 'package:waddi_platform/features/venues/domain/entities/room_entity.dart';
-import '../providers/booking_providers.dart';
+import '../providers/booking_provider.dart';
 import '../../../venues/presentation/providers/venue_providers.dart';
 
 class BookingDetailsPage extends ConsumerWidget {
@@ -40,7 +40,10 @@ class BookingDetailsPage extends ConsumerWidget {
       ),
       body: bookingAsync.when(
         data: (booking) {
-          return _BookingDetailsContent(booking: booking);
+          if (booking == null) {
+            return const Center(child: Text('Booking not found'));
+          }
+          return _BookingDetailsContent(booking: booking!);
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(
@@ -305,8 +308,8 @@ class _BookingDetailsContent extends ConsumerWidget {
   }
 
   Widget _buildBookingInfo(BuildContext context) {
-    final startTime = booking.startTime.toDate();
-    final endTime = booking.endTime.toDate();
+    final startTime = booking.startTime;
+    final endTime = booking.endTime;
     final duration = endTime.difference(startTime).inHours;
     final dateFormat = '${_getMonthName(startTime.month)} ${startTime.day}, ${startTime.year}';
     final timeFormat =
@@ -317,8 +320,8 @@ class _BookingDetailsContent extends ConsumerWidget {
         _buildInfoRow('Date', dateFormat),
         _buildInfoRow('Time', timeFormat),
         _buildInfoRow('Duration', '$duration hour${duration > 1 ? 's' : ''}'),
-        _buildInfoRow('Total Cost', 'SAR ${booking.totalAmount.toStringAsFixed(2)}'),
-        _buildInfoRow('Status', booking.bookingStatus, isStatus: true),
+        _buildInfoRow('Total Cost', 'SAR ${booking.totalPrice.toStringAsFixed(2)}'),
+        _buildInfoRow('Status', booking.actualStatus, isStatus: true),
       ],
     );
   }
@@ -499,63 +502,64 @@ class _BookingDetailsContent extends ConsumerWidget {
 
         const SizedBox(height: 12),
 
-        // Manage Booking Button
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton(
-            onPressed: () {
-              // Manage booking functionality
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Manage Booking'),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Booking ID: ${booking.id}'),
-                      const SizedBox(height: 8),
-                      Text('Status: ${booking.bookingStatus}'),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Date: ${_formatDateTime(booking.startTime.toDate(), booking.durationHours)}',
+        // Manage Booking Button - Only show for cancellable bookings
+        if (booking.actualStatus != 'cancelled' && booking.actualStatus != 'completed')
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () {
+                // Manage booking functionality
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Manage Booking'),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Booking ID: ${booking.id}'),
+                        const SizedBox(height: 8),
+                        Text('Status: ${booking.actualStatus}'),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Date: ${_formatDateTime(booking.startTime, booking.durationHours)}',
+                        ),
+                        const SizedBox(height: 16),
+                        const Text('What would you like to do?'),
+                      ],
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Cancel'),
                       ),
-                      const SizedBox(height: 16),
-                      const Text('What would you like to do?'),
+                      ElevatedButton(
+                        onPressed: () async {
+                          Navigator.of(context).pop();
+                          await _cancelBooking(context, ref, booking.id);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Cancel Booking'),
+                      ),
                     ],
                   ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Cancel'),
-                    ),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        _cancelBooking(context, booking.id);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: const Text('Cancel Booking'),
-                    ),
-                  ],
-                ),
-              );
-            },
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.textPrimary,
-              side: BorderSide(color: Colors.grey[300]!),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text(
-              'Manage Booking',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                );
+              },
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.textPrimary,
+                side: BorderSide(color: Colors.grey[300]!),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text(
+                'Manage Booking',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              ),
             ),
           ),
-        ),
       ],
     );
   }
@@ -624,8 +628,10 @@ class _BookingDetailsContent extends ConsumerWidget {
     return '$dateFormat, $startTimeFormat - $endTimeFormat';
   }
 
-  Future<void> _cancelBooking(BuildContext context, String bookingId) async {
+  Future<void> _cancelBooking(BuildContext context, WidgetRef ref, String bookingId) async {
     try {
+      print('DEBUG: Starting booking cancellation for ID: $bookingId');
+      
       // Show confirmation dialog
       final confirm = await showDialog<bool>(
         context: context,
@@ -649,11 +655,12 @@ class _BookingDetailsContent extends ConsumerWidget {
       );
 
       if (confirm == true) {
-        // Update booking status in Firestore
-        await FirebaseFirestore.instance.collection('bookings').doc(bookingId).update({
-          'bookingStatus': 'cancelled',
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
+        print('DEBUG: User confirmed cancellation');
+        
+        // Use the booking provider to cancel the booking
+        await ref.read(bookingStateProvider.notifier).cancelBooking(bookingId);
+        
+        print('DEBUG: Booking cancelled successfully in database');
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -662,11 +669,21 @@ class _BookingDetailsContent extends ConsumerWidget {
               backgroundColor: Colors.green,
             ),
           );
-          // Navigate back to bookings page
-          context.pop();
+          
+          print('DEBUG: Navigating to bookings page');
+          // Add a small delay to ensure state is updated before navigation
+          await Future.delayed(const Duration(milliseconds: 500));
+          
+          if (context.mounted) {
+            // Navigate back to bookings page
+            context.go('/bookings');
+          }
         }
+      } else {
+        print('DEBUG: User cancelled the cancellation dialog');
       }
     } catch (e) {
+      print('DEBUG: Error during booking cancellation: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error cancelling booking: $e'), backgroundColor: Colors.red),

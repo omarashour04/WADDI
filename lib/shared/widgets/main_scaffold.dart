@@ -39,11 +39,14 @@ class MainScaffold extends ConsumerWidget {
               targetRoute = '/home';
               break;
             case 1:
-              targetRoute = '/venues';
+              targetRoute = '/search';
               break;
             case 2:
+              targetRoute = '/venues';
+              break;
+            case 3:
               if (!isGuest) {
-                targetRoute = '/bookings/$userId';
+                targetRoute = '/bookings';
               } else {
                 // Show dialog for guest users
                 showDialog(
@@ -69,7 +72,7 @@ class MainScaffold extends ConsumerWidget {
                 return; // Don't navigate if showing dialog
               }
               break;
-            case 3:
+            case 4:
               targetRoute = '/profile';
               break;
           }
@@ -80,7 +83,8 @@ class MainScaffold extends ConsumerWidget {
         },
         items: [
           const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          const BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Venues'),
+          const BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
+          const BottomNavigationBarItem(icon: Icon(Icons.place), label: 'Venues'),
           const BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Bookings'),
           const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],

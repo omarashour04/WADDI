@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../shared/themes/app_colors.dart';
 import '../../../../shared/widgets/smart_back_button.dart';
 import '../../../../shared/providers/shared_providers.dart';
@@ -15,7 +16,6 @@ class SettingsPage extends ConsumerStatefulWidget {
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _notificationsEnabled = true;
   bool _locationEnabled = true;
-  String _selectedLanguage = 'English';
 
   @override
   void initState() {
@@ -28,7 +28,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     setState(() {
       _notificationsEnabled = prefs.getBool('notificationsEnabled') ?? true;
       _locationEnabled = prefs.getBool('locationEnabled') ?? true;
-      _selectedLanguage = prefs.getString('selectedLanguage') ?? 'English';
     });
   }
 
@@ -36,7 +35,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('notificationsEnabled', _notificationsEnabled);
     await prefs.setBool('locationEnabled', _locationEnabled);
-    await prefs.setString('selectedLanguage', _selectedLanguage);
   }
 
   String _getThemeDisplayName(ThemeMode themeMode) {
@@ -53,6 +51,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final currentTheme = ref.watch(themeProvider);
+    final currentLanguage = ref.watch(languageProvider);
+    final languageNotifier = ref.read(languageProvider.notifier);
     
     return Scaffold(
       appBar: AppBar(
@@ -77,6 +77,20 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     onTap: () => _showThemeDialog(context),
                   ),
                   const Divider(height: 1),
+                  ListTile(
+                    title: const Text('Language'),
+                    subtitle: Text(languageNotifier.getLanguageDisplayName(currentLanguage.languageCode)),
+                    trailing: const Icon(Icons.arrow_forward_ios),
+                    onTap: () => _showLanguageDialog(context),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    title: const Text('Accessibility'),
+                    subtitle: const Text('Text size, contrast, and motion settings'),
+                    trailing: const Icon(Icons.arrow_forward_ios),
+                    onTap: () => context.go('/accessibility-settings'),
+                  ),
+                  const Divider(height: 1),
                   SwitchListTile(
                     title: const Text('Notifications'),
                     subtitle: const Text('Receive push notifications'),
@@ -99,13 +113,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       });
                       _saveSettings();
                     },
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    title: const Text('Language'),
-                    subtitle: Text(_selectedLanguage),
-                    trailing: const Icon(Icons.arrow_forward_ios),
-                    onTap: () => _showLanguageDialog(context),
                   ),
                 ],
               ),
@@ -227,6 +234,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   void _showLanguageDialog(BuildContext context) {
+    final languageNotifier = ref.read(languageProvider.notifier);
+    final currentLanguage = ref.read(languageProvider);
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -242,16 +252,26 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ].map((language) => RadioListTile<String>(
             title: Text(language),
             value: language,
-            groupValue: _selectedLanguage,
-            onChanged: (value) {
-              setState(() {
-                _selectedLanguage = value!;
-              });
-              _saveSettings();
-              Navigator.of(context).pop();
+            groupValue: languageNotifier.getLanguageDisplayName(currentLanguage.languageCode),
+            onChanged: (value) async {
+              if (value != null) {
+                final languageCode = languageNotifier.getLanguageCode(value);
+                print('DEBUG: Changing language to: $languageCode');
+                await languageNotifier.setLanguage(languageCode);
+                print('DEBUG: Language changed to: ${languageNotifier.state.languageCode}');
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                }
+              }
             },
           )).toList(),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+        ],
       ),
     );
   }
