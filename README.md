@@ -1,393 +1,291 @@
 # 🏢 WADDI Platform - Venue Booking Application
 
-A comprehensive Flutter application for venue booking and management, built with Firebase backend and supporting multiple user roles.
+A comprehensive Flutter-based venue booking platform that connects venue owners with users for seamless booking experiences.
 
 ## 📱 Current Features
 
 ### 🔐 Authentication & User Management
-- **Multi-role support**: Guest, User, Venue Owner, Admin
-- **Firebase Authentication** integration
-- **Guest mode** for browsing without registration
-- **Profile management** with name and phone number updates
-- **Password reset** functionality
-- **Automatic theme detection** based on device settings
-
-### 🎨 User Experience
-- **Multi-language support**: English, Arabic, French, Spanish, German
-- **Automatic language detection** from device settings
-- **Theme management**: Light, Dark, and System themes
-- **Accessibility features**: Text scaling, high contrast, screen reader support
-- **Device accessibility detection** and automatic application
-- **Responsive design** for various screen sizes
+- **Multi-role system**: Guest, User, Venue Owner, Admin
+- **Guest mode**: Browse venues without registration
+- **User registration/login**: Email/password authentication
+- **Profile management**: Edit name, phone number, view booking history
+- **Password reset**: Email-based password recovery (⚠️ **Currently not working properly**)
+- **Session persistence**: Users stay logged in after app restart (⚠️ **Currently not working properly**)
 
 ### 🏢 Venue Management
-- **Venue creation and editing** for venue owners
-- **Room management** with individual room details
-- **Maintenance status** for venues and individual rooms
-- **Operating hours** configuration with time slot generation
-- **Image upload** to Firebase Storage
-- **Venue approval system** for admins
+- **Venue creation**: Venue owners can add detailed venue information
+- **Room management**: Add multiple rooms with individual details (capacity, price, amenities, images)
+- **Maintenance mode**: Mark venues/rooms as closed for maintenance
+- **Operating hours**: Set open/close times and time slot duration
+- **Image upload**: Firebase Storage integration for venue and room images
 
 ### 📅 Booking System
-- **Real-time availability** checking
-- **Time slot selection** instead of duration-based booking
-- **Multiple time slot selection** for users
-- **Booking management**: Create, view, cancel bookings
-- **Booking status tracking**: Pending, Confirmed, In Progress, Completed, Cancelled
-- **Automatic status updates** based on time
-- **Booking history** with past and upcoming bookings
+- **Time slot selection**: Replace duration-based with specific time slots (9:00, 9:30, etc.)
+- **Multiple slot booking**: Users can select multiple time slots
+- **Real-time availability**: Calendar-based availability checking
+- **Booking management**: View, modify, cancel bookings
+- **Status tracking**: Pending, confirmed, in-progress, completed, cancelled
+- **Booking history**: Past bookings with ratings/reviews
 
 ### 🔍 Search & Discovery
 - **Advanced search filters**: Price range, capacity, amenities, location
-- **Map integration** (placeholder for Google Maps)
-- **Favorites system** for saving preferred venues
+- **Map integration**: Venue locations on map (placeholder)
+- **Favorites system**: Save preferred venues
 - **Sorting options**: By price, rating, distance, availability
-- **Venue categorization** and tagging
 
-### 🔔 Notifications
-- **In-app notifications** system
-- **Push notification** infrastructure (FCM)
-- **Booking reminders** and venue updates
-- **Notification management** for users
+### 🎨 User Experience
+- **Theme system**: Light/dark/system theme with automatic detection
+- **Multi-language support**: English, Arabic, French, Spanish, German (⚠️ **Currently not working properly**)
+- **Accessibility features**: Text scaling, high contrast, screen reader support (⚠️ **Partially working**)
+- **Push notifications**: Booking reminders, venue updates (infrastructure ready)
+- **Offline support**: Data caching for offline browsing
+- **Loading states**: Skeleton screens and improved loading animations
 
-### 📊 Admin Features
-- **Venue approval** system
-- **User management** for admins
-- **Venue owner account creation** with forced password change
-- **Database setup** and maintenance tools
-- **Analytics dashboard** (basic implementation)
+### 👨‍💼 Admin Features
+- **Venue approval**: Approve/reject venue submissions
+- **User management**: Create venue owner accounts with forced password change
+- **Database management**: Add maintenance fields, cleanup operations
+- **Analytics**: Basic booking and venue analytics
 
-### 🛠 Technical Features
-- **Riverpod** state management
-- **GoRouter** for navigation
-- **Firebase Firestore** for database
-- **Firebase Storage** for images
-- **Firebase Cloud Functions** for backend logic
-- **Offline support** with data caching
-- **Skeleton loading** states for better UX
-
-## 🚀 Recent Major Updates
-
-### ✅ Completed Features
-1. **Automatic Theme Detection**: App now detects and applies device theme automatically
-2. **Multi-language Support**: Full support for 5 languages with device detection
-3. **Accessibility Features**: Comprehensive accessibility settings with device detection
-4. **Booking System Overhaul**: Replaced duration-based with time slot selection
-5. **Venue Maintenance**: Added maintenance status for venues and rooms
-6. **Admin Venue Owner Creation**: Admins can create venue owner accounts
-7. **Password Reset Fix**: Fixed email validation and sign-out issues
-8. **Profile Update Redirect**: Automatic redirect after profile updates
-9. **Booking Status Management**: Proper status tracking and display
-10. **Image Loading Improvements**: Better Firebase Storage image handling
-
-### 🔧 Technical Improvements
-- **Navigation History**: Smart back button behavior
-- **Error Handling**: Comprehensive error handling and user feedback
-- **Performance**: Optimized loading states and caching
-- **Code Organization**: Clean architecture with proper separation of concerns
-- **State Management**: Centralized state management with Riverpod
-
-## 📋 Known Issues & Limitations
+## 🚧 Known Issues & Limitations
 
 ### 🔴 Critical Issues
-1. **Image Loading on Web**: Firebase Storage images show authorization errors on web platform
-2. **Language Persistence**: Some language changes may not persist across app restarts
-3. **Accessibility Route**: Occasional navigation issues to accessibility settings
+1. **Password Reset**: Email validation and sending not working properly
+2. **Language Support**: Only English works, other languages show RTL but no translation
+3. **Accessibility**: Page loads but settings don't apply correctly
+4. **Image Loading**: Firebase Storage images fail to load on web (statusCode: 0)
+5. **Session Persistence**: Users are not remembered after app restart - they get signed out
 
 ### 🟡 Minor Issues
-1. **Booking Cancellation**: Some edge cases in booking cancellation flow
-2. **Venue Name Display**: Occasional "Error loading venue" for new venues
-3. **Icon Display**: Some navigation icons may not display properly
+1. **Profile Updates**: Name changes don't persist properly
+2. **Navigation**: Some routes need optimization
+3. **Error Handling**: Some error messages could be more user-friendly
 
-## 🎯 Future Improvements Needed
+## 🛠 Technical Stack
 
-### 🔥 Phase 1: Critical Database Enhancements
+### Frontend
+- **Framework**: Flutter 3.x
+- **State Management**: Riverpod
+- **Navigation**: GoRouter
+- **UI**: Material Design 3
+- **Localization**: flutter_localizations
 
-#### **Firebase Database Schema Improvements**
-```javascript
-// Users Collection - Add missing fields
-{
-  "preferences": {
-    "language": "string",
-    "theme": "light|dark|system",
-    "notifications": {
-      "email": "boolean",
-      "push": "boolean",
-      "bookingReminders": "boolean"
-    }
-  },
-  "fcmTokens": ["string"],
-  "lastLoginAt": "timestamp",
-  "verificationStatus": "unverified|pending|verified",
-  "accountStatus": "active|suspended|deleted"
-}
+### Backend
+- **Database**: Firebase Firestore
+- **Authentication**: Firebase Auth
+- **Storage**: Firebase Storage
+- **Functions**: Firebase Cloud Functions
+- **Notifications**: Firebase Cloud Messaging (FCM)
 
-// Venues Collection - Add missing fields
-{
-  "maintenanceReason": "string",
-  "maintenanceStartDate": "timestamp",
-  "maintenanceEndDate": "timestamp",
-  "category": "string",
-  "tags": ["string"],
-  "featured": "boolean",
-  "promoted": "boolean",
-  "approvedAt": "timestamp",
-  "approvedBy": "string (adminId)"
-}
+## 🚀 Future Improvements
 
-// Rooms Collection - Add missing fields
-{
-  "maintenanceReason": "string",
-  "maintenanceStartDate": "timestamp",
-  "maintenanceEndDate": "timestamp",
-  "features": {
-    "hasWifi": "boolean",
-    "hasProjector": "boolean",
-    "hasWhiteboard": "boolean"
-  },
-  "dimensions": {
-    "length": "number",
-    "width": "number",
-    "height": "number"
-  }
-}
-```
+### Phase 1: Critical Fixes (Priority 1)
+1. **Fix Password Reset**
+   - Implement proper email validation
+   - Fix Firebase Auth integration
+   - Add success/error feedback
 
-#### **New Collections Needed**
-1. **Reviews Collection**: User reviews and ratings
-2. **Favorites Collection**: User favorite venues
-3. **Notifications Collection**: In-app notifications
-4. **Admin Actions Collection**: Admin activity tracking
-5. **System Settings Collection**: App configuration
-6. **Analytics Collection**: Usage statistics
+2. **Fix Language Support**
+   - Debug localization files
+   - Ensure proper language switching
+   - Add missing translations
 
-### 🔥 Phase 2: User Role Enhancements
+3. **Fix Accessibility**
+   - Debug accessibility settings application
+   - Test with screen readers
+   - Ensure all features are accessible
 
-#### **👤 User Role Improvements**
-- **Profile Enhancement**: Add profile pictures, addresses, preferences
-- **Booking History**: Enhanced booking history with filtering
-- **Review System**: Rate and review completed bookings
-- **Favorites Management**: Save and organize favorite venues
-- **Notification Preferences**: Customize notification settings
-- **Payment Integration**: Secure payment processing
-- **Booking Modifications**: Edit existing bookings
-- **Cancellation Policy**: Clear cancellation rules and refunds
+4. **Fix Image Loading**
+   - Resolve Firebase Storage CORS issues
+   - Implement proper fallback mechanisms
+   - Add image compression
 
-#### **🏢 Venue Owner Role Improvements**
-- **Dashboard Analytics**: Revenue, bookings, occupancy rates
-- **Room Management**: Advanced room configuration
-- **Pricing Management**: Dynamic pricing and discounts
-- **Availability Management**: Block dates, set maintenance periods
-- **Booking Management**: View and manage all bookings
-- **Customer Communication**: Direct messaging with customers
-- **Financial Reports**: Detailed financial analytics
-- **Venue Promotion**: Marketing tools and promotions
+5. **Fix Session Persistence**
+   - Implement proper session management
+   - Ensure users stay logged in after app restart
+   - Add automatic login restoration
 
-#### **👨‍💼 Admin Role Improvements**
-- **User Management**: Comprehensive user administration
-- **Venue Approval Workflow**: Streamlined approval process
-- **Content Moderation**: Review and moderate content
-- **System Analytics**: Platform-wide analytics
-- **Financial Management**: Revenue tracking and payouts
-- **Support System**: Customer support tools
-- **Platform Settings**: Global configuration management
-- **Security Management**: User verification and security
+### Phase 2: User Experience (Priority 2)
+1. **Enhanced Booking System**
+   - Payment integration (Stripe/PayPal)
+   - Booking confirmation emails
+   - Advanced cancellation policies
+   - Recurring bookings
 
-### 🔥 Phase 3: Advanced Features
+2. **Improved Search & Discovery**
+   - AI-powered recommendations
+   - Advanced filtering options
+   - Map integration with real-time location
+   - Venue comparison features
 
-#### **🔍 Enhanced Search & Discovery**
-- **AI Recommendations**: Personalized venue suggestions
-- **Advanced Filters**: More granular search options
-- **Map Integration**: Full Google Maps integration
-- **Location Services**: GPS-based venue discovery
-- **Social Features**: Share venues and bookings
+3. **Better Notifications**
+   - Push notification implementation
+   - Email notifications
+   - SMS notifications
+   - Custom notification preferences
 
-#### **📱 Mobile App Enhancements**
-- **Push Notifications**: Real-time notifications
-- **Offline Mode**: Full offline functionality
-- **Deep Linking**: Direct links to venues and bookings
-- **Biometric Authentication**: Fingerprint/Face ID login
-- **Dark Mode**: Enhanced dark theme support
+### Phase 3: Admin & Venue Owner Features (Priority 3)
+1. **Admin Dashboard**
+   - Comprehensive analytics
+   - User management tools
+   - Revenue tracking
+   - System monitoring
 
-#### **🔒 Security & Performance**
-- **Data Encryption**: Enhanced data security
-- **Rate Limiting**: API rate limiting
-- **Caching Strategy**: Improved data caching
-- **Error Monitoring**: Comprehensive error tracking
-- **Performance Optimization**: App performance improvements
+2. **Venue Owner Tools**
+   - Advanced booking management
+   - Revenue analytics
+   - Customer insights
+   - Marketing tools
 
-## 🛠 Technical Requirements
+## 📱 User Roles & Permissions
 
-### **Prerequisites**
-- Flutter SDK (latest stable version)
-- Dart SDK
+### 👤 Guest User
+- Browse venues
+- View venue details
+- Access settings (limited)
+- No booking capabilities
+
+### 👤 Regular User
+- All guest features
+- Create/edit profile
+- Book venues
+- View booking history
+- Submit reviews
+- Manage favorites
+- Access all settings
+
+### 🏢 Venue Owner
+- All user features
+- Create/edit venues
+- Manage rooms
+- View venue analytics
+- Handle bookings
+- Set maintenance status
+- Manage operating hours
+
+### 👨‍💼 Admin
+- All venue owner features
+- Approve/reject venues
+- Manage all users
+- Create venue owner accounts
+- Access system analytics
+- Manage system settings
+- Database maintenance
+
+## 🔧 Installation & Setup
+
+### Prerequisites
+- Flutter SDK 3.x
 - Android Studio / VS Code
-- Firebase project setup
-- Google Cloud Platform account
+- Firebase project
+- Git
 
-### **Dependencies**
-```yaml
-# Core Dependencies
-flutter_riverpod: ^2.4.9
-go_router: ^12.1.3
-firebase_core: ^2.24.2
-cloud_firestore: ^4.13.6
-firebase_auth: ^4.15.3
-firebase_storage: ^11.5.6
-firebase_messaging: ^14.7.10
+### Setup Steps
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/omarashour04/WADDI.git
+   cd waddi_platform
+   ```
 
-# UI & UX
-flutter_localizations: ^0.0.1
-intl: ^0.18.1
-shimmer: ^3.0.0
+2. **Install dependencies**
+   ```bash
+   flutter pub get
+   ```
 
-# Utilities
-shared_preferences: ^2.2.2
-image_picker: ^1.0.4
-url_launcher: ^6.2.1
-```
+3. **Configure Firebase**
+   - Create Firebase project
+   - Add Android/iOS apps
+   - Download configuration files
+   - Enable Firestore, Auth, Storage, Functions
 
-### **Firebase Configuration**
-1. **Firestore Database**: Configure security rules
-2. **Firebase Storage**: Set up image storage rules
-3. **Firebase Authentication**: Enable email/password auth
-4. **Firebase Cloud Functions**: Deploy backend functions
-5. **Firebase Messaging**: Configure push notifications
-
-## 📱 Installation & Setup
-
-### **1. Clone the Repository**
-```bash
-git clone [repository-url]
-cd waddi_platform
-git checkout ashour
-```
-
-### **2. Install Dependencies**
-```bash
-flutter pub get
-```
-
-### **3. Configure Firebase**
-```bash
-# Install Firebase CLI
-npm install -g firebase-tools
-
-# Login to Firebase
-firebase login
-
-# Initialize Firebase
-firebase init
-
-# Deploy Cloud Functions
-cd functions
-npm install
-firebase deploy --only functions
-```
-
-### **4. Run the Application**
-```bash
-# For development
-flutter run
-
-# For production build
-flutter build apk --release
-```
-
-## 🧪 Testing
-
-### **Manual Testing Checklist**
-- [ ] User registration and login
-- [ ] Guest mode functionality
-- [ ] Venue browsing and search
-- [ ] Booking creation and management
-- [ ] Language switching
-- [ ] Theme switching
-- [ ] Accessibility features
-- [ ] Admin functions
-- [ ] Venue owner functions
-
-### **Automated Testing**
-```bash
-# Run unit tests
-flutter test
-
-# Run integration tests
-flutter test integration_test/
-
-# Run widget tests
-flutter test test/widget_test.dart
-```
+4. **Run the app**
+   ```bash
+   flutter run
+   ```
 
 ## 📊 Performance Metrics
 
-### **Current Performance**
-- **App Size**: ~50MB (debug APK)
-- **Startup Time**: ~3-5 seconds
-- **Image Loading**: ~2-3 seconds (with caching)
-- **Database Queries**: ~500ms average
+### Current Performance
+- App startup time: ~3-5 seconds
+- Image loading: Variable (depends on network)
+- Booking creation: ~2-3 seconds
+- Search response: ~1-2 seconds
 
-### **Target Performance**
-- **App Size**: <30MB (release APK)
-- **Startup Time**: <2 seconds
-- **Image Loading**: <1 second
-- **Database Queries**: <200ms average
+### Optimization Targets
+- App startup: <2 seconds
+- Image loading: <1 second
+- Booking creation: <1 second
+- Search response: <500ms
+
+## 🔒 Security Considerations
+
+### Implemented Security
+- Firebase Auth integration
+- Role-based access control
+- Input validation
+- Secure API calls
+
+### Planned Security Enhancements
+- Data encryption
+- API rate limiting
+- Advanced user verification
+- Audit logging
+
+## 📈 Analytics & Monitoring
+
+### Current Analytics
+- Basic user engagement
+- Booking metrics
+- Error tracking
+
+### Planned Analytics
+- Advanced user behavior
+- Revenue tracking
+- Performance monitoring
+- A/B testing framework
 
 ## 🤝 Contributing
 
-### **Development Workflow**
-1. Create feature branch from `ashour`
-2. Implement feature with proper testing
-3. Update documentation
-4. Create pull request
-5. Code review and merge
+### Development Guidelines
+1. Follow Flutter best practices
+2. Use proper state management
+3. Write comprehensive tests
+4. Document code changes
+5. Follow Git workflow
 
-### **Code Standards**
-- Follow Flutter/Dart conventions
-- Use meaningful variable and function names
-- Add proper documentation
-- Include error handling
-- Write unit tests for new features
+### Code Review Process
+1. Create feature branch
+2. Implement changes
+3. Write tests
+4. Submit pull request
+5. Code review
+6. Merge to main branch
 
 ## 📞 Support & Contact
 
-### **Development Team**
-- **Lead Developer**: [Your Name]
-- **Backend Developer**: [Backend Developer Name]
-- **UI/UX Designer**: [Designer Name]
+### Technical Support
+- GitHub Issues: [Repository Issues](https://github.com/omarashour04/WADDI/issues)
+- Email: [Support Email]
+- Documentation: [Wiki Link]
 
-### **Contact Information**
-- **Email**: [support@waddi.com]
-- **GitHub Issues**: [Repository Issues Page]
-- **Documentation**: [Documentation Link]
+### Business Inquiries
+- Email: [Business Email]
+- Phone: [Business Phone]
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🔄 Version History
+## 🙏 Acknowledgments
 
-### **v1.0.0 (Current)**
-- Initial release with core functionality
-- Multi-role user system
-- Basic booking system
-- Multi-language support
-- Accessibility features
-
-### **v1.1.0 (Planned)**
-- Enhanced database schema
-- Improved booking system
-- Advanced search features
-- Payment integration
-
-### **v1.2.0 (Planned)**
-- AI recommendations
-- Advanced analytics
-- Social features
-- Performance optimizations
+- Flutter team for the amazing framework
+- Firebase team for backend services
+- All contributors and testers
+- Open source community
 
 ---
 
 **Last Updated**: December 2024
+**Version**: 1.0.0
+**Status**: Development Phase
 **Branch**: ashour
-**Status**: Development Complete - Ready for Production
