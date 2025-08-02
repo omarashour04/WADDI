@@ -43,12 +43,17 @@ class _HomePageState extends ConsumerState<HomePage> {
     final authState = ref.watch(authProvider);
     final isGuest = authState.status == AuthStatus.unauthenticated;
     final isAdmin = authState.user?.role == 'admin';
+    final isVenueOwner = authState.user?.role == 'venue_owner';
 
-    // If user is admin, redirect to admin dashboard
-    if (isAdmin) {
+    // If user is admin or venue owner, redirect to appropriate dashboard
+    if (isAdmin || isVenueOwner) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) {
-          context.go('/admin');
+          if (isAdmin) {
+            context.go('/admin');
+          } else if (isVenueOwner) {
+            context.go('/venue-owner');
+          }
         }
       });
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -352,10 +357,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         title: const Text('Login Required'),
         content: const Text('Please log in to view your favorites.'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();

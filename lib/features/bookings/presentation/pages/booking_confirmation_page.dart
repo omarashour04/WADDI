@@ -140,7 +140,7 @@ class BookingConfirmationPage extends ConsumerWidget {
                           ),
                           _BookingDetailRow(
                             label: 'Total Price',
-                            value: 'SAR ${totalPrice.toStringAsFixed(2)}',
+                            value: 'EGP ${totalPrice.toStringAsFixed(2)}',
                           ),
                         ],
                       ),
@@ -279,7 +279,7 @@ class BookingConfirmationPage extends ConsumerWidget {
     // Create calendar URL
     final eventTitle = Uri.encodeComponent('Gaming Session - $roomName at $venueName');
     final eventDetails = Uri.encodeComponent(
-      'Gaming session at $venueName\nRoom: $roomName\nDuration: ${durationHours} hours\nTotal: $totalPrice EGP',
+      'Gaming session at $venueName\nRoom: $roomName\nDuration: ${durationHours} hours\nTotal: EGP ${totalPrice.toStringAsFixed(2)}',
     );
     final location = Uri.encodeComponent(venueName);
 
@@ -347,4 +347,3 @@ class _BookingDetailRow extends StatelessWidget {
     );
   }
 }
- 

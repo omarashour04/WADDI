@@ -59,7 +59,7 @@ class LanguageNotifier extends StateNotifier<Locale> {
   Future<void> _loadLanguage() async {
     final prefs = await SharedPreferences.getInstance();
     final savedLanguage = prefs.getString('selectedLanguage');
-    
+
     if (savedLanguage != null) {
       // Use saved language preference
       state = Locale(savedLanguage);
@@ -74,7 +74,7 @@ class LanguageNotifier extends StateNotifier<Locale> {
     try {
       // Get device locale using Platform.localeName
       final String deviceLocale = WidgetsBinding.instance.platformDispatcher.locale.languageCode;
-      
+
       // Check if device language is supported
       if (['en', 'ar', 'fr', 'es', 'de'].contains(deviceLocale)) {
         return Locale(deviceLocale);
@@ -82,7 +82,7 @@ class LanguageNotifier extends StateNotifier<Locale> {
     } catch (e) {
       print('Error getting device language: $e');
     }
-    
+
     // Fallback to English
     return const Locale('en');
   }
@@ -133,7 +133,9 @@ final languageProvider = StateNotifierProvider<LanguageNotifier, Locale>((ref) {
 });
 
 // Navigation State Provider (simplified)
-final navigationStateProvider = StateNotifierProvider<NavigationHistoryNotifier, List<String>>((ref) {
+final navigationStateProvider = StateNotifierProvider<NavigationHistoryNotifier, List<String>>((
+  ref,
+) {
   return NavigationHistoryNotifier(ref.read(localStorageProvider));
 });
 
@@ -168,13 +170,24 @@ final localStorageProvider = Provider<LocalStorageService>((ref) {
 });
 
 // Navigation history provider for proper back button behavior
-final navigationHistoryProvider = StateNotifierProvider<NavigationHistoryNotifier, List<String>>((ref) {
+final navigationHistoryProvider = StateNotifierProvider<NavigationHistoryNotifier, List<String>>((
+  ref,
+) {
   return NavigationHistoryNotifier(ref.read(localStorageProvider));
 });
 
 class NavigationHistoryNotifier extends StateNotifier<List<String>> {
   final LocalStorageService _localStorage;
   bool _isInitialized = false;
+
+  // Maximum number of routes to keep in history
+  static const int _maxHistorySize = 50;
+
+  // Routes that should not be added to history (transient routes)
+  static const Set<String> _transientRoutes = {'/loading', '/error', '/debug'};
+
+  // Routes that should reset the history (main navigation points)
+  static const Set<String> _resetRoutes = {'/home', '/venues', '/profile', '/admin'};
 
   NavigationHistoryNotifier(this._localStorage) : super(['/home']) {
     _loadState();
@@ -184,7 +197,9 @@ class NavigationHistoryNotifier extends StateNotifier<List<String>> {
     try {
       final savedHistory = await _localStorage.getNavigationHistory();
       if (savedHistory.isNotEmpty) {
-        state = savedHistory;
+        // Clean up saved history if it's too large
+        final cleanedHistory = _cleanupHistory(savedHistory);
+        state = cleanedHistory;
       }
       _isInitialized = true;
     } catch (e) {
@@ -205,10 +220,56 @@ class NavigationHistoryNotifier extends StateNotifier<List<String>> {
     }
   }
 
+  /// Clean up history by removing duplicates and limiting size
+  List<String> _cleanupHistory(List<String> history) {
+    if (history.isEmpty) return ['/home'];
+
+    // Remove consecutive duplicates
+    final cleaned = <String>[];
+    String? lastRoute;
+
+    for (final route in history) {
+      if (route != lastRoute) {
+        cleaned.add(route);
+        lastRoute = route;
+      }
+    }
+
+    // Limit size
+    if (cleaned.length > _maxHistorySize) {
+      return cleaned.sublist(cleaned.length - _maxHistorySize);
+    }
+
+    return cleaned;
+  }
+
+  /// Smart route addition with cleanup
   void addRoute(String route) {
+    // Don't add transient routes to history
+    if (_transientRoutes.contains(route)) {
+      return;
+    }
+
     // Don't add duplicate consecutive routes
     if (state.isEmpty || state.last != route) {
-      state = [...state, route];
+      List<String> newHistory = [...state, route];
+
+      // Check if this is a reset route and clean up accordingly
+      if (_resetRoutes.contains(route)) {
+        // For reset routes, keep only the last few entries to prevent history bloat
+        if (newHistory.length > 10) {
+          // Keep the last 5 entries plus the new route
+          final recentHistory = newHistory.sublist(newHistory.length - 5);
+          newHistory = [...recentHistory, route];
+        }
+      }
+
+      // Apply size limit
+      if (newHistory.length > _maxHistorySize) {
+        newHistory = newHistory.sublist(newHistory.length - _maxHistorySize);
+      }
+
+      state = newHistory;
       _saveState();
     }
   }
@@ -234,15 +295,87 @@ class NavigationHistoryNotifier extends StateNotifier<List<String>> {
     return null;
   }
 
+  /// Clear history and reset to home
   void clearHistory() {
     state = ['/home'];
     _saveState();
   }
 
-  void updateCurrentRoute(String route) {
-    // Update the current route by adding it to the history
-    addRoute(route);
+  /// Smart history cleanup - removes old entries while preserving recent navigation
+  void cleanupHistory() {
+    if (state.length > _maxHistorySize) {
+      // Keep the last 30 entries
+      state = state.sublist(state.length - 30);
+      _saveState();
+    }
   }
 
+  /// Force clear all history and reset to home (useful for debugging)
+  void forceClearHistory() {
+    print('DEBUG: Force clearing navigation history');
+    state = ['/home'];
+    _saveState();
+  }
+
+  /// Reset history to a clean state with just the current route
+  void resetHistory(String currentRoute) {
+    print('DEBUG: Resetting navigation history to: $currentRoute');
+    state = [currentRoute];
+    _saveState();
+  }
+
+  /// Update current route with smart handling
+  void updateCurrentRoute(String route) {
+    // Don't add transient routes
+    if (_transientRoutes.contains(route)) {
+      return;
+    }
+
+    // For reset routes, consider clearing some history
+    if (_resetRoutes.contains(route)) {
+      // If we're going to a main route, we can clear some history
+      if (state.length > 20) {
+        // Keep only the last 10 entries
+        final recentHistory = state.sublist(state.length - 10);
+        state = [...recentHistory, route];
+      } else {
+        addRoute(route);
+      }
+    } else {
+      addRoute(route);
+    }
+  }
+
+  /// Get the previous route (useful for back navigation)
+  String? getPreviousRoute() {
+    if (state.length > 1) {
+      return state[state.length - 2];
+    }
+    return null;
+  }
+
+  /// Check if we can go back
+  bool get canGoBack => state.length > 1;
+
   int get stackSize => state.length;
+
+  /// Get a summary of the navigation history for debugging
+  String get historySummary {
+    if (state.isEmpty) return 'Empty';
+    if (state.length <= 5) return state.join(' → ');
+    return '${state.take(3).join(' → ')} ... ${state.skip(state.length - 2).join(' → ')} (${state.length} total)';
+  }
+
+  /// Get detailed debug information about the navigation history
+  Map<String, dynamic> get debugInfo {
+    return {
+      'totalRoutes': state.length,
+      'currentRoute': state.isNotEmpty ? state.last : 'none',
+      'previousRoute': getPreviousRoute(),
+      'canGoBack': canGoBack,
+      'history': state,
+      'summary': historySummary,
+      'isLarge': state.length > _maxHistorySize,
+    };
+  }
 }

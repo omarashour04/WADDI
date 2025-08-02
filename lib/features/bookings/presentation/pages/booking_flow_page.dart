@@ -334,11 +334,11 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
                   _buildSummaryRow('Time', _selectedTime),
                   _buildSummaryRow('Duration', _selectedDuration),
                   _buildSummaryRow('Guests', '$_guestCount'),
-                  _buildSummaryRow('Price per hour', '\$50.00'),
+                  _buildSummaryRow('Price per hour', 'EGP 50.00'),
                   const Divider(),
                   _buildSummaryRow(
                     'Total Price',
-                    '\$${totalPrice.toStringAsFixed(2)}',
+                    'EGP ${totalPrice.toStringAsFixed(2)}',
                     isTotal: true,
                   ),
                 ],

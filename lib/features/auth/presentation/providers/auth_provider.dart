@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waddi_platform/features/auth/domain/usecases/login_user.dart';
 import 'package:waddi_platform/features/auth/domain/usecases/register_user.dart';
+import 'package:waddi_platform/features/auth/domain/usecases/reset_password.dart';
 import 'package:waddi_platform/features/users/domain/entities/user_entity.dart';
 import 'package:waddi_platform/core/errors/failures.dart';
 import 'package:waddi_platform/features/auth/auth_injection.dart';
@@ -40,13 +41,14 @@ class AuthState {
 class AuthNotifier extends StateNotifier<AuthState> {
   final LoginUser _loginUser;
   final RegisterUser _registerUser;
-  AuthNotifier(this._loginUser, this._registerUser) : super(AuthState()) {
+  final ResetPassword _resetPassword;
+  AuthNotifier(this._loginUser, this._registerUser, this._resetPassword) : super(AuthState()) {
     // Initialize auth state when the notifier is created
     _initializeAuthState().catchError((error) {
       print('Error in auth initialization: $error');
       state = state.copyWith(status: AuthStatus.unauthenticated, errorMessage: error.toString());
     });
-    
+
     // Fallback: if still loading after 3 seconds, set as unauthenticated
     Future.delayed(Duration(seconds: 3)).then((_) {
       if (state.status == AuthStatus.loading) {
@@ -68,18 +70,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
         Future.value(FirebaseAuth.instance.currentUser),
         Future.delayed(Duration(seconds: 3)).then((_) => null),
       ]);
-      
+
       print('Firebase current user: ${firebaseUser?.uid ?? 'null'}');
 
       if (firebaseUser != null && !firebaseUser.isAnonymous) {
         // User is signed in, try to fetch user data with timeout
         try {
           final userDoc = await Future.any([
-            FirebaseFirestore.instance
-                .collection('users')
-                .doc(firebaseUser.uid)
-                .get(),
-            Future.delayed(Duration(seconds: 5)).then((_) => throw TimeoutException('Firestore timeout')),
+            FirebaseFirestore.instance.collection('users').doc(firebaseUser.uid).get(),
+            Future.delayed(
+              Duration(seconds: 5),
+            ).then((_) => throw TimeoutException('Firestore timeout')),
           ]);
 
           if (userDoc.exists) {
@@ -109,7 +110,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
               updatedAt: Timestamp.now(),
               isGuestUser: false,
             );
-            
+
             // Try to save user to Firestore with timeout
             try {
               await Future.any([
@@ -119,14 +120,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
                   name: user.name,
                   phoneNumber: user.phoneNumber,
                 ),
-                Future.delayed(Duration(seconds: 5)).then((_) => throw TimeoutException('Save user timeout')),
+                Future.delayed(
+                  Duration(seconds: 5),
+                ).then((_) => throw TimeoutException('Save user timeout')),
               ]);
               print('User document created, setting authenticated state');
             } catch (e) {
               print('Error saving user to Firestore: $e');
               // Continue even if save fails
             }
-            
+
             state = state.copyWith(status: AuthStatus.authenticated, user: user);
             print('Auth state updated to: ${state.status}');
           }
@@ -172,6 +175,24 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> login(String email, String password) async {
+    // Basic validation
+    if (email.isEmpty || password.isEmpty) {
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: 'Please enter both email and password.',
+      );
+      return;
+    }
+
+    // Email format validation
+    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) {
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: 'Please enter a valid email address.',
+      );
+      return;
+    }
+
     state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
     try {
       final user = await _loginUser(email, password);
@@ -185,10 +206,30 @@ class AuthNotifier extends StateNotifier<AuthState> {
           state = state.copyWith(status: AuthStatus.authenticated, user: user);
         }
       } else {
-        state = state.copyWith(status: AuthStatus.error, errorMessage: 'Login failed');
+        state = state.copyWith(
+          status: AuthStatus.error,
+          errorMessage: 'Invalid email or password. Please try again.',
+        );
       }
     } catch (e) {
-      state = state.copyWith(status: AuthStatus.error, errorMessage: e.toString());
+      String errorMessage = 'Login failed. Please try again.';
+
+      // Provide more specific error messages based on the exception
+      if (e.toString().contains('user-not-found')) {
+        errorMessage = 'No account found with this email address.';
+      } else if (e.toString().contains('wrong-password')) {
+        errorMessage = 'Incorrect password. Please try again.';
+      } else if (e.toString().contains('invalid-email')) {
+        errorMessage = 'Invalid email format.';
+      } else if (e.toString().contains('user-disabled')) {
+        errorMessage = 'This account has been disabled.';
+      } else if (e.toString().contains('too-many-requests')) {
+        errorMessage = 'Too many failed attempts. Please try again later.';
+      } else if (e.toString().contains('network')) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      }
+
+      state = state.copyWith(status: AuthStatus.error, errorMessage: errorMessage);
     }
   }
 
@@ -218,51 +259,136 @@ class AuthNotifier extends StateNotifier<AuthState> {
           name: user.name,
           phoneNumber: null, // or user.phoneNumber if available
         );
+        
+        // Add a small delay to ensure Firebase Auth account is fully created
+        await Future.delayed(Duration(seconds: 2));
+        
         state = state.copyWith(status: AuthStatus.authenticated, user: user);
+        print('✅ User registered successfully: ${user.email}');
+        print('⏳ Added 2-second delay to ensure Firebase Auth account is ready');
       } else {
         state = state.copyWith(status: AuthStatus.error, errorMessage: 'Registration failed');
       }
     } catch (e) {
-      state = state.copyWith(status: AuthStatus.error, errorMessage: e.toString());
+      String errorMessage = 'Registration failed. Please try again.';
+
+      // Provide more specific error messages based on the exception
+      if (e.toString().contains('email-already-in-use')) {
+        errorMessage = 'An account with this email already exists. Please try logging in instead.';
+      } else if (e.toString().contains('invalid-email')) {
+        errorMessage = 'Invalid email format. Please enter a valid email address.';
+      } else if (e.toString().contains('weak-password')) {
+        errorMessage = 'Password is too weak. Please choose a stronger password.';
+      } else if (e.toString().contains('password-does-not-meet-requirements')) {
+        errorMessage =
+            'Password does not meet requirements. Please ensure your password contains uppercase, lowercase, number, and special character.';
+      } else if (e.toString().contains('network')) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (e.toString().contains('too-many-requests')) {
+        errorMessage = 'Too many failed attempts. Please try again later.';
+      }
+
+      state = state.copyWith(status: AuthStatus.error, errorMessage: errorMessage);
     }
   }
 
   Future<void> logout() async {
     try {
       await FirebaseAuth.instance.signOut();
-    state = AuthState(status: AuthStatus.unauthenticated);
+      state = AuthState(status: AuthStatus.unauthenticated);
     } catch (e) {
       state = state.copyWith(status: AuthStatus.error, errorMessage: e.toString());
     }
   }
 
+  // Check if an email exists in Firebase Auth
+  Future<bool> checkEmailExists(String email) async {
+    try {
+      // First try the deprecated method (still works in most cases)
+      try {
+        final methods = await FirebaseAuth.instance.fetchSignInMethodsForEmail(email);
+        print('Email existence check result: ${methods.isNotEmpty} for $email');
+        return methods.isNotEmpty;
+      } catch (deprecatedError) {
+        print('Deprecated method failed, trying alternative approach: $deprecatedError');
+        
+        // Alternative approach: try to send reset email directly
+        // If it fails with user-not-found, then the email doesn't exist
+        try {
+          await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+          print('Email exists (reset email sent successfully)');
+          return true;
+        } catch (resetError) {
+          if (resetError.toString().contains('user-not-found')) {
+            print('Email does not exist in Firebase Auth');
+            return false;
+          } else {
+            // If it's not a user-not-found error, the email probably exists
+            print('Email likely exists (error was not user-not-found): $resetError');
+            return true;
+          }
+        }
+      }
+    } catch (e) {
+      print('Error checking if email exists: $e');
+      // If we can't determine, assume it exists to avoid blocking legitimate users
+      return true;
+    }
+  }
+
   Future<void> resetPassword(String email) async {
     try {
-      state = state.copyWith(status: AuthStatus.loading);
-      
-      // Use the current user's email if no email is provided
-      final emailToUse = email.isNotEmpty ? email : state.user?.email ?? '';
-      
-      if (emailToUse.isEmpty) {
+      state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
+
+      if (email.isEmpty) {
         throw Exception('No email provided for password reset');
       }
-      
-      // Send password reset email using Firebase Auth
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: emailToUse);
-      
-      // Keep the user authenticated, don't change the status
-      state = state.copyWith(
-        status: AuthStatus.authenticated,
-        errorMessage: null,
-      );
-      
-      print('Password reset email sent to: $emailToUse');
+
+      // Validate email format
+      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) {
+        throw Exception('Please enter a valid email address');
+      }
+
+      print('Attempting to send password reset email to: $email');
+
+      // Try to send reset email directly using Firebase Auth
+      // This is more reliable than the use case approach
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+
+      // Set success state - don't change authentication status
+      state = state.copyWith(status: AuthStatus.authenticated, errorMessage: null);
+
+      print('✅ Password reset email sent successfully to: $email');
+      print('📧 Please check the user\'s email inbox (including spam folder)');
+      print('🔗 The email should contain a link to reset the password');
     } catch (e) {
-      print('Error sending password reset email: $e');
-      state = state.copyWith(
-        status: AuthStatus.authenticated, // Keep authenticated even on error
-        errorMessage: 'Failed to send reset email: $e',
-      );
+      print('❌ Error sending password reset email: $e');
+
+      String errorMessage = 'Failed to send reset email. Please try again.';
+
+      // Provide more specific error messages based on the exception
+      if (e.toString().contains('user-not-found')) {
+        errorMessage = 'No account found with this email address.';
+        print('🔍 User not found in Firebase Auth');
+      } else if (e.toString().contains('invalid-email')) {
+        errorMessage = 'Invalid email format.';
+        print('📧 Invalid email format detected');
+      } else if (e.toString().contains('too-many-requests')) {
+        errorMessage = 'Too many reset attempts. Please try again later.';
+        print('⏰ Rate limiting applied');
+      } else if (e.toString().contains('network')) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+        print('🌐 Network connectivity issue');
+      } else if (e.toString().contains('operation-not-allowed')) {
+        errorMessage = 'Password reset is not enabled for this project.';
+        print('🚫 Password reset not enabled in Firebase Console');
+      } else {
+        print('❓ Unknown error type: ${e.runtimeType}');
+        print('📋 Full error details: $e');
+      }
+
+      // Keep the current authentication status but set error message
+      state = state.copyWith(errorMessage: errorMessage);
     }
   }
 
@@ -273,19 +399,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
         print('Cannot update role for guest users');
         return;
       }
-      
+
       state = state.copyWith(status: AuthStatus.loading);
-      
+
       // Check if user document exists in Firestore
       final userDoc = FirebaseFirestore.instance.collection('users').doc(state.user!.id);
       final docSnapshot = await userDoc.get();
-      
+
       if (docSnapshot.exists) {
         // Update existing document
-        await userDoc.update({
-          'role': newRole,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
+        await userDoc.update({'role': newRole, 'updatedAt': FieldValue.serverTimestamp()});
       } else {
         // Create new document if it doesn't exist
         await userDoc.set({
@@ -300,57 +423,43 @@ class AuthNotifier extends StateNotifier<AuthState> {
           'fcmTokens': [],
         });
       }
-      
+
       // Update local state
       final updatedUser = state.user!.copyWith(role: newRole);
-      state = state.copyWith(
-        status: AuthStatus.authenticated,
-        user: updatedUser,
-      );
-      
+      state = state.copyWith(status: AuthStatus.authenticated, user: updatedUser);
+
       print('User role updated to: $newRole');
     } catch (e) {
       print('Error updating user role: $e');
-      state = state.copyWith(
-        status: AuthStatus.error,
-        errorMessage: 'Failed to update role: $e',
-      );
+      state = state.copyWith(status: AuthStatus.error, errorMessage: 'Failed to update role: $e');
     }
   }
 
-  Future<void> updateUser({
-    String? name,
-    String? phoneNumber,
-  }) async {
+  Future<void> updateUser({String? name, String? phoneNumber}) async {
     try {
       if (state.user == null) {
         throw Exception('No user to update');
       }
-      
+
       state = state.copyWith(status: AuthStatus.loading);
-      
+
       // Update Firestore document
       final userDoc = FirebaseFirestore.instance.collection('users').doc(state.user!.id);
-      final updateData = <String, dynamic>{
-        'updatedAt': FieldValue.serverTimestamp(),
-      };
-      
+      final updateData = <String, dynamic>{'updatedAt': FieldValue.serverTimestamp()};
+
       if (name != null) updateData['name'] = name;
       if (phoneNumber != null) updateData['phoneNumber'] = phoneNumber;
-      
+
       await userDoc.update(updateData);
-      
+
       // Update local state
       final updatedUser = state.user!.copyWith(
         name: name ?? state.user!.name,
         phoneNumber: phoneNumber ?? state.user!.phoneNumber,
       );
-      
-      state = state.copyWith(
-        status: AuthStatus.authenticated,
-        user: updatedUser,
-      );
-      
+
+      state = state.copyWith(status: AuthStatus.authenticated, user: updatedUser);
+
       print('User profile updated successfully');
     } catch (e) {
       print('Error updating user profile: $e');
@@ -390,10 +499,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
 
       // Create credential with email and password
-      final credential = EmailAuthProvider.credential(
-        email: email,
-        password: password,
-      );
+      final credential = EmailAuthProvider.credential(email: email, password: password);
 
       // Link the anonymous account with email/password
       final userCredential = await currentUser.linkWithCredential(credential);
@@ -423,16 +529,31 @@ class AuthNotifier extends StateNotifier<AuthState> {
           isGuestUser: false,
         );
 
-        state = state.copyWith(
-          status: AuthStatus.authenticated,
-          user: userEntity,
-        );
+        state = state.copyWith(status: AuthStatus.authenticated, user: userEntity);
 
         print('Guest user converted to registered user: ${user.uid}');
       }
     } catch (e) {
       print('Error converting guest to user: $e');
-      throw Exception('Failed to convert guest user: $e');
+      String errorMessage = 'Failed to convert guest user. Please try again.';
+
+      // Provide more specific error messages based on the exception
+      if (e.toString().contains('email-already-in-use')) {
+        errorMessage = 'An account with this email already exists. Please try logging in instead.';
+      } else if (e.toString().contains('invalid-email')) {
+        errorMessage = 'Invalid email format. Please enter a valid email address.';
+      } else if (e.toString().contains('weak-password')) {
+        errorMessage = 'Password is too weak. Please choose a stronger password.';
+      } else if (e.toString().contains('password-does-not-meet-requirements')) {
+        errorMessage =
+            'Password does not meet requirements. Please ensure your password contains uppercase, lowercase, number, and special character.';
+      } else if (e.toString().contains('network')) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (e.toString().contains('too-many-requests')) {
+        errorMessage = 'Too many failed attempts. Please try again later.';
+      }
+
+      throw Exception(errorMessage);
     }
   }
 
@@ -465,7 +586,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> signInAnonymously() async {
     try {
       state = state.copyWith(status: AuthStatus.loading);
-      
+
       // Check if user is already signed in as anonymous
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser != null && currentUser.isAnonymous) {
@@ -480,20 +601,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
           updatedAt: Timestamp.now(),
           isGuestUser: true,
         );
-        
-        state = state.copyWith(
-          status: AuthStatus.unauthenticated,
-          user: guestUser,
-        );
-        
+
+        state = state.copyWith(status: AuthStatus.unauthenticated, user: guestUser);
+
         print('User already signed in as guest, updating state');
         return;
       }
-      
+
       // Sign in anonymously
       final userCredential = await FirebaseAuth.instance.signInAnonymously();
       final user = userCredential.user;
-      
+
       if (user != null) {
         // Create a local user entity for guest users (not saved to Firestore)
         final guestUser = UserEntity(
@@ -506,12 +624,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
           updatedAt: Timestamp.now(),
           isGuestUser: true,
         );
-        
+
         state = state.copyWith(
           status: AuthStatus.unauthenticated, // Keep as unauthenticated for guest access
           user: guestUser,
         );
-        
+
         print('Guest user signed in anonymously, setting as unauthenticated');
       }
     } catch (e) {
@@ -583,7 +701,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final loginUser = ref.read(loginUserUseCaseProvider);
   final registerUser = ref.read(registerUserUseCaseProvider);
-  return AuthNotifier(loginUser, registerUser);
+  final resetPassword = ref.read(resetPasswordUseCaseProvider);
+  return AuthNotifier(loginUser, registerUser, resetPassword);
 });
 
 // Save user to Firestore (only for registered users, not guests)

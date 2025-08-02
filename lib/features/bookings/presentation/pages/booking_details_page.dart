@@ -320,7 +320,7 @@ class _BookingDetailsContent extends ConsumerWidget {
         _buildInfoRow('Date', dateFormat),
         _buildInfoRow('Time', timeFormat),
         _buildInfoRow('Duration', '$duration hour${duration > 1 ? 's' : ''}'),
-        _buildInfoRow('Total Cost', 'SAR ${booking.totalPrice.toStringAsFixed(2)}'),
+        _buildInfoRow('Total Cost', 'EGP ${booking.totalPrice.toStringAsFixed(2)}'),
         _buildInfoRow('Status', booking.actualStatus, isStatus: true),
       ],
     );
@@ -521,9 +521,7 @@ class _BookingDetailsContent extends ConsumerWidget {
                         const SizedBox(height: 8),
                         Text('Status: ${booking.actualStatus}'),
                         const SizedBox(height: 8),
-                        Text(
-                          'Date: ${_formatDateTime(booking.startTime, booking.durationHours)}',
-                        ),
+                        Text('Date: ${_formatDateTime(booking.startTime, booking.durationHours)}'),
                         const SizedBox(height: 16),
                         const Text('What would you like to do?'),
                       ],
@@ -631,7 +629,7 @@ class _BookingDetailsContent extends ConsumerWidget {
   Future<void> _cancelBooking(BuildContext context, WidgetRef ref, String bookingId) async {
     try {
       print('DEBUG: Starting booking cancellation for ID: $bookingId');
-      
+
       // Show confirmation dialog
       final confirm = await showDialog<bool>(
         context: context,
@@ -656,10 +654,10 @@ class _BookingDetailsContent extends ConsumerWidget {
 
       if (confirm == true) {
         print('DEBUG: User confirmed cancellation');
-        
+
         // Use the booking provider to cancel the booking
         await ref.read(bookingStateProvider.notifier).cancelBooking(bookingId);
-        
+
         print('DEBUG: Booking cancelled successfully in database');
 
         if (context.mounted) {
@@ -669,11 +667,11 @@ class _BookingDetailsContent extends ConsumerWidget {
               backgroundColor: Colors.green,
             ),
           );
-          
+
           print('DEBUG: Navigating to bookings page');
           // Add a small delay to ensure state is updated before navigation
           await Future.delayed(const Duration(milliseconds: 500));
-          
+
           if (context.mounted) {
             // Navigate back to bookings page
             context.go('/bookings');
@@ -692,4 +690,3 @@ class _BookingDetailsContent extends ConsumerWidget {
     }
   }
 }
- 

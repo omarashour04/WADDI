@@ -21,6 +21,7 @@ class MainScaffold extends ConsumerWidget {
     final currentTheme = ref.watch(themeProvider);
     final authState = ref.watch(authProvider);
     final isGuest = authState.isGuestUser;
+    final userRole = authState.user?.role;
 
     return Scaffold(
       appBar: AppBar(
@@ -29,48 +30,30 @@ class MainScaffold extends ConsumerWidget {
         elevation: 0,
       ),
       body: SafeArea(child: child),
-      bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar: _buildBottomNavigationBar(context, ref, userRole, isGuest),
+    );
+  }
+
+  Widget _buildBottomNavigationBar(BuildContext context, WidgetRef ref, String? userRole, bool isGuest) {
+    // Venue Owner Navigation
+    if (userRole == 'venue_owner') {
+      return BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         currentIndex: currentIndex,
         onTap: (index) {
-          String targetRoute = '/home';
+          String targetRoute = '/venue-owner';
           switch (index) {
             case 0:
-              targetRoute = '/home';
+              targetRoute = '/venue-owner';
               break;
             case 1:
-              targetRoute = '/search';
+              targetRoute = '/venue-owner/bookings';
               break;
             case 2:
-              targetRoute = '/venues';
+              targetRoute = '/venue-owner/reports';
               break;
             case 3:
-              if (!isGuest) {
-                targetRoute = '/bookings';
-              } else {
-                // Show dialog for guest users
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Login Required'),
-                    content: const Text('Please log in to view your bookings.'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('Cancel'),
-                      ),
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          context.push('/login');
-                        },
-                        child: const Text('Login'),
-                      ),
-                    ],
-                  ),
-                );
-                return; // Don't navigate if showing dialog
-              }
+              targetRoute = '/venue-owner/maintenance';
               break;
             case 4:
               targetRoute = '/profile';
@@ -82,13 +65,114 @@ class MainScaffold extends ConsumerWidget {
           context.go(targetRoute);
         },
         items: [
-          const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          const BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
+          const BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Dashboard'),
+          const BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Bookings'),
+          const BottomNavigationBarItem(icon: Icon(Icons.analytics), label: 'Reports'),
+          const BottomNavigationBarItem(icon: Icon(Icons.build), label: 'Maintenance'),
+          const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+        ],
+      );
+    }
+
+    // Admin Navigation (placeholder for future implementation)
+    if (userRole == 'admin') {
+      return BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        currentIndex: currentIndex,
+        onTap: (index) {
+          String targetRoute = '/admin';
+          switch (index) {
+            case 0:
+              targetRoute = '/admin';
+              break;
+            case 1:
+              targetRoute = '/admin/users';
+              break;
+            case 2:
+              targetRoute = '/admin/venues';
+              break;
+            case 3:
+              targetRoute = '/admin/bookings';
+              break;
+            case 4:
+              targetRoute = '/profile';
+              break;
+          }
+
+          // Add route to navigation history before navigating
+          ref.read(navigationHistoryProvider.notifier).addRoute(targetRoute);
+          context.go(targetRoute);
+        },
+        items: [
+          const BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Dashboard'),
+          const BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Users'),
           const BottomNavigationBarItem(icon: Icon(Icons.place), label: 'Venues'),
           const BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Bookings'),
           const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
-      ),
+      );
+    }
+
+    // Regular User Navigation (existing implementation)
+    return BottomNavigationBar(
+      type: BottomNavigationBarType.fixed,
+      currentIndex: currentIndex,
+      onTap: (index) {
+        String targetRoute = '/home';
+        switch (index) {
+          case 0:
+            targetRoute = '/home';
+            break;
+          case 1:
+            targetRoute = '/search';
+            break;
+          case 2:
+            targetRoute = '/venues';
+            break;
+          case 3:
+            if (!isGuest) {
+              targetRoute = '/bookings';
+            } else {
+              // Show dialog for guest users
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Login Required'),
+                  content: const Text('Please log in to view your bookings.'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        context.push('/login');
+                      },
+                      child: const Text('Login'),
+                    ),
+                  ],
+                ),
+              );
+              return; // Don't navigate if showing dialog
+            }
+            break;
+          case 4:
+            targetRoute = '/profile';
+            break;
+        }
+
+        // Add route to navigation history before navigating
+        ref.read(navigationHistoryProvider.notifier).addRoute(targetRoute);
+        context.go(targetRoute);
+      },
+      items: [
+        const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+        const BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
+        const BottomNavigationBarItem(icon: Icon(Icons.place), label: 'Venues'),
+        const BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Bookings'),
+        const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+      ],
     );
   }
 }

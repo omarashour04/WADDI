@@ -42,7 +42,7 @@ class _BookingHistoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isUpcoming = booking.startTime.isAfter(DateTime.now());
     return Semantics(
-      label: 'Booking card for room ${booking.roomId}, status ${booking.bookingStatus}',
+      label: 'Booking card for room ${booking.roomId}, status ${booking.status}',
       button: true,
       child: Card(
         child: ListTile(
@@ -65,17 +65,25 @@ class _BookingHistoryCard extends StatelessWidget {
                         title: const Text('Cancel Booking'),
                         content: const Text('Are you sure you want to cancel this booking?'),
                         actions: [
-                          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No')),
-                          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Yes')),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('No'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('Yes'),
+                          ),
                         ],
                       ),
                     );
                     if (confirm == true) {
-                      await FirebaseFirestore.instance.collection('bookings').doc(booking.id).update({
-                        'bookingStatus': 'cancelled',
-                        'updatedAt': Timestamp.now(),
-                      });
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Booking cancelled.')));
+                      await FirebaseFirestore.instance
+                          .collection('bookings')
+                          .doc(booking.id)
+                          .update({'bookingStatus': 'cancelled', 'updatedAt': Timestamp.now()});
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(const SnackBar(content: Text('Booking cancelled.')));
                     }
                   },
                   child: const Text('Cancel', semanticsLabel: 'Cancel booking'),
@@ -86,8 +94,12 @@ class _BookingHistoryCard extends StatelessWidget {
               context: context,
               builder: (context) => AlertDialog(
                 title: const Text('Booking Details'),
-                content: Text('Room: ${booking.roomId}\nVenue: ${booking.venueId}\nDate: ${booking.startTime}\nDuration: ${booking.durationHours}h\nTotal: ${booking.totalPrice} EGP\nStatus: ${booking.actualStatus}'),
-                actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
+                content: Text(
+                  'Room: ${booking.roomId}\nVenue: ${booking.venueId}\nDate: ${booking.startTime}\nDuration: ${booking.durationHours}h\nTotal: ${booking.totalPrice} EGP\nStatus: ${booking.actualStatus}',
+                ),
+                actions: [
+                  TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+                ],
               ),
             );
           },
@@ -110,7 +122,10 @@ class _EmptyState extends StatelessWidget {
         children: [
           Icon(Icons.event_busy, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 16),
-          Text(message, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.grey[600])),
+          Text(
+            message,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
+          ),
           if (onAction != null && actionLabel != null)
             Padding(
               padding: const EdgeInsets.only(top: 16.0),
@@ -138,7 +153,10 @@ class _ErrorState extends StatelessWidget {
         children: [
           Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
           const SizedBox(height: 16),
-          Text(message, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.red[700])),
+          Text(
+            message,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.red[700]),
+          ),
           if (onRetry != null)
             Padding(
               padding: const EdgeInsets.only(top: 16.0),
@@ -152,4 +170,4 @@ class _ErrorState extends StatelessWidget {
       ),
     );
   }
-} 
+}

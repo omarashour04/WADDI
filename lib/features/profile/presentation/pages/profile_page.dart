@@ -689,12 +689,12 @@ class ProfilePage extends ConsumerWidget {
           _ProfileOption(
             title: 'My Venues',
             icon: Icons.business,
-            onTap: () => context.go('/venue-owner?ownerId=$userId'),
+            onTap: () => context.go('/venue-owner'),
           ),
           _ProfileOption(
             title: 'Add New Venue',
             icon: Icons.add_business,
-            onTap: () => context.go('/venue-owner/venue-form?ownerId=$userId'),
+            onTap: () => context.go('/venue-owner/venue-form'),
           ),
         ],
       ),

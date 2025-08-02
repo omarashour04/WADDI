@@ -54,12 +54,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           ),
         ),
         child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
                 Align(
                   alignment: Alignment.centerLeft,
                   child: IconButton(
@@ -73,9 +73,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       }
                     },
                   ),
-              ),
+                ),
                 const SizedBox(height: 8),
-              Text(
+                Text(
                   'Login',
                   style: TextStyle(
                     fontSize: 28,
@@ -83,11 +83,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     color: Colors.white,
                     fontFamily: null, // Use native font
                   ),
-                textAlign: TextAlign.center,
-              ),
+                  textAlign: TextAlign.center,
+                ),
                 const SizedBox(height: 32),
-              TextField(
-                controller: _emailController,
+                TextField(
+                  controller: _emailController,
                   style: const TextStyle(fontFamily: null),
                   decoration: InputDecoration(
                     filled: true,
@@ -99,11 +99,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       borderSide: BorderSide.none,
                     ),
                   ),
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _passwordController,
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _passwordController,
                   style: const TextStyle(fontFamily: null),
                   decoration: InputDecoration(
                     filled: true,
@@ -127,15 +127,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     ),
                   ),
                   obscureText: _obscurePassword,
-              ),
-              const SizedBox(height: 24),
-              authState.isLoading
-                  ? const CircularProgressIndicator()
-                  : Column(
-                      children: [
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
+                ),
+                const SizedBox(height: 24),
+                authState.isLoading
+                    ? const CircularProgressIndicator()
+                    : Column(
+                        children: [
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
                                 foregroundColor: Colors.black,
@@ -150,28 +150,51 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 ),
                                 elevation: 0,
                               ),
-                            onPressed: () async {
-                              final email = _emailController.text.trim();
-                              final password = _passwordController.text.trim();
-                              
-                              // Check if current user is a guest user
-                              final authState = ref.read(authProvider);
-                              if (authState.status == AuthStatus.unauthenticated && authState.user?.isGuestUser == true) {
-                                // For guest users, we need to sign out first, then sign in
-                                await authNotifier.logout();
-                                await authNotifier.login(email, password);
-                              } else {
-                                // Regular login
-                                await authNotifier.login(email, password);
-                              }
-                            },
-                            child: const Text('Login'),
+                              onPressed: () async {
+                                final email = _emailController.text.trim();
+                                final password = _passwordController.text.trim();
+
+                                // Basic validation
+                                if (email.isEmpty || password.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Please enter both email and password'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                  return;
+                                }
+
+                                // Email format validation
+                                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Please enter a valid email address'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                  return;
+                                }
+
+                                // Check if current user is a guest user
+                                final authState = ref.read(authProvider);
+                                if (authState.status == AuthStatus.unauthenticated &&
+                                    authState.user?.isGuestUser == true) {
+                                  // For guest users, we need to sign out first, then sign in
+                                  await authNotifier.logout();
+                                  await authNotifier.login(email, password);
+                                } else {
+                                  // Regular login
+                                  await authNotifier.login(email, password);
+                                }
+                              },
+                              child: const Text('Login'),
+                            ),
                           ),
-                        ),
                           const SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF009CA6),
                                 foregroundColor: Colors.white,
@@ -186,19 +209,19 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 ),
                                 elevation: 0,
                               ),
-                            icon: const Icon(Icons.login),
-                            label: const Text('Login with Google'),
-                            onPressed: () async {
-                              await authNotifier.signInWithGoogle();
-                            },
+                              icon: const Icon(Icons.login),
+                              label: const Text('Login with Google'),
+                              onPressed: () async {
+                                await authNotifier.signInWithGoogle();
+                              },
+                            ),
                           ),
-                        ),
                         ],
                       ),
                 const SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton(
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.white,
                       side: const BorderSide(color: Colors.white, width: 2),
@@ -210,24 +233,24 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         fontFamily: null,
                       ),
                     ),
-                            onPressed: () async {
-                              await authNotifier.signInAnonymously();
-                            },
+                    onPressed: () async {
+                      await authNotifier.signInAnonymously();
+                    },
                     child: const Text('Continue as Guest'),
-                          ),
-                    ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
                     Text(
                       "Dont have an account? ",
                       style: const TextStyle(color: Colors.white, fontFamily: null),
                     ),
                     GestureDetector(
                       onTap: () {
-                      context.push('/register');
-                    },
+                        context.push('/register');
+                      },
                       child: const Text(
                         'Sign Up',
                         style: TextStyle(
@@ -237,14 +260,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           fontFamily: null,
                         ),
                       ),
-                  ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 GestureDetector(
                   onTap: () {
-                      context.push('/reset-password');
-                    },
+                    context.push('/reset-password');
+                  },
                   child: const Text(
                     'Forgot Password?',
                     style: TextStyle(
@@ -254,16 +277,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       fontFamily: null,
                     ),
                   ),
-              ),
-              if (authState.error != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 16.0),
+                ),
+                if (authState.error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16.0),
                     child: Text(
                       authState.error!,
                       style: const TextStyle(color: Colors.red, fontFamily: null),
                     ),
-                ),
-            ],
+                  ),
+              ],
             ),
           ),
         ),

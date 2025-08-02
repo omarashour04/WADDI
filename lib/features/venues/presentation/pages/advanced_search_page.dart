@@ -74,9 +74,7 @@ class _AdvancedSearchPageState extends ConsumerState<AdvancedSearchPage> {
                     _clearFilters();
                   },
                 ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
               onChanged: (value) {
                 // Trigger search
@@ -88,9 +86,7 @@ class _AdvancedSearchPageState extends ConsumerState<AdvancedSearchPage> {
           if (_showFilters) _buildFiltersSection(),
 
           // Results Section
-          Expanded(
-            child: _buildResultsSection(),
-          ),
+          Expanded(child: _buildResultsSection()),
         ],
       ),
     );
@@ -101,9 +97,7 @@ class _AdvancedSearchPageState extends ConsumerState<AdvancedSearchPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.grey[50],
-        border: Border(
-          bottom: BorderSide(color: Colors.grey[300]!),
-        ),
+        border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -111,14 +105,8 @@ class _AdvancedSearchPageState extends ConsumerState<AdvancedSearchPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Filters',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              TextButton(
-                onPressed: _clearFilters,
-                child: const Text('Clear All'),
-              ),
+              const Text('Filters', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              TextButton(onPressed: _clearFilters, child: const Text('Clear All')),
             ],
           ),
           const SizedBox(height: 16),
@@ -135,15 +123,12 @@ class _AdvancedSearchPageState extends ConsumerState<AdvancedSearchPage> {
             max: 200,
             divisions: 20,
             labels: RangeLabels(
-              '\$${_filters.minPrice?.toInt() ?? 0}',
-              '\$${_filters.maxPrice?.toInt() ?? 200}',
+              'EGP ${_filters.minPrice?.toInt() ?? 0}',
+              'EGP ${_filters.maxPrice?.toInt() ?? 200}',
             ),
             onChanged: (values) {
               setState(() {
-                _filters = _filters.copyWith(
-                  minPrice: values.start,
-                  maxPrice: values.end,
-                );
+                _filters = _filters.copyWith(minPrice: values.start, maxPrice: values.end);
               });
             },
           ),
@@ -301,9 +286,7 @@ class _AdvancedSearchPageState extends ConsumerState<AdvancedSearchPage> {
 
   Widget _buildResultsSection() {
     // This would integrate with the venue provider to show filtered results
-    return const Center(
-      child: Text('Search results will appear here'),
-    );
+    return const Center(child: Text('Search results will appear here'));
   }
 
   void _clearFilters() {
@@ -312,4 +295,4 @@ class _AdvancedSearchPageState extends ConsumerState<AdvancedSearchPage> {
       _searchController.clear();
     });
   }
-} 
+}

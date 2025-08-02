@@ -37,6 +37,9 @@ import '../features/venue_owner/presentation/pages/room_management_page.dart';
 import '../features/venue_owner/presentation/pages/venue_bookings_page.dart';
 import '../features/venue_owner/presentation/pages/venue_reports_page.dart';
 import '../features/venue_owner/presentation/pages/venue_maintenance_page.dart';
+import '../features/venue_owner/presentation/pages/venue_owner_bookings_page.dart';
+import '../features/venue_owner/presentation/pages/venue_owner_reports_page.dart';
+import '../features/venue_owner/presentation/pages/venue_owner_maintenance_page.dart';
 import 'package:waddi_platform/features/search/presentation/pages/search_page.dart';
 import '../features/venues/presentation/pages/venue_details_page.dart';
 import '../features/bookings/presentation/pages/booking_confirmation_page.dart';
@@ -141,15 +144,35 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         } catch (e) {
           print('Error restoring last route: $e');
         }
+
+        // If no last route found, redirect based on user role
+        if (authState.status == AuthStatus.authenticated && authState.user != null) {
+          if (authState.user!.role == 'admin') {
+            print('No last route found, redirecting admin to admin dashboard');
+            return '/admin';
+          } else if (authState.user!.role == 'venue_owner') {
+            print('No last route found, redirecting venue owner to venue dashboard');
+            return '/venue-owner';
+          }
+        }
+
         print('No last route found, redirecting to home');
         return '/home';
       }
 
-      // If user is authenticated and trying to access auth pages, redirect to home
+      // If user is authenticated and trying to access auth pages, redirect based on role
       if (authState.status == AuthStatus.authenticated &&
           (state.matchedLocation == '/login' || state.matchedLocation == '/register')) {
-        print('Authenticated user accessing login/register, redirecting to home');
-        return '/home';
+        print('Authenticated user accessing login/register, redirecting based on role');
+
+        // Redirect based on user role
+        if (authState.user?.role == 'admin') {
+          return '/admin';
+        } else if (authState.user?.role == 'venue_owner') {
+          return '/venue-owner';
+        } else {
+          return '/home';
+        }
       }
 
       // Define protected pages that require authentication (only booking and profile editing)
@@ -171,6 +194,14 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       if (state.matchedLocation != '/loading') {
         print('DEBUG: Adding route to history: ${state.matchedLocation}');
         ref.read(navigationHistoryProvider.notifier).addRoute(state.matchedLocation);
+
+        // Check if history is getting too large and cleanup if needed
+        final historySize = ref.read(navigationHistoryProvider.notifier).stackSize;
+        if (historySize > 45) {
+          print('DEBUG: Navigation history getting large ($historySize), performing cleanup');
+          ref.read(navigationHistoryProvider.notifier).cleanupHistory();
+        }
+
         // Save current route for app restart
         ref.read(localStorageProvider).saveCurrentRoute(state.matchedLocation);
       }
@@ -233,7 +264,24 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
       // Home page route
-      GoRoute(path: '/home', builder: (context, state) => const HomePage()),
+      GoRoute(
+        path: '/home',
+        builder: (context, state) => const HomePage(),
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+
+          // If user is authenticated, redirect based on role
+          if (authState.status == AuthStatus.authenticated && authState.user != null) {
+            if (authState.user!.role == 'admin') {
+              return '/admin';
+            } else if (authState.user!.role == 'venue_owner') {
+              return '/venue-owner';
+            }
+          }
+          return null;
+        },
+      ),
       GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
       GoRoute(
         path: '/register',
@@ -242,7 +290,14 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           final container = ProviderScope.containerOf(context);
           final authState = container.read(authProvider);
           if (authState.status == AuthStatus.authenticated) {
-            return '/home';
+            // Redirect based on user role
+            if (authState.user?.role == 'admin') {
+              return '/admin';
+            } else if (authState.user?.role == 'venue_owner') {
+              return '/venue-owner';
+            } else {
+              return '/home';
+            }
           }
           return null;
         },
@@ -323,18 +378,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => SupportTicketsPage(userId: state.pathParameters['userId']!),
       ),
       GoRoute(path: '/search', builder: (context, state) => SearchPage()),
-      GoRoute(
-        path: '/advanced-search',
-        builder: (context, state) => const AdvancedSearchPage(),
-      ),
-      GoRoute(
-        path: '/venues-map',
-        builder: (context, state) => const VenuesMapPage(),
-      ),
-      GoRoute(
-        path: '/favorites',
-        builder: (context, state) => const FavoritesPage(),
-      ),
+      GoRoute(path: '/advanced-search', builder: (context, state) => const AdvancedSearchPage()),
+      GoRoute(path: '/venues-map', builder: (context, state) => const VenuesMapPage()),
+      GoRoute(path: '/favorites', builder: (context, state) => const FavoritesPage()),
       GoRoute(
         path: '/admin',
         builder: (context, state) => AdminDashboardPage(),
@@ -474,7 +520,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/venue-owner',
         builder: (context, state) {
-          final ownerId = state.uri.queryParameters['ownerId'] ?? '';
+          final authState = ProviderScope.containerOf(context).read(authProvider);
+          final ownerId = authState.user?.id ?? '';
           return VenueOwnerDashboardPage(ownerId: ownerId);
         },
         redirect: (context, state) {
@@ -489,7 +536,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/venue-owner/venue-form',
         builder: (context, state) {
-          final ownerId = state.uri.queryParameters['ownerId'] ?? '';
+          final authState = ProviderScope.containerOf(context).read(authProvider);
+          final ownerId = authState.user?.id ?? '';
           final venueId = state.uri.queryParameters['venueId'];
           return VenueFormPage(ownerId: ownerId, venueId: venueId);
         },
@@ -540,7 +588,57 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/venue-owner/maintenance/:venueId',
-        builder: (context, state) => VenueMaintenancePage(venueId: state.pathParameters['venueId']!),
+        builder: (context, state) =>
+            VenueMaintenancePage(venueId: state.pathParameters['venueId']!),
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.user == null || authState.user!.role != 'venue_owner') {
+            return '/login';
+          }
+          return null;
+        },
+      ),
+      // Venue Owner General Routes (for bottom navigation)
+      GoRoute(
+        path: '/venue-owner/bookings',
+        builder: (context, state) {
+          final authState = ProviderScope.containerOf(context).read(authProvider);
+          final ownerId = authState.user?.id ?? '';
+          return VenueOwnerBookingsPage(ownerId: ownerId);
+        },
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.user == null || authState.user!.role != 'venue_owner') {
+            return '/login';
+          }
+          return null;
+        },
+      ),
+      GoRoute(
+        path: '/venue-owner/reports',
+        builder: (context, state) {
+          final authState = ProviderScope.containerOf(context).read(authProvider);
+          final ownerId = authState.user?.id ?? '';
+          return VenueOwnerReportsPage(ownerId: ownerId);
+        },
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.user == null || authState.user!.role != 'venue_owner') {
+            return '/login';
+          }
+          return null;
+        },
+      ),
+      GoRoute(
+        path: '/venue-owner/maintenance',
+        builder: (context, state) {
+          final authState = ProviderScope.containerOf(context).read(authProvider);
+          final ownerId = authState.user?.id ?? '';
+          return VenueOwnerMaintenancePage(ownerId: ownerId);
+        },
         redirect: (context, state) {
           final container = ProviderScope.containerOf(context);
           final authState = container.read(authProvider);
@@ -585,14 +683,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
       // Search and Discovery Routes
-      GoRoute(
-        path: '/search',
-        builder: (context, state) => const AdvancedSearchPage(),
-      ),
-      GoRoute(
-        path: '/venues-map',
-        builder: (context, state) => const VenuesMapPage(),
-      ),
+      GoRoute(path: '/search', builder: (context, state) => const AdvancedSearchPage()),
+      GoRoute(path: '/venues-map', builder: (context, state) => const VenuesMapPage()),
       GoRoute(
         path: '/favorites',
         builder: (context, state) => const FavoritesPage(),
@@ -606,10 +698,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
       // Accessibility and Settings Routes
-      GoRoute(
-        path: '/accessibility',
-        redirect: (context, state) => '/accessibility-settings',
-      ),
+      GoRoute(path: '/accessibility', redirect: (context, state) => '/accessibility-settings'),
       GoRoute(
         path: '/accessibility-settings',
         builder: (context, state) => const AccessibilitySettingsPage(),

@@ -3,14 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/review_providers.dart';
 import '../../domain/entities/review_entity.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:waddi_platform/features/auth/auth_injection.dart';
 
-class ReviewsPage extends StatelessWidget {
+class ReviewsPage extends ConsumerWidget {
   final String venueId;
   const ReviewsPage({required this.venueId});
 
   @override
-  Widget build(BuildContext context) {
-    final userId = ''; // TODO: Get current userId from provider if needed
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final userId = authState.user?.id ?? '';
+
     return Scaffold(
       appBar: AppBar(title: const Text('Reviews')),
       body: StreamBuilder<QuerySnapshot>(

@@ -38,27 +38,27 @@ class _AppBackButtonHandlerState extends ConsumerState<AppBackButtonHandler>
         _handleBackButton(context, ref);
         return false; // Prevent default back behavior
       },
-              child: PopScope(
-          canPop: false,
-          onPopInvoked: (didPop) {
-            print('DEBUG: PopScope onPopInvoked called, didPop: $didPop');
-            if (didPop) return;
-            _handleBackButton(context, ref);
+      child: PopScope(
+        canPop: false,
+        onPopInvoked: (didPop) {
+          print('DEBUG: PopScope onPopInvoked called, didPop: $didPop');
+          if (didPop) return;
+          _handleBackButton(context, ref);
+        },
+        child: Focus(
+          autofocus: true,
+          onKeyEvent: (node, event) {
+            print('DEBUG: Focus onKeyEvent called: ${event.logicalKey}');
+            if (event.logicalKey == LogicalKeyboardKey.goBack) {
+              print('DEBUG: Back key detected via Focus');
+              _handleBackButton(context, ref);
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
           },
-          child: Focus(
-            autofocus: true,
-            onKeyEvent: (node, event) {
-              print('DEBUG: Focus onKeyEvent called: ${event.logicalKey}');
-              if (event.logicalKey == LogicalKeyboardKey.goBack) {
-                print('DEBUG: Back key detected via Focus');
-                _handleBackButton(context, ref);
-                return KeyEventResult.handled;
-              }
-              return KeyEventResult.ignored;
-            },
-            child: widget.child,
-          ),
+          child: widget.child,
         ),
+      ),
     );
   }
 
@@ -76,7 +76,9 @@ class _AppBackButtonHandlerState extends ConsumerState<AppBackButtonHandler>
 
     print('DEBUG: Back button pressed at location: $location');
     print('DEBUG: Stack size: $stackSize');
-    print('DEBUG: Navigation history: $navigationHistory');
+    print(
+      'DEBUG: Navigation history summary: ${ref.read(navigationHistoryProvider.notifier).historySummary}',
+    );
 
     // Stack-based navigation: pop current route and navigate to top of stack
     if (stackSize > 1) {
@@ -94,7 +96,7 @@ class _AppBackButtonHandlerState extends ConsumerState<AppBackButtonHandler>
       }
     } else {
       // Stack has only one route, check if we're at a root level
-      final rootRoutes = ['/home', '/venues', '/profile'];
+      final rootRoutes = ['/home', '/venues', '/profile', '/admin'];
       final isAtRoot = rootRoutes.any((route) => location == route || location.startsWith(route));
 
       if (isAtRoot) {
@@ -104,6 +106,12 @@ class _AppBackButtonHandlerState extends ConsumerState<AppBackButtonHandler>
         print('DEBUG: No history, navigating to home');
         context.go('/home');
       }
+    }
+
+    // Periodically cleanup history to prevent memory issues
+    if (stackSize > 40) {
+      print('DEBUG: History getting large, performing cleanup');
+      ref.read(navigationHistoryProvider.notifier).cleanupHistory();
     }
   }
 

@@ -72,7 +72,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                     child: Text(
                       _feedback!,
                       style: TextStyle(
-                        color: _feedback == 'Password reset email sent (if account exists).'
+                        color: _feedback!.contains('successfully') || _feedback!.contains('sent')
                             ? Colors.green
                             : Colors.red,
                         fontWeight: FontWeight.bold,
@@ -90,32 +90,35 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                               setState(() => _feedback = 'Please enter your email.');
                               return;
                             }
-                            
+
                             // Validate email format
                             final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
                             if (!emailRegex.hasMatch(email)) {
                               setState(() => _feedback = 'Please enter a valid email address.');
                               return;
                             }
-                            
+
                             setState(() {
                               _isLoading = true;
                               _feedback = null;
                             });
-                            
+
                             try {
+                              // Try to send reset password email directly
+                              // The auth provider will handle the email existence check internally
                               await authNotifier.resetPassword(email);
                               final authState = ref.read(authProvider);
-                              
-                              if (authState.status == AuthStatus.authenticated) {
+
+                              if (authState.errorMessage == null) {
                                 setState(() {
                                   _isLoading = false;
-                                  _feedback = 'Password reset email sent successfully!';
+                                  _feedback =
+                                      'Password reset email sent successfully! Please check your email inbox (including spam folder).';
                                 });
                               } else {
                                 setState(() {
                                   _isLoading = false;
-                                  _feedback = authState.errorMessage ?? 'Failed to send reset email.';
+                                  _feedback = authState.errorMessage!;
                                 });
                               }
                             } catch (e) {

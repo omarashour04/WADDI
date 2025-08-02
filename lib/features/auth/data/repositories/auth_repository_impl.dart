@@ -9,16 +9,71 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<UserEntity?> login(String email, String password) async {
-    // TODO: Integrate with Firebase Auth
-    return UserEntity(
-      id: '1',
-      name: 'Test User',
-      email: email,
-      role: 'user',
-      createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now(),
-      points: 0,
-    );
+    try {
+      // Use Firebase Auth to validate credentials
+      final firebaseUser = await _remoteDataSource.login(email, password);
+      
+      if (firebaseUser != null) {
+        // Fetch user data from Firestore
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(firebaseUser.uid)
+            .get();
+        
+        if (userDoc.exists) {
+          final userData = userDoc.data()!;
+          return UserEntity(
+            id: firebaseUser.uid,
+            name: userData['name'] ?? firebaseUser.displayName ?? '',
+            email: userData['email'] ?? firebaseUser.email ?? '',
+            phoneNumber: userData['phoneNumber'] ?? firebaseUser.phoneNumber ?? '',
+            role: userData['role'] ?? 'user',
+            createdAt: userData['createdAt'] ?? Timestamp.now(),
+            updatedAt: userData['updatedAt'] ?? Timestamp.now(),
+            points: userData['points'] ?? 0,
+            isGuestUser: false,
+          );
+        } else {
+          // Create user document if it doesn't exist
+          final userEntity = UserEntity(
+            id: firebaseUser.uid,
+            name: firebaseUser.displayName ?? '',
+            email: firebaseUser.email ?? '',
+            phoneNumber: firebaseUser.phoneNumber ?? '',
+            role: 'user',
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now(),
+            points: 0,
+            isGuestUser: false,
+          );
+          
+          // Save to Firestore
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(firebaseUser.uid)
+              .set({
+            'name': userEntity.name,
+            'email': userEntity.email,
+            'phoneNumber': userEntity.phoneNumber,
+            'role': userEntity.role,
+            'points': userEntity.points,
+            'createdAt': userEntity.createdAt,
+            'updatedAt': userEntity.updatedAt,
+            'isGuestUser': false,
+          });
+          
+          return userEntity;
+        }
+      }
+      
+      // Return null if authentication fails
+      return null;
+    } catch (e) {
+      // Log the error for debugging
+      print('Login error: $e');
+      // Return null for any authentication error
+      return null;
+    }
   }
 
   @override
@@ -38,18 +93,55 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> logout() async {
-    // TODO: Integrate with Firebase Auth
+    try {
+      await _remoteDataSource.logout();
+    } catch (e) {
+      print('Logout error: $e');
+      throw Exception('Failed to logout: $e');
+    }
   }
 
   @override
   Future<UserEntity?> getCurrentUser() async {
-    // TODO: Integrate with Firebase Auth
-    return null;
+    try {
+      final firebaseUser = _remoteDataSource.getCurrentUser();
+      if (firebaseUser != null && !firebaseUser.isAnonymous) {
+        // Fetch user data from Firestore
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(firebaseUser.uid)
+            .get();
+        
+        if (userDoc.exists) {
+          final userData = userDoc.data()!;
+          return UserEntity(
+            id: firebaseUser.uid,
+            name: userData['name'] ?? firebaseUser.displayName ?? '',
+            email: userData['email'] ?? firebaseUser.email ?? '',
+            phoneNumber: userData['phoneNumber'] ?? firebaseUser.phoneNumber ?? '',
+            role: userData['role'] ?? 'user',
+            createdAt: userData['createdAt'] ?? Timestamp.now(),
+            updatedAt: userData['updatedAt'] ?? Timestamp.now(),
+            points: userData['points'] ?? 0,
+            isGuestUser: false,
+          );
+        }
+      }
+      return null;
+    } catch (e) {
+      print('Get current user error: $e');
+      return null;
+    }
   }
 
   @override
   Future<void> resetPassword(String email) async {
-    // TODO: Integrate with Firebase Auth
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+    } catch (e) {
+      print('Reset password error: $e');
+      throw Exception('Failed to send password reset email: $e');
+    }
   }
 
   @override

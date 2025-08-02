@@ -171,7 +171,7 @@ class VenueDetailsPage extends ConsumerWidget {
                             Icon(Icons.attach_money, color: AppColors.primary, size: 16),
                             const SizedBox(width: 4),
                             Text(
-                              '\$${venue.hourlyPriceRange['min']?.toString() ?? '0'} - \$${venue.hourlyPriceRange['max']?.toString() ?? '0'} per hour',
+                              'EGP ${venue.hourlyPriceRange['min']?.toString() ?? '0'} - EGP ${venue.hourlyPriceRange['max']?.toString() ?? '0'} per hour',
                               style: TextStyle(
                                 color: AppColors.textSecondary,
                                 fontWeight: FontWeight.w500,

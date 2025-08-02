@@ -87,9 +87,9 @@ class _RoomsPageState extends ConsumerState<RoomsPage> {
                         const SizedBox(height: 4),
                         Text(
                           'Available Rooms',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleMedium?.copyWith(color: AppColors.textSecondary),
                         ),
                       ],
                     ),
@@ -202,11 +202,11 @@ class _RoomCard extends StatelessWidget {
   final VoidCallback onSelect;
 
   const _RoomCard({
-    required this.room, 
+    required this.room,
     required this.venueId,
     required this.venueName,
-    required this.isSelected, 
-    required this.onSelect
+    required this.isSelected,
+    required this.onSelect,
   });
 
   @override
@@ -288,7 +288,7 @@ class _RoomCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      '${room.hourlyPrice} SAR/hr',
+                      '${room.hourlyPrice} EGP/hr',
                       style: TextStyle(
                         color: AppColors.primary,
                         fontWeight: FontWeight.bold,
@@ -305,7 +305,7 @@ class _RoomCard extends StatelessWidget {
                           'roomName': room.name,
                           'hourlyPrice': room.hourlyPrice.toString(),
                         };
-                        
+
                         final uri = Uri(path: '/book-room', queryParameters: queryParams);
                         context.push(uri.toString());
                       },

@@ -8,6 +8,7 @@ import 'room_management_page.dart';
 import 'venue_bookings_page.dart';
 import 'venue_reports_page.dart';
 import '../../../../shared/themes/app_colors.dart';
+import '../../../../shared/widgets/main_scaffold.dart';
 
 class VenueOwnerDashboardPage extends ConsumerWidget {
   final String ownerId;
@@ -15,58 +16,56 @@ class VenueOwnerDashboardPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).brightness == Brightness.dark
-            ? Theme.of(context).bottomNavigationBarTheme.backgroundColor
-            : AppColors.primary,
-        foregroundColor: Theme.of(context).brightness == Brightness.dark
-            ? Colors.white
-            : AppColors.textOnPrimary,
-        title: const Text('My Venues'),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/profile'),
+    return MainScaffold(
+      currentIndex: 0, // Dashboard tab
+      userId: ownerId,
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Theme.of(context).brightness == Brightness.dark
+              ? Theme.of(context).bottomNavigationBarTheme.backgroundColor
+              : AppColors.primary,
+          foregroundColor: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white
+              : AppColors.textOnPrimary,
+          title: const Text('My Venues'),
+          elevation: 0,
         ),
-      ),
-      body: Container(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        child: StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('venues')
-              .where('ownerId', isEqualTo: ownerId)
-              .snapshots(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: CircularProgressIndicator(),
+        body: Container(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('venues')
+                .where('ownerId', isEqualTo: ownerId)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return _buildEmptyState(context);
+              }
+
+              final venues = snapshot.data!.docs;
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: venues.length,
+                itemBuilder: (context, i) {
+                  final data = venues[i].data() as Map<String, dynamic>;
+                  final venueId = venues[i].id;
+                  return _buildVenueCard(context, data, venueId);
+                },
               );
-            }
-            
-            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-              return _buildEmptyState(context);
-            }
-            
-            final venues = snapshot.data!.docs;
-            return ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: venues.length,
-              itemBuilder: (context, i) {
-                final data = venues[i].data() as Map<String, dynamic>;
-                final venueId = venues[i].id;
-                return _buildVenueCard(context, data, venueId);
-              },
-            );
-          },
+            },
+          ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.go('/venue-owner/venue-form?ownerId=$ownerId'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.textOnPrimary,
-        child: const Icon(Icons.add),
-        tooltip: 'Add Venue',
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => context.go('/venue-owner/venue-form'),
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.textOnPrimary,
+          child: const Icon(Icons.add),
+          tooltip: 'Add Venue',
+        ),
       ),
     );
   }
@@ -76,28 +75,20 @@ class VenueOwnerDashboardPage extends ConsumerWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.business_outlined,
-            size: 64,
-            color: Colors.grey[400],
-          ),
+          Icon(Icons.business_outlined, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
             'No Venues Yet',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: Colors.grey[600],
-            ),
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.grey[600]),
           ),
           const SizedBox(height: 8),
           Text(
             'Start by adding your first venue',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.grey[500],
-            ),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[500]),
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
-            onPressed: () => context.go('/venue-owner/venue-form?ownerId=$ownerId'),
+            onPressed: () => context.go('/venue-owner/venue-form'),
             icon: const Icon(Icons.add),
             label: const Text('Add Venue'),
             style: ElevatedButton.styleFrom(
@@ -135,11 +126,7 @@ class VenueOwnerDashboardPage extends ConsumerWidget {
               aspectRatio: 16 / 9,
               child: Container(
                 color: Colors.grey[200],
-                child: Icon(
-                  Icons.business,
-                  size: 48,
-                  color: Colors.grey[400],
-                ),
+                child: Icon(Icons.business, size: 48, color: Colors.grey[400]),
               ),
             ),
           ),
@@ -154,9 +141,9 @@ class VenueOwnerDashboardPage extends ConsumerWidget {
                     Expanded(
                       child: Text(
                         data['name'] ?? 'Venue',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                       ),
                     ),
                     // Maintenance status indicator
@@ -191,7 +178,10 @@ class VenueOwnerDashboardPage extends ConsumerWidget {
                         const PopupMenuItem(value: 'rooms', child: Text('Manage Rooms')),
                         const PopupMenuItem(value: 'bookings', child: Text('View Bookings')),
                         const PopupMenuItem(value: 'reports', child: Text('Reports')),
-                        const PopupMenuItem(value: 'maintenance', child: Text('Maintenance Status')),
+                        const PopupMenuItem(
+                          value: 'maintenance',
+                          child: Text('Maintenance Status'),
+                        ),
                         const PopupMenuItem(value: 'delete', child: Text('Delete')),
                       ],
                     ),
@@ -200,9 +190,7 @@ class VenueOwnerDashboardPage extends ConsumerWidget {
                 const SizedBox(height: 8),
                 Text(
                   data['address'] ?? 'No address',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
                 ),
                 const SizedBox(height: 8),
                 // Room count information
@@ -220,18 +208,18 @@ class VenueOwnerDashboardPage extends ConsumerWidget {
                         const SizedBox(width: 4),
                         Text(
                           '$roomCount room${roomCount != 1 ? 's' : ''}',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.grey[600],
-                          ),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
                         ),
                         const SizedBox(width: 16),
                         Icon(Icons.attach_money, size: 16, color: Colors.grey[600]),
                         const SizedBox(width: 4),
                         Text(
                           '${data['hourlyPriceRange']?['min'] ?? 0} - ${data['hourlyPriceRange']?['max'] ?? 0} EGP/hr',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.grey[600],
-                          ),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
                         ),
                       ],
                     );
@@ -268,7 +256,7 @@ class VenueOwnerDashboardPage extends ConsumerWidget {
   void _handleMenuAction(BuildContext context, String action, String venueId) {
     switch (action) {
       case 'edit':
-        context.go('/venue-owner/venue-form?ownerId=$ownerId&venueId=$venueId');
+        context.go('/venue-owner/venue-form?venueId=$venueId');
         break;
       case 'rooms':
         context.go('/venue-owner/rooms/$venueId');
@@ -293,12 +281,11 @@ class VenueOwnerDashboardPage extends ConsumerWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Venue'),
-        content: const Text('Are you sure you want to delete this venue? This action cannot be undone.'),
+        content: const Text(
+          'Are you sure you want to delete this venue? This action cannot be undone.',
+        ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
@@ -324,13 +311,10 @@ class VenueOwnerDashboardPage extends ConsumerWidget {
       } catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error deleting venue: $e'),
-              backgroundColor: Colors.red,
-            ),
+            SnackBar(content: Text('Error deleting venue: $e'), backgroundColor: Colors.red),
           );
         }
       }
     }
   }
-} 
+}

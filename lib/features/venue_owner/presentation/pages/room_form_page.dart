@@ -12,11 +12,7 @@ class RoomFormPage extends ConsumerStatefulWidget {
   final String venueId;
   final String? roomId;
 
-  const RoomFormPage({
-    super.key,
-    required this.venueId,
-    this.roomId,
-  });
+  const RoomFormPage({super.key, required this.venueId, this.roomId});
 
   @override
   ConsumerState<RoomFormPage> createState() => _RoomFormPageState();
@@ -29,7 +25,7 @@ class _RoomFormPageState extends ConsumerState<RoomFormPage> {
   final _capacityController = TextEditingController();
   final _hourlyPriceController = TextEditingController();
   final _equipmentController = TextEditingController();
-  
+
   List<File> _selectedImages = [];
   bool _isLoading = false;
   bool _isClosedForMaintenance = false;
@@ -72,9 +68,9 @@ class _RoomFormPageState extends ConsumerState<RoomFormPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading room: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error loading room: $e')));
       }
     }
   }
@@ -121,7 +117,9 @@ class _RoomFormPageState extends ConsumerState<RoomFormPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(widget.roomId == null ? 'Room added successfully!' : 'Room updated successfully!'),
+            content: Text(
+              widget.roomId == null ? 'Room added successfully!' : 'Room updated successfully!',
+            ),
             backgroundColor: Colors.green,
           ),
         );
@@ -130,10 +128,7 @@ class _RoomFormPageState extends ConsumerState<RoomFormPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error saving room: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error saving room: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -211,7 +206,7 @@ class _RoomFormPageState extends ConsumerState<RoomFormPage> {
               TextFormField(
                 controller: _hourlyPriceController,
                 decoration: const InputDecoration(
-                  labelText: 'Hourly Price (SAR)',
+                  labelText: 'Hourly Price (EGP)',
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.number,
@@ -266,4 +261,4 @@ class _RoomFormPageState extends ConsumerState<RoomFormPage> {
       ),
     );
   }
-} 
+}
