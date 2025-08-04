@@ -9,13 +9,13 @@ class NotificationPopup extends StatelessWidget {
   final String? actionText;
 
   const NotificationPopup({
-    Key? key,
+    super.key,
     required this.message,
     this.title,
     this.onClose,
     this.onAction,
     this.actionText,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

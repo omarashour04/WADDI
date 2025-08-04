@@ -6,7 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class BookingHistoryPage extends ConsumerWidget {
   final String userId;
-  const BookingHistoryPage({required this.userId, Key? key}) : super(key: key);
+  const BookingHistoryPage({required this.userId, super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -113,7 +113,7 @@ class _EmptyState extends StatelessWidget {
   final String message;
   final VoidCallback? onAction;
   final String? actionLabel;
-  const _EmptyState({required this.message, this.onAction, this.actionLabel});
+  const _EmptyState({required this.message});
   @override
   Widget build(BuildContext context) {
     return Center(

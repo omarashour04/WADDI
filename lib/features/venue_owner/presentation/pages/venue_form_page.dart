@@ -83,7 +83,7 @@ class RoomData {
 class VenueFormPage extends StatefulWidget {
   final String ownerId;
   final String? venueId; // null for add, not null for edit
-  const VenueFormPage({required this.ownerId, this.venueId, Key? key}) : super(key: key);
+  const VenueFormPage({required this.ownerId, this.venueId, super.key});
 
   @override
   State<VenueFormPage> createState() => _VenueFormPageState();
@@ -999,7 +999,7 @@ class _VenueFormPageState extends State<VenueFormPage> {
                 final index = entry.key;
                 final room = entry.value;
                 return _buildRoomCard(index, room);
-              }).toList(),
+              }),
               
               // Add Room Button
               OutlinedButton.icon(

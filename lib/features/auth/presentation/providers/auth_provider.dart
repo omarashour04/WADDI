@@ -560,7 +560,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> signInWithGoogle() async {
     state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
     try {
-      final repo = _loginUser.repository as AuthRepository;
+      final repo = _loginUser.repository;
       final user = await repo.signInWithGoogle();
       if (user != null) {
         final userDoc = FirebaseFirestore.instance.collection('users').doc(user.id);
@@ -644,7 +644,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   // Change password for the current user
   Future<String?> changePassword(String newPassword) async {
     try {
-      final repo = _loginUser.repository as AuthRepository;
+      final repo = _loginUser.repository;
       await repo.changePassword(newPassword);
       return null;
     } catch (e) {

@@ -12,7 +12,7 @@ import '../../../../shared/widgets/main_scaffold.dart';
 
 class VenueOwnerDashboardPage extends ConsumerWidget {
   final String ownerId;
-  const VenueOwnerDashboardPage({required this.ownerId, Key? key}) : super(key: key);
+  const VenueOwnerDashboardPage({required this.ownerId, super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -63,8 +63,8 @@ class VenueOwnerDashboardPage extends ConsumerWidget {
           onPressed: () => context.go('/venue-owner/venue-form'),
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.textOnPrimary,
-          child: const Icon(Icons.add),
           tooltip: 'Add Venue',
+          child: const Icon(Icons.add),
         ),
       ),
     );

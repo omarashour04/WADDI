@@ -4,7 +4,7 @@ import '../providers/auth_provider.dart';
 import 'package:go_router/go_router.dart';
 
 class ResetPasswordPage extends ConsumerStatefulWidget {
-  const ResetPasswordPage({Key? key}) : super(key: key);
+  const ResetPasswordPage({super.key});
 
   @override
   ConsumerState<ResetPasswordPage> createState() => _ResetPasswordPageState();

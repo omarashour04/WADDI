@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/services/app_state_service.dart';
 import '../providers/venue_providers.dart';
-import '../../domain/entities/venue_entity.dart';
-import '../../domain/entities/room_entity.dart';
 import '../../../reviews/presentation/providers/review_providers.dart';
 import '../../../reviews/domain/entities/review_entity.dart';
 import 'package:go_router/go_router.dart';
@@ -11,7 +8,6 @@ import 'package:waddi_platform/shared/themes/app_colors.dart';
 import 'package:waddi_platform/features/auth/presentation/providers/auth_provider.dart';
 import '../../../../shared/widgets/firebase_image_widget.dart';
 import '../../../../shared/widgets/smart_back_button.dart';
-import 'package:waddi_platform/shared/providers/shared_providers.dart';
 
 class VenueDetailsPage extends ConsumerWidget {
   final String venueId;

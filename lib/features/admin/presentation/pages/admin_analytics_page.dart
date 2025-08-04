@@ -6,7 +6,7 @@ import '../../../../shared/themes/app_colors.dart';
 import '../../../../shared/widgets/main_scaffold.dart';
 
 class AdminAnalyticsPage extends ConsumerWidget {
-  const AdminAnalyticsPage({Key? key}) : super(key: key);
+  const AdminAnalyticsPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -200,7 +200,7 @@ class AdminAnalyticsPage extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'User: ${userId.length > 20 ? userId.substring(0, 20) + '...' : userId}',
+                                'User: ${userId.length > 20 ? '${userId.substring(0, 20)}...' : userId}',
                               ),
                               Text('Amount: \$${amount.toStringAsFixed(2)}'),
                               Text('Status: ${status.toUpperCase()}'),

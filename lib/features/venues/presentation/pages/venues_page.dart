@@ -18,6 +18,8 @@ import '../../../../shared/widgets/smart_back_button.dart';
 import 'package:waddi_platform/shared/providers/shared_providers.dart';
 
 class VenuesPage extends ConsumerStatefulWidget {
+  const VenuesPage({super.key});
+
   @override
   ConsumerState<VenuesPage> createState() => _VenuesPageState();
 }
@@ -34,7 +36,7 @@ class _VenuesPageState extends ConsumerState<VenuesPage> {
     final searchController = TextEditingController(text: ref.read(venueSearchQueryProvider));
     final filter = ref.watch(venueFilterProvider);
     final geocodingService = ref.read(geocodingProvider);
-    CameraPosition? _searchedCameraPosition;
+    CameraPosition? searchedCameraPosition;
 
     // Update navigation state when page is built
     // WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -128,9 +130,9 @@ class _VenuesPageState extends ConsumerState<VenuesPage> {
                       child: venuesAsync.when(
                         data: (venues) {
                           print('DEBUG: Loaded ${venues.length} venues');
-                          venues.forEach((venue) {
+                          for (var venue in venues) {
                             print('DEBUG: Venue ${venue.name} - Images: ${venue.images}');
-                          });
+                          }
                           final featuredVenues = venues.take(4).toList();
                           if (featuredVenues.isEmpty) {
                             return Center(
@@ -412,7 +414,7 @@ class VenueCard extends StatelessWidget {
 // Add this widget for skeleton loading
 class _VenueSkeleton extends StatelessWidget {
   final bool isGrid;
-  const _VenueSkeleton({this.isGrid = false});
+  const _VenueSkeleton({required this.isGrid});
   @override
   Widget build(BuildContext context) {
     if (isGrid) {

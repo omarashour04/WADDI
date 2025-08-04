@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/smart_back_button.dart';
 
 class AdminCreateVenueOwnerPage extends StatefulWidget {
-  const AdminCreateVenueOwnerPage({Key? key}) : super(key: key);
+  const AdminCreateVenueOwnerPage({super.key});
 
   @override
   State<AdminCreateVenueOwnerPage> createState() => _AdminCreateVenueOwnerPageState();

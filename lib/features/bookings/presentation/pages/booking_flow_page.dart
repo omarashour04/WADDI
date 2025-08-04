@@ -28,7 +28,7 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
   String _selectedTime = '09:00';
   String _selectedDuration = '1 hour';
   int _guestCount = 1;
-  String _specialRequests = '';
+  final String _specialRequests = '';
   bool _isLoading = false;
 
   @override

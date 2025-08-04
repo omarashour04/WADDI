@@ -3,8 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/shared_providers.dart';
-import '../../core/services/app_state_service.dart';
-import 'package:flutter/foundation.dart';
 
 class AppBackButtonHandler extends ConsumerStatefulWidget {
   final Widget child;

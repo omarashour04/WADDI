@@ -152,9 +152,8 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
         // Apply accessibility settings globally
         return MediaQuery(
           data: MediaQuery.of(context).copyWith(
-            textScaleFactor: accessibilitySettings.textScaleFactor,
             boldText: accessibilitySettings.boldTextEnabled,
-            highContrast: accessibilitySettings.highContrastEnabled,
+            highContrast: accessibilitySettings.highContrastEnabled, textScaler: TextScaler.linear(accessibilitySettings.textScaleFactor),
             disableAnimations: !accessibilitySettings.showAnimations,
           ),
           child: child!,

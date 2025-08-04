@@ -5,7 +5,7 @@ import '../../../../shared/widgets/smart_back_button.dart';
 
 class VenueMaintenancePage extends StatefulWidget {
   final String venueId;
-  const VenueMaintenancePage({required this.venueId, Key? key}) : super(key: key);
+  const VenueMaintenancePage({required this.venueId, super.key});
 
   @override
   State<VenueMaintenancePage> createState() => _VenueMaintenancePageState();
@@ -290,7 +290,7 @@ class _VenueMaintenancePageState extends State<VenueMaintenancePage> {
                               ),
                             ),
                           );
-                        }).toList(),
+                        }),
                     ],
                   ),
                 ),

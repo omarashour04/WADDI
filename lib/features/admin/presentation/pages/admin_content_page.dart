@@ -6,7 +6,7 @@ import '../../../../shared/themes/app_colors.dart';
 import '../../../../shared/widgets/main_scaffold.dart';
 
 class AdminContentPage extends ConsumerStatefulWidget {
-  const AdminContentPage({Key? key}) : super(key: key);
+  const AdminContentPage({super.key});
 
   @override
   ConsumerState<AdminContentPage> createState() => _AdminContentPageState();
@@ -348,7 +348,7 @@ class _ContentEditDialog extends StatefulWidget {
 
 class _ContentEditDialogState extends State<_ContentEditDialog> {
   late TextEditingController _controller;
-  bool _isSaving = false;
+  final bool _isSaving = false;
 
   @override
   void initState() {

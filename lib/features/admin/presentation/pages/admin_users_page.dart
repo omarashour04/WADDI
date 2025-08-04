@@ -6,7 +6,7 @@ import '../../../../shared/themes/app_colors.dart';
 import '../../../../shared/widgets/main_scaffold.dart';
 
 class AdminUsersPage extends ConsumerStatefulWidget {
-  const AdminUsersPage({Key? key}) : super(key: key);
+  const AdminUsersPage({super.key});
 
   @override
   ConsumerState<AdminUsersPage> createState() => _AdminUsersPageState();
@@ -414,8 +414,8 @@ class _AdminUsersPageState extends ConsumerState<AdminUsersPage> {
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: Text('Delete'),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text('Delete'),
           ),
         ],
       ),

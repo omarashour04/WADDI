@@ -6,7 +6,7 @@ import 'room_form_page.dart';
 
 class RoomManagementPage extends StatelessWidget {
   final String venueId;
-  const RoomManagementPage({required this.venueId, Key? key}) : super(key: key);
+  const RoomManagementPage({required this.venueId, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -91,8 +91,8 @@ class RoomManagementPage extends StatelessWidget {
         onPressed: () {
           context.go('/venue-owner/room-form?venueId=$venueId');
         },
-        child: const Icon(Icons.add),
         tooltip: 'Add Room',
+        child: const Icon(Icons.add),
       ),
     );
   }

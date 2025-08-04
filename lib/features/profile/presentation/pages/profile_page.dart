@@ -14,6 +14,8 @@ import '../../../../core/services/app_state_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ProfilePage extends ConsumerWidget {
+  const ProfilePage({super.key});
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);

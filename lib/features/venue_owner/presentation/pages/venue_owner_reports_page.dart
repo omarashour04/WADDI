@@ -6,7 +6,7 @@ import '../../../../shared/widgets/main_scaffold.dart';
 
 class VenueOwnerReportsPage extends ConsumerWidget {
   final String ownerId;
-  const VenueOwnerReportsPage({required this.ownerId, Key? key}) : super(key: key);
+  const VenueOwnerReportsPage({required this.ownerId, super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -252,7 +252,7 @@ class VenueOwnerReportsPage extends ConsumerWidget {
               ],
             ),
           );
-        }).toList(),
+        }),
       ],
     );
   }
@@ -329,7 +329,7 @@ class VenueOwnerReportsPage extends ConsumerWidget {
             .get();
 
         for (final booking in bookingsSnapshot.docs) {
-          final bookingData = booking.data() as Map<String, dynamic>;
+          final bookingData = booking.data();
           final price = bookingData['price'] ?? 0.0;
           totalRevenue += price;
         }
@@ -360,7 +360,7 @@ class VenueOwnerReportsPage extends ConsumerWidget {
       totalBookings += bookingsSnapshot.docs.length;
 
       for (final booking in bookingsSnapshot.docs) {
-        final bookingData = booking.data() as Map<String, dynamic>;
+        final bookingData = booking.data();
         final price = bookingData['price'] ?? 0.0;
         totalRevenue += price;
       }
@@ -378,7 +378,7 @@ class VenueOwnerReportsPage extends ConsumerWidget {
     if (totalReviews > 0) {
       double totalRating = 0.0;
       for (final review in reviewsSnapshot.docs) {
-        final reviewData = review.data() as Map<String, dynamic>;
+        final reviewData = review.data();
         final rating = reviewData['rating'] ?? 0.0;
         totalRating += rating;
       }

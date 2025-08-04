@@ -43,7 +43,7 @@ class BookingDetailsPage extends ConsumerWidget {
           if (booking == null) {
             return const Center(child: Text('Booking not found'));
           }
-          return _BookingDetailsContent(booking: booking!);
+          return _BookingDetailsContent(booking: booking);
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(
@@ -386,7 +386,7 @@ class _BookingDetailsContent extends ConsumerWidget {
                   .read(venueProvider(booking.venueId))
                   .when(
                     data: (venue) {
-                      if (venue?.contactPhone != null && venue!.contactPhone!.isNotEmpty) {
+                      if (venue?.contactPhone != null && venue!.contactPhone.isNotEmpty) {
                         // Show contact options dialog
                         showDialog(
                           context: context,
@@ -399,7 +399,7 @@ class _BookingDetailsContent extends ConsumerWidget {
                                 Text('Venue: ${venue.name}'),
                                 const SizedBox(height: 8),
                                 Text('Phone: ${venue.contactPhone}'),
-                                if (venue.contactEmail != null && venue.contactEmail!.isNotEmpty)
+                                if (venue.contactEmail.isNotEmpty)
                                   Text('Email: ${venue.contactEmail}'),
                               ],
                             ),
@@ -412,7 +412,7 @@ class _BookingDetailsContent extends ConsumerWidget {
                                 onPressed: () {
                                   Navigator.of(dialogContext).pop();
                                   // Launch phone call
-                                  _launchPhoneCall(context, venue.contactPhone!);
+                                  _launchPhoneCall(context, venue.contactPhone);
                                 },
                                 child: const Text('Call'),
                               ),
@@ -464,9 +464,9 @@ class _BookingDetailsContent extends ConsumerWidget {
                   .read(venueProvider(booking.venueId))
                   .when(
                     data: (venue) {
-                      if (venue?.address != null && venue!.address!.isNotEmpty) {
+                      if (venue?.address != null && venue!.address.isNotEmpty) {
                         // Launch maps with venue address
-                        _launchDirections(context, venue.address!);
+                        _launchDirections(context, venue.address);
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(

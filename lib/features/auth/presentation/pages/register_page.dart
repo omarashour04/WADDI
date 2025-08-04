@@ -5,7 +5,7 @@ import '../providers/auth_provider.dart';
 import 'package:go_router/go_router.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
-  const RegisterPage({Key? key}) : super(key: key);
+  const RegisterPage({super.key});
 
   @override
   ConsumerState<RegisterPage> createState() => _RegisterPageState();

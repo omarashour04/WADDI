@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import '../../../../shared/widgets/smart_back_button.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
 
 class AdminDatabaseSetupPage extends ConsumerStatefulWidget {
   const AdminDatabaseSetupPage({super.key});

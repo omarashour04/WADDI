@@ -2,83 +2,141 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/smart_back_button.dart';
+import '../../../bookings/domain/entities/booking_entity.dart';
 
 class VenueBookingsPage extends StatelessWidget {
   final String venueId;
-  const VenueBookingsPage({required this.venueId, Key? key}) : super(key: key);
+  const VenueBookingsPage({required this.venueId, super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Venue Bookings'),
-        leading: SmartBackButton(),
-      ),
+      appBar: AppBar(title: const Text('Venue Bookings'), leading: SmartBackButton()),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
-            .collection('venues')
-            .doc(venueId)
-            .collection('rooms')
+            .collection('bookings')
+            .where('venueId', isEqualTo: venueId)
+            .orderBy('startTime', descending: true)
             .snapshots(),
-        builder: (context, roomSnapshot) {
-          if (roomSnapshot.connectionState == ConnectionState.waiting) {
+        builder: (context, bookingSnapshot) {
+          if (bookingSnapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (!roomSnapshot.hasData || roomSnapshot.data!.docs.isEmpty) {
-            return const Center(child: Text('No rooms found.'));
+
+          if (!bookingSnapshot.hasData || bookingSnapshot.data!.docs.isEmpty) {
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.event_busy, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text('No bookings found for this venue'),
+                ],
+              ),
+            );
           }
-          final rooms = roomSnapshot.data!.docs;
+
+          final bookings = bookingSnapshot.data!.docs;
+
+          // Group bookings by room
+          final Map<String, List<QueryDocumentSnapshot>> bookingsByRoom =
+              <String, List<QueryDocumentSnapshot>>{};
+          for (final booking in bookings) {
+            final data = booking.data() as Map<String, dynamic>;
+            final roomId = data['roomId'] ?? 'Unknown Room';
+            bookingsByRoom.putIfAbsent(roomId, () => <QueryDocumentSnapshot>[]).add(booking);
+          }
+
           return ListView.builder(
-            itemCount: rooms.length,
-            itemBuilder: (context, i) {
-              final roomId = rooms[i].id;
-              return StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('venues')
-                    .doc(venueId)
-                    .collection('rooms')
-                    .doc(roomId)
-                    .collection('bookings')
-                    .snapshots(),
-                builder: (context, bookingSnapshot) {
-                  if (bookingSnapshot.connectionState == ConnectionState.waiting) {
-                    return const SizedBox();
-                  }
-                  if (!bookingSnapshot.hasData || bookingSnapshot.data!.docs.isEmpty) {
-                    return const SizedBox();
-                  }
-                  final bookings = bookingSnapshot.data!.docs;
-                  return ExpansionTile(
-                    title: Text('Room: ${rooms[i]['name'] ?? roomId}'),
-                    children: bookings.map((b) {
-                      final data = b.data() as Map<String, dynamic>;
-                      return ListTile(
-                        title: Text('User: ${data['userId'] ?? ''}'),
-                        subtitle: Text('Date: ${data['date'] ?? ''} | Time: ${data['timeSlot'] ?? ''}'),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.cancel, color: Colors.red),
-                          onPressed: () async {
+            padding: const EdgeInsets.all(16),
+            itemCount: bookingsByRoom.length,
+            itemBuilder: (context, index) {
+              final roomId = bookingsByRoom.keys.elementAt(index);
+              final roomBookings = bookingsByRoom[roomId] ?? [];
+
+              return ExpansionTile(
+                title: Text(
+                  'Room: ${roomBookings.isNotEmpty ? (roomBookings.first.data() as Map<String, dynamic>)['roomName'] ?? roomId : roomId}',
+                ),
+                subtitle: Text(
+                  '${roomBookings.length} booking${roomBookings.length == 1 ? '' : 's'}',
+                ),
+                children: roomBookings.map((booking) {
+                  final data = booking.data() as Map<String, dynamic>;
+                  final bookingEntity = BookingEntity.fromMap(data, booking.id);
+
+                  return Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: ListTile(
+                      title: Text('User: ${data['userId'] ?? 'Unknown'}'),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Date: ${_formatDate(bookingEntity.startTime)}'),
+                          Text(
+                            'Time: ${_formatTime(bookingEntity.startTime)} - ${_formatTime(bookingEntity.endTime)}',
+                          ),
+                          Text('Status: ${_getStatusText(bookingEntity.status)}'),
+                          Text('Price: \$${bookingEntity.totalPrice.toStringAsFixed(2)}'),
+                          if (data['notes'] != null && data['notes'].isNotEmpty)
+                            Text('Notes: ${data['notes']}'),
+                        ],
+                      ),
+                      trailing: PopupMenuButton<String>(
+                        onSelected: (value) async {
+                          if (value == 'cancel') {
                             final confirm = await showDialog<bool>(
                               context: context,
                               builder: (context) => AlertDialog(
                                 title: const Text('Cancel Booking'),
-                                content: const Text('Are you sure you want to cancel this booking?'),
+                                content: const Text(
+                                  'Are you sure you want to cancel this booking?',
+                                ),
                                 actions: [
-                                  TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No')),
-                                  TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Yes')),
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context, false),
+                                    child: const Text('No'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context, true),
+                                    child: const Text('Yes'),
+                                  ),
                                 ],
                               ),
                             );
                             if (confirm == true) {
-                              await b.reference.delete();
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Booking cancelled.')));
+                              try {
+                                await booking.reference.update({
+                                  'status': 'cancelled',
+                                  'updatedAt': FieldValue.serverTimestamp(),
+                                });
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Booking cancelled successfully')),
+                                );
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Failed to cancel booking: $e')),
+                                );
+                              }
                             }
-                          },
-                        ),
-                      );
-                    }).toList(),
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'cancel',
+                            child: Row(
+                              children: [
+                                Icon(Icons.cancel, color: Colors.red),
+                                SizedBox(width: 8),
+                                Text('Cancel Booking'),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   );
-                },
+                }).toList(),
               );
             },
           );
@@ -86,4 +144,29 @@ class VenueBookingsPage extends StatelessWidget {
       ),
     );
   }
-} 
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
+  String _formatTime(DateTime time) {
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+  }
+
+  String _getStatusText(String status) {
+    switch (status) {
+      case 'pending':
+        return 'Pending';
+      case 'confirmed':
+        return 'Confirmed';
+      case 'cancelled':
+        return 'Cancelled';
+      case 'completed':
+        return 'Completed';
+      case 'in_progress':
+        return 'In Progress';
+      default:
+        return status;
+    }
+  }
+}

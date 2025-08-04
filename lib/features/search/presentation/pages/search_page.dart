@@ -21,6 +21,8 @@ import '../../../../shared/widgets/pull_to_refresh_wrapper.dart';
 import '../../../../shared/widgets/lottie_animations.dart';
 
 class SearchPage extends ConsumerStatefulWidget {
+  const SearchPage({super.key});
+
   @override
   ConsumerState<SearchPage> createState() => _SearchPageState();
 }

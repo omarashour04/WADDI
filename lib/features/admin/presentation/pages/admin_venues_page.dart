@@ -6,7 +6,7 @@ import '../../../../shared/themes/app_colors.dart';
 import '../../../../shared/widgets/main_scaffold.dart';
 
 class AdminVenuesPage extends ConsumerStatefulWidget {
-  const AdminVenuesPage({Key? key}) : super(key: key);
+  const AdminVenuesPage({super.key});
 
   @override
   ConsumerState<AdminVenuesPage> createState() => _AdminVenuesPageState();
@@ -191,7 +191,7 @@ class _AdminVenuesPageState extends ConsumerState<AdminVenuesPage> {
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    'Owner: ${ownerId.length > 8 ? ownerId.substring(0, 8) + '...' : ownerId}',
+                                    'Owner: ${ownerId.length > 8 ? '${ownerId.substring(0, 8)}...' : ownerId}',
                                     style: TextStyle(
                                       color: Colors.grey[600],
                                       fontSize: 12,

@@ -12,8 +12,8 @@ class PaymentPage extends StatefulWidget {
     required this.totalAmount,
     required this.userEmail,
     required this.paymentService,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   State<PaymentPage> createState() => _PaymentPageState();

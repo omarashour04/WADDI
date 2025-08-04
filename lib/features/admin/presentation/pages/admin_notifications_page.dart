@@ -6,7 +6,7 @@ import '../../../../shared/themes/app_colors.dart';
 import '../../../../shared/widgets/main_scaffold.dart';
 
 class AdminNotificationsPage extends ConsumerStatefulWidget {
-  const AdminNotificationsPage({Key? key}) : super(key: key);
+  const AdminNotificationsPage({super.key});
 
   @override
   ConsumerState<AdminNotificationsPage> createState() => _AdminNotificationsPageState();

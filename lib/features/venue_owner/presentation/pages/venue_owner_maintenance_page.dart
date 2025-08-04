@@ -6,7 +6,7 @@ import '../../../../shared/widgets/main_scaffold.dart';
 
 class VenueOwnerMaintenancePage extends ConsumerWidget {
   final String ownerId;
-  const VenueOwnerMaintenancePage({required this.ownerId, Key? key}) : super(key: key);
+  const VenueOwnerMaintenancePage({required this.ownerId, super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -304,7 +304,7 @@ class VenueOwnerMaintenancePage extends ConsumerWidget {
               ],
             ),
           );
-        }).toList(),
+        }),
       ],
     );
   }
@@ -418,7 +418,7 @@ class VenueOwnerMaintenancePage extends ConsumerWidget {
                 value: selectedVenue.isEmpty ? null : selectedVenue,
                 decoration: const InputDecoration(labelText: 'Venue'),
                 items: venues.map((venue) {
-                  final venueData = venue.data() as Map<String, dynamic>;
+                  final venueData = venue.data();
                   return DropdownMenuItem(
                     value: venue.id,
                     child: Text(venueData['name'] ?? 'Unknown Venue'),

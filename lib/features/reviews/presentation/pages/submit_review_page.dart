@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class SubmitReviewPage extends StatefulWidget {
   final String userId;
   final String venueId;
-  const SubmitReviewPage({required this.userId, required this.venueId, Key? key}) : super(key: key);
+  const SubmitReviewPage({required this.userId, required this.venueId, super.key});
 
   @override
   State<SubmitReviewPage> createState() => _SubmitReviewPageState();

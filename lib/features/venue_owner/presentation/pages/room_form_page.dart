@@ -26,7 +26,7 @@ class _RoomFormPageState extends ConsumerState<RoomFormPage> {
   final _hourlyPriceController = TextEditingController();
   final _equipmentController = TextEditingController();
 
-  List<File> _selectedImages = [];
+  final List<File> _selectedImages = [];
   bool _isLoading = false;
   bool _isClosedForMaintenance = false;
 

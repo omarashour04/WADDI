@@ -7,7 +7,7 @@ import 'package:waddi_platform/features/auth/auth_injection.dart';
 
 class ReviewsPage extends ConsumerWidget {
   final String venueId;
-  const ReviewsPage({required this.venueId});
+  const ReviewsPage({super.key, required this.venueId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -52,8 +52,8 @@ class ReviewsPage extends ConsumerWidget {
             builder: (context) => _NewReviewDialog(venueId: venueId, userId: userId),
           );
         },
-        child: const Icon(Icons.rate_review),
         tooltip: 'Write Review',
+        child: const Icon(Icons.rate_review),
       ),
     );
   }

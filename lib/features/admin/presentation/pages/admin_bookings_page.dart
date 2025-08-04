@@ -6,7 +6,7 @@ import '../../../../shared/themes/app_colors.dart';
 import '../../../../shared/widgets/main_scaffold.dart';
 
 class AdminBookingsPage extends ConsumerStatefulWidget {
-  const AdminBookingsPage({Key? key}) : super(key: key);
+  const AdminBookingsPage({super.key});
 
   @override
   ConsumerState<AdminBookingsPage> createState() => _AdminBookingsPageState();
@@ -173,7 +173,7 @@ class _AdminBookingsPageState extends ConsumerState<AdminBookingsPage> {
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('User: ${userId.length > 20 ? userId.substring(0, 20) + '...' : userId}'),
+                              Text('User: ${userId.length > 20 ? '${userId.substring(0, 20)}...' : userId}'),
                               Text('Room: $roomId'),
                               if (startTime != null && endTime != null) ...[
                                 Text('Time: ${_formatDateTime(startTime)} - ${_formatTime(endTime)}'),
@@ -385,8 +385,8 @@ class _AdminBookingsPageState extends ConsumerState<AdminBookingsPage> {
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: Text('Delete'),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text('Delete'),
           ),
         ],
       ),

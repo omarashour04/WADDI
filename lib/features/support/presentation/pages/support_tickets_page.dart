@@ -8,7 +8,7 @@ import 'package:go_router/go_router.dart';
 
 class SupportTicketsPage extends StatelessWidget {
   final String userId;
-  const SupportTicketsPage({required this.userId});
+  const SupportTicketsPage({super.key, required this.userId});
 
   @override
   Widget build(BuildContext context) {
@@ -99,8 +99,8 @@ class SupportTicketsPage extends StatelessWidget {
               builder: (context) => _NewTicketDialog(userId: userId),
             );
           },
-          child: const Icon(Icons.add),
           tooltip: 'New Ticket',
+          child: const Icon(Icons.add),
         ),
       ),
     );

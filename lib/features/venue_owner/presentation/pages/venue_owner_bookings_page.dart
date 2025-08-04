@@ -3,10 +3,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/themes/app_colors.dart';
 import '../../../../shared/widgets/main_scaffold.dart';
+import '../../../bookings/domain/entities/booking_entity.dart';
 
 class VenueOwnerBookingsPage extends ConsumerWidget {
   final String ownerId;
-  const VenueOwnerBookingsPage({required this.ownerId, Key? key}) : super(key: key);
+  const VenueOwnerBookingsPage({required this.ownerId, super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -60,90 +61,88 @@ class VenueOwnerBookingsPage extends ConsumerWidget {
                     children: [
                       StreamBuilder<QuerySnapshot>(
                         stream: FirebaseFirestore.instance
-                            .collection('venues')
-                            .doc(venueId)
-                            .collection('rooms')
+                            .collection('bookings')
+                            .where('venueId', isEqualTo: venueId)
+                            .orderBy('startTime', descending: true)
                             .snapshots(),
-                        builder: (context, roomSnapshot) {
-                          if (roomSnapshot.connectionState == ConnectionState.waiting) {
+                        builder: (context, bookingSnapshot) {
+                          if (bookingSnapshot.connectionState == ConnectionState.waiting) {
                             return const Center(child: CircularProgressIndicator());
                           }
 
-                          if (!roomSnapshot.hasData || roomSnapshot.data!.docs.isEmpty) {
+                          if (!bookingSnapshot.hasData || bookingSnapshot.data!.docs.isEmpty) {
                             return const Padding(
                               padding: EdgeInsets.all(16),
-                              child: Text('No rooms found in this venue'),
+                              child: Text('No bookings found for this venue'),
                             );
                           }
 
-                          final rooms = roomSnapshot.data!.docs;
+                          final bookings = bookingSnapshot.data!.docs;
+
+                          // Group bookings by room
+                          final Map<String, List<QueryDocumentSnapshot>> bookingsByRoom =
+                              <String, List<QueryDocumentSnapshot>>{};
+                          for (final booking in bookings) {
+                            final data = booking.data() as Map<String, dynamic>;
+                            final roomId = data['roomId'] ?? 'Unknown Room';
+                            bookingsByRoom
+                                .putIfAbsent(roomId, () => <QueryDocumentSnapshot>[])
+                                .add(booking);
+                          }
+
                           return ListView.builder(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
-                            itemCount: rooms.length,
+                            itemCount: bookingsByRoom.length,
                             itemBuilder: (context, roomIndex) {
-                              final roomId = rooms[roomIndex].id;
-                              final roomData = rooms[roomIndex].data() as Map<String, dynamic>;
-                              final roomName = roomData['name'] ?? 'Unknown Room';
+                              final roomId = bookingsByRoom.keys.elementAt(roomIndex);
+                              final roomBookings = bookingsByRoom[roomId] ?? [];
+                              final roomName = roomBookings.isNotEmpty
+                                  ? (roomBookings.first.data()
+                                            as Map<String, dynamic>)['roomName'] ??
+                                        roomId
+                                  : roomId;
 
-                              return StreamBuilder<QuerySnapshot>(
-                                stream: FirebaseFirestore.instance
-                                    .collection('venues')
-                                    .doc(venueId)
-                                    .collection('rooms')
-                                    .doc(roomId)
-                                    .collection('bookings')
-                                    .orderBy('date', descending: true)
-                                    .snapshots(),
-                                builder: (context, bookingSnapshot) {
-                                  if (bookingSnapshot.connectionState == ConnectionState.waiting) {
-                                    return const SizedBox();
-                                  }
+                              return ExpansionTile(
+                                title: Text(roomName),
+                                subtitle: Text('${roomBookings.length} booking(s)'),
+                                children: roomBookings.map((booking) {
+                                  final data = booking.data() as Map<String, dynamic>;
+                                  final bookingEntity = BookingEntity.fromMap(data, booking.id);
 
-                                  if (!bookingSnapshot.hasData ||
-                                      bookingSnapshot.data!.docs.isEmpty) {
-                                    return const SizedBox();
-                                  }
-
-                                  final bookings = bookingSnapshot.data!.docs;
-                                  return ExpansionTile(
-                                    title: Text(roomName),
-                                    subtitle: Text('${bookings.length} booking(s)'),
-                                    children: bookings.map((booking) {
-                                      final bookingData = booking.data() as Map<String, dynamic>;
-                                      final bookingDate = bookingData['date'] ?? '';
-                                      final timeSlot = bookingData['timeSlot'] ?? '';
-                                      final userId = bookingData['userId'] ?? '';
-                                      final status = bookingData['status'] ?? 'confirmed';
-
-                                      return ListTile(
-                                        title: Text('Date: $bookingDate'),
-                                        subtitle: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text('Time: $timeSlot'),
-                                            Text('User: $userId'),
-                                            Text('Status: $status'),
-                                          ],
+                                  return ListTile(
+                                    title: Text('User: ${data['userId'] ?? 'Unknown'}'),
+                                    subtitle: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Date: ${_formatDate(bookingEntity.startTime)}'),
+                                        Text(
+                                          'Time: ${_formatTime(bookingEntity.startTime)} - ${_formatTime(bookingEntity.endTime)}',
                                         ),
-                                        trailing: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              _getStatusIcon(status),
-                                              color: _getStatusColor(status),
-                                            ),
-                                            IconButton(
-                                              icon: const Icon(Icons.cancel, color: Colors.red),
-                                              onPressed: () =>
-                                                  _cancelBooking(context, booking.reference),
-                                            ),
-                                          ],
+                                        Text('Status: ${_getStatusText(bookingEntity.status)}'),
+                                        Text(
+                                          'Price: \$${bookingEntity.totalPrice.toStringAsFixed(2)}',
                                         ),
-                                      );
-                                    }).toList(),
+                                        if (data['notes'] != null && data['notes'].isNotEmpty)
+                                          Text('Notes: ${data['notes']}'),
+                                      ],
+                                    ),
+                                    trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          _getStatusIcon(bookingEntity.status),
+                                          color: _getStatusColor(bookingEntity.status),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.cancel, color: Colors.red),
+                                          onPressed: () =>
+                                              _cancelBooking(context, booking.reference),
+                                        ),
+                                      ],
+                                    ),
                                   );
-                                },
+                                }).toList(),
                               );
                             },
                           );
@@ -160,6 +159,31 @@ class VenueOwnerBookingsPage extends ConsumerWidget {
     );
   }
 
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
+  String _formatTime(DateTime time) {
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+  }
+
+  String _getStatusText(String status) {
+    switch (status) {
+      case 'pending':
+        return 'Pending';
+      case 'confirmed':
+        return 'Confirmed';
+      case 'cancelled':
+        return 'Cancelled';
+      case 'completed':
+        return 'Completed';
+      case 'in_progress':
+        return 'In Progress';
+      default:
+        return status;
+    }
+  }
+
   IconData _getStatusIcon(String status) {
     switch (status.toLowerCase()) {
       case 'confirmed':
@@ -168,6 +192,10 @@ class VenueOwnerBookingsPage extends ConsumerWidget {
         return Icons.pending;
       case 'cancelled':
         return Icons.cancel;
+      case 'completed':
+        return Icons.done_all;
+      case 'in_progress':
+        return Icons.play_circle;
       default:
         return Icons.info;
     }
@@ -181,6 +209,10 @@ class VenueOwnerBookingsPage extends ConsumerWidget {
         return Colors.orange;
       case 'cancelled':
         return Colors.red;
+      case 'completed':
+        return Colors.blue;
+      case 'in_progress':
+        return Colors.purple;
       default:
         return Colors.grey;
     }
@@ -201,7 +233,7 @@ class VenueOwnerBookingsPage extends ConsumerWidget {
 
     if (confirm == true) {
       try {
-        await bookingRef.update({'status': 'cancelled'});
+        await bookingRef.update({'status': 'cancelled', 'updatedAt': FieldValue.serverTimestamp()});
         if (context.mounted) {
           ScaffoldMessenger.of(
             context,

@@ -10,13 +10,13 @@ class FirebaseImageWidget extends StatelessWidget {
   final BorderRadius? borderRadius;
 
   const FirebaseImageWidget({
-    Key? key,
+    super.key,
     required this.imageUrl,
     this.width,
     this.height,
     this.fit = BoxFit.cover,
     this.borderRadius,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -4,6 +4,8 @@ import '../providers/user_providers.dart';
 import '../../domain/entities/user_entity.dart';
 
 class UsersPage extends ConsumerWidget {
+  const UsersPage({super.key});
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final usersAsync = ref.watch(allUsersProvider);

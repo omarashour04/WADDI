@@ -8,7 +8,7 @@ class SmartBackButton extends ConsumerWidget {
   final double? size;
   final VoidCallback? onPressed;
 
-  const SmartBackButton({Key? key, this.color, this.size, this.onPressed}) : super(key: key);
+  const SmartBackButton({super.key, this.color, this.size, this.onPressed});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

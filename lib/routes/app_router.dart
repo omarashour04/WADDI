@@ -5,7 +5,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../features/auth/presentation/providers/auth_provider.dart';
 import '../shared/providers/shared_providers.dart';
 
-import '../shared/widgets/page_transitions.dart';
 // Auth pages
 import '../features/auth/presentation/pages/login_page.dart';
 import '../features/auth/presentation/pages/register_page.dart';
@@ -20,7 +19,6 @@ import '../features/venues/presentation/pages/rooms_page.dart';
 import '../features/users/presentation/pages/users_page.dart';
 import '../features/bookings/presentation/pages/booking_confirmation_page.dart';
 import '../features/bookings/presentation/pages/booking_details_page.dart';
-import '../features/bookings/presentation/pages/booking_flow_page.dart';
 import '../features/bookings/presentation/pages/user_bookings_page.dart';
 import '../features/reviews/presentation/pages/reviews_page.dart';
 import '../features/support/presentation/pages/support_tickets_page.dart';
@@ -42,8 +40,6 @@ import '../features/venue_owner/presentation/pages/venue_owner_reports_page.dart
 import '../features/venue_owner/presentation/pages/venue_owner_maintenance_page.dart';
 import 'package:waddi_platform/features/search/presentation/pages/search_page.dart';
 import '../features/venues/presentation/pages/venue_details_page.dart';
-import '../features/bookings/presentation/pages/booking_confirmation_page.dart';
-import '../features/bookings/presentation/pages/booking_details_page.dart';
 import '../features/home/presentation/pages/home_page.dart';
 import '../features/admin/presentation/pages/admin_create_venue_owner_page.dart';
 import '../features/admin/presentation/pages/admin_database_setup_page.dart';

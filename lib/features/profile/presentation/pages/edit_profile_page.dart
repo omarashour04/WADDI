@@ -8,7 +8,7 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../shared/widgets/smart_back_button.dart';
 
 class EditProfilePage extends ConsumerStatefulWidget {
-  const EditProfilePage({Key? key}) : super(key: key);
+  const EditProfilePage({super.key});
 
   @override
   ConsumerState<EditProfilePage> createState() => _EditProfilePageState();

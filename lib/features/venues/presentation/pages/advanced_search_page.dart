@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/smart_back_button.dart';
-import '../../../../shared/themes/app_colors.dart';
 import '../../domain/entities/search_filters.dart';
-import '../providers/venue_providers.dart';
-import '../widgets/venue_card.dart';
 
 class AdvancedSearchPage extends ConsumerStatefulWidget {
   const AdvancedSearchPage({super.key});

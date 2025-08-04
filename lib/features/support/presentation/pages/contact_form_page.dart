@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ContactFormPage extends StatefulWidget {
   final String userId;
-  const ContactFormPage({required this.userId, Key? key}) : super(key: key);
+  const ContactFormPage({required this.userId, super.key});
 
   @override
   State<ContactFormPage> createState() => _ContactFormPageState();

@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class PaymentStatusPage extends StatefulWidget {
   final String bookingId;
   final String status; // 'success' or 'failure'
-  const PaymentStatusPage({required this.bookingId, required this.status, Key? key}) : super(key: key);
+  const PaymentStatusPage({required this.bookingId, required this.status, super.key});
 
   @override
   State<PaymentStatusPage> createState() => _PaymentStatusPageState();

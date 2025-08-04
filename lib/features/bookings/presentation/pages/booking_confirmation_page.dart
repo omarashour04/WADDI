@@ -279,7 +279,7 @@ class BookingConfirmationPage extends ConsumerWidget {
     // Create calendar URL
     final eventTitle = Uri.encodeComponent('Gaming Session - $roomName at $venueName');
     final eventDetails = Uri.encodeComponent(
-      'Gaming session at $venueName\nRoom: $roomName\nDuration: ${durationHours} hours\nTotal: EGP ${totalPrice.toStringAsFixed(2)}',
+      'Gaming session at $venueName\nRoom: $roomName\nDuration: $durationHours hours\nTotal: EGP ${totalPrice.toStringAsFixed(2)}',
     );
     final location = Uri.encodeComponent(venueName);
 

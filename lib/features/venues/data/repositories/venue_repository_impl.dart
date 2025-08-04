@@ -88,7 +88,7 @@ class VenueRepositoryImpl implements VenueRepository {
   @override
   Future<List<RoomEntity>> getRoomsForVenue(String venueId) async {
     final snapshot = await firestore.collection('venues').doc(venueId).collection('rooms').get();
-    return snapshot.docs.map((doc) => RoomEntity.fromMap(doc.data() as Map<String, dynamic>, doc.id)).toList();
+    return snapshot.docs.map((doc) => RoomEntity.fromMap(doc.data(), doc.id)).toList();
   }
 
   @override

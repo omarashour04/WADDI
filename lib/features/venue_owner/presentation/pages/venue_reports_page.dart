@@ -4,7 +4,7 @@ import '../../../../shared/widgets/smart_back_button.dart';
 
 class VenueReportsPage extends StatelessWidget {
   final String venueId;
-  const VenueReportsPage({required this.venueId, Key? key}) : super(key: key);
+  const VenueReportsPage({required this.venueId, super.key});
 
   Future<Map<String, dynamic>> _fetchReport() async {
     try {
