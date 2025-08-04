@@ -4,6 +4,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../shared/utils/storage_utils.dart';
 
 // Room data model
 class RoomData {
@@ -96,7 +97,7 @@ class _VenueFormPageState extends State<VenueFormPage> {
   final _addressController = TextEditingController();
   final _contactPhoneController = TextEditingController();
   final _contactEmailController = TextEditingController();
-  
+
   // New controllers for additional fields
   final _minPriceController = TextEditingController();
   final _maxPriceController = TextEditingController();
@@ -108,7 +109,7 @@ class _VenueFormPageState extends State<VenueFormPage> {
   final TextEditingController _openTimeController = TextEditingController();
   final TextEditingController _closeTimeController = TextEditingController();
   final TextEditingController _timeSlotDurationController = TextEditingController();
-  
+
   List<String> imageUrls = [];
   List<String> selectedAmenities = [];
   List<RoomData> rooms = [];
@@ -169,17 +170,17 @@ class _VenueFormPageState extends State<VenueFormPage> {
         _contactPhoneController.text = data['contactPhone'] ?? '';
         _contactEmailController.text = data['contactEmail'] ?? '';
         imageUrls = List<String>.from(data['images'] ?? []);
-        
+
         // Load price range
         final hourlyPriceRange = data['hourlyPriceRange'] as Map<String, dynamic>? ?? {};
         _minPriceController.text = (hourlyPriceRange['min'] ?? 0).toString();
         _maxPriceController.text = (hourlyPriceRange['max'] ?? 0).toString();
-        
+
         // Load capacity range
         final capacityRange = data['capacityRange'] as Map<String, dynamic>? ?? {};
         _minCapacityController.text = (capacityRange['min'] ?? 0).toString();
         _maxCapacityController.text = (capacityRange['max'] ?? 0).toString();
-        
+
         // Load amenities
         selectedAmenities = List<String>.from(data['amenities'] ?? []);
 
@@ -188,7 +189,7 @@ class _VenueFormPageState extends State<VenueFormPage> {
 
         // Load rooms
         await _loadRooms();
-        
+
         setState(() {});
       }
     } catch (e) {
@@ -203,7 +204,7 @@ class _VenueFormPageState extends State<VenueFormPage> {
           .doc(widget.venueId)
           .collection('rooms')
           .get();
-      
+
       rooms = roomsSnapshot.docs.map((doc) {
         return RoomData.fromMap(doc.data(), doc.id);
       }).toList();
@@ -214,15 +215,17 @@ class _VenueFormPageState extends State<VenueFormPage> {
 
   void _addRoom() {
     setState(() {
-      rooms.add(RoomData(
-        name: '',
-        description: '',
-        capacity: 0,
-        hourlyPrice: 0.0,
-        images: [],
-        amenities: [],
-        isClosedForMaintenance: false,
-      ));
+      rooms.add(
+        RoomData(
+          name: '',
+          description: '',
+          capacity: 0,
+          hourlyPrice: 0.0,
+          images: [],
+          amenities: [],
+          isClosedForMaintenance: false,
+        ),
+      );
     });
   }
 
@@ -243,7 +246,18 @@ class _VenueFormPageState extends State<VenueFormPage> {
     final picked = await picker.pickImage(source: ImageSource.gallery);
     if (picked != null) {
       final file = File(picked.path);
-      final ref = FirebaseStorage.instance.ref().child('venue_images/${DateTime.now().millisecondsSinceEpoch}_${picked.name}');
+
+      // Get venue name for path (use current input or default)
+      final venueName = _nameController.text.trim().isNotEmpty
+          ? _nameController.text.trim()
+          : 'unnamed_venue';
+
+      // Generate proper storage path
+      final venuePath = StorageUtils.getVenueImagePath(venueName);
+      final filename = StorageUtils.generateImageFilename(picked.name);
+      final fullPath = '$venuePath$filename';
+
+      final ref = FirebaseStorage.instance.ref().child(fullPath);
       final uploadTask = await ref.putFile(file);
       final url = await uploadTask.ref.getDownloadURL();
       setState(() => imageUrls.add(url));
@@ -252,7 +266,7 @@ class _VenueFormPageState extends State<VenueFormPage> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     // Validate rooms
     for (int i = 0; i < rooms.length; i++) {
       final room = rooms[i];
@@ -269,7 +283,7 @@ class _VenueFormPageState extends State<VenueFormPage> {
         return;
       }
     }
-    
+
     setState(() {
       isSubmitting = true;
       error = null;
@@ -277,13 +291,13 @@ class _VenueFormPageState extends State<VenueFormPage> {
     try {
       // Set status based on who is creating the venue
       final status = widget.ownerId == 'admin' ? 'approved' : 'pending';
-      
+
       // Parse price and capacity values
       final minPrice = double.tryParse(_minPriceController.text) ?? 0.0;
       final maxPrice = double.tryParse(_maxPriceController.text) ?? 0.0;
       final minCapacity = int.tryParse(_minCapacityController.text) ?? 0;
       final maxCapacity = int.tryParse(_maxCapacityController.text) ?? 0;
-      
+
       final data = {
         'name': _nameController.text.trim(),
         'description': _descController.text.trim(),
@@ -299,22 +313,17 @@ class _VenueFormPageState extends State<VenueFormPage> {
         'openTime': _openTimeController.text.trim(),
         'closeTime': _closeTimeController.text.trim(),
         'timeSlotDuration': int.tryParse(_timeSlotDurationController.text) ?? 30,
-        'hourlyPriceRange': {
-          'min': minPrice,
-          'max': maxPrice,
-        },
-        'capacityRange': {
-          'min': minCapacity,
-          'max': maxCapacity,
-        },
-        'operatingHours': '${_openTimeController.text.trim()} - ${_closeTimeController.text.trim()}',
+        'hourlyPriceRange': {'min': minPrice, 'max': maxPrice},
+        'capacityRange': {'min': minCapacity, 'max': maxCapacity},
+        'operatingHours':
+            '${_openTimeController.text.trim()} - ${_closeTimeController.text.trim()}',
         'blockedDates': [],
         'amenities': selectedAmenities,
         'location': GeoPoint(0, 0), // Default location
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       };
-      
+
       String venueId;
       if (widget.venueId == null) {
         // Create new venue
@@ -325,35 +334,35 @@ class _VenueFormPageState extends State<VenueFormPage> {
         await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).update(data);
         venueId = widget.venueId!;
       }
-      
+
       // Save rooms
       await _saveRooms(venueId);
-      
+
       // Show success message
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(widget.venueId == null ? 'Venue added successfully!' : 'Venue updated successfully!'),
+            content: Text(
+              widget.venueId == null ? 'Venue added successfully!' : 'Venue updated successfully!',
+            ),
             backgroundColor: Colors.green,
           ),
         );
-        
+
         // Navigate back after a short delay
         Future.delayed(const Duration(milliseconds: 500), () {
           if (context.mounted) {
-            GoRouter.of(context).pop();
+            // Use GoRouter to navigate back to venue owner dashboard
+            context.go('/venue-owner');
           }
         });
       }
     } catch (e) {
       setState(() => error = 'Failed to save venue: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
       }
     } finally {
       setState(() => isSubmitting = false);
@@ -361,12 +370,15 @@ class _VenueFormPageState extends State<VenueFormPage> {
   }
 
   Future<void> _saveRooms(String venueId) async {
-    final roomsRef = FirebaseFirestore.instance.collection('venues').doc(venueId).collection('rooms');
-    
+    final roomsRef = FirebaseFirestore.instance
+        .collection('venues')
+        .doc(venueId)
+        .collection('rooms');
+
     for (final room in rooms) {
       final roomData = room.toMap();
       roomData['venueId'] = venueId;
-      
+
       if (room.id == null) {
         // Create new room
         await roomsRef.add(roomData);
@@ -396,9 +408,9 @@ class _VenueFormPageState extends State<VenueFormPage> {
               children: [
                 Text(
                   'Room ${index + 1}',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete, color: Colors.red),
@@ -436,7 +448,8 @@ class _VenueFormPageState extends State<VenueFormPage> {
                       border: OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.number,
-                    onChanged: (value) => _updateRoom(index, room.copyWith(capacity: int.tryParse(value) ?? 0)),
+                    onChanged: (value) =>
+                        _updateRoom(index, room.copyWith(capacity: int.tryParse(value) ?? 0)),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -449,7 +462,10 @@ class _VenueFormPageState extends State<VenueFormPage> {
                       prefixText: '\$',
                     ),
                     keyboardType: TextInputType.number,
-                    onChanged: (value) => _updateRoom(index, room.copyWith(hourlyPrice: double.tryParse(value) ?? 0.0)),
+                    onChanged: (value) => _updateRoom(
+                      index,
+                      room.copyWith(hourlyPrice: double.tryParse(value) ?? 0.0),
+                    ),
                   ),
                 ),
               ],
@@ -457,9 +473,7 @@ class _VenueFormPageState extends State<VenueFormPage> {
             const SizedBox(height: 12),
             Text(
               'Amenities',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Wrap(
@@ -472,9 +486,9 @@ class _VenueFormPageState extends State<VenueFormPage> {
                   selected: isSelected,
                   onSelected: (selected) {
                     final updatedRoom = room.copyWith(
-                      amenities: selected 
-                        ? [...room.amenities, amenity]
-                        : room.amenities.where((a) => a != amenity).toList(),
+                      amenities: selected
+                          ? [...room.amenities, amenity]
+                          : room.amenities.where((a) => a != amenity).toList(),
                     );
                     _updateRoom(index, updatedRoom);
                   },
@@ -484,55 +498,51 @@ class _VenueFormPageState extends State<VenueFormPage> {
             const SizedBox(height: 12),
             Text(
               'Room Images',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
-                ...room.images.map((url) => Stack(
-                  children: [
-                    Image.network(
-                      url,
-                      width: 80,
-                      height: 80,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
+                ...room.images.map(
+                  (url) => Stack(
+                    children: [
+                      Image.network(
+                        url,
                         width: 80,
                         height: 80,
-                        color: Colors.grey[300],
-                        child: const Icon(Icons.image, color: Colors.grey),
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          width: 80,
+                          height: 80,
+                          color: Colors.grey[300],
+                          child: const Icon(Icons.image, color: Colors.grey),
+                        ),
                       ),
-                    ),
-                    Positioned(
-                      top: 4,
-                      right: 4,
-                      child: GestureDetector(
-                        onTap: () {
-                          final updatedRoom = room.copyWith(
-                            images: room.images.where((img) => img != url).toList(),
-                          );
-                          _updateRoom(index, updatedRoom);
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.close,
-                            color: Colors.white,
-                            size: 16,
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: GestureDetector(
+                          onTap: () {
+                            final updatedRoom = room.copyWith(
+                              images: room.images.where((img) => img != url).toList(),
+                            );
+                            _updateRoom(index, updatedRoom);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.close, color: Colors.white, size: 16),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                )),
+                    ],
+                  ),
+                ),
                 GestureDetector(
                   onTap: () => _pickAndUploadRoomImage(index),
                   child: Container(
@@ -542,11 +552,7 @@ class _VenueFormPageState extends State<VenueFormPage> {
                       border: Border.all(color: Colors.grey),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(
-                      Icons.add_a_photo,
-                      size: 24,
-                      color: Colors.grey,
-                    ),
+                    child: const Icon(Icons.add_a_photo, size: 24, color: Colors.grey),
                   ),
                 ),
               ],
@@ -583,10 +589,7 @@ class _VenueFormPageState extends State<VenueFormPage> {
                     Expanded(
                       child: Text(
                         'This room will be marked as closed for maintenance.',
-                        style: TextStyle(
-                          color: Colors.orange[700],
-                          fontSize: 11,
-                        ),
+                        style: TextStyle(color: Colors.orange[700], fontSize: 11),
                       ),
                     ),
                   ],
@@ -604,14 +607,26 @@ class _VenueFormPageState extends State<VenueFormPage> {
       final picked = await picker.pickImage(source: ImageSource.gallery);
       if (picked != null) {
         final file = File(picked.path);
-        final ref = FirebaseStorage.instance.ref().child('room_images/${DateTime.now().millisecondsSinceEpoch}_${picked.name}');
+
+        // Get venue name and room name for path
+        final venueName = _nameController.text.trim().isNotEmpty
+            ? _nameController.text.trim()
+            : 'unnamed_venue';
+        final roomName = rooms[roomIndex].name.trim().isNotEmpty
+            ? rooms[roomIndex].name.trim()
+            : 'unnamed_room';
+
+        // Generate proper storage path
+        final roomPath = StorageUtils.getRoomImagePath(venueName, roomName);
+        final filename = StorageUtils.generateImageFilename(picked.name);
+        final fullPath = '$roomPath$filename';
+
+        final ref = FirebaseStorage.instance.ref().child(fullPath);
         final uploadTask = await ref.putFile(file);
         final url = await uploadTask.ref.getDownloadURL();
-        
+
         final room = rooms[roomIndex];
-        final updatedRoom = room.copyWith(
-          images: [...room.images, url],
-        );
+        final updatedRoom = room.copyWith(images: [...room.images, url]);
         _updateRoom(roomIndex, updatedRoom);
       }
     } catch (e) {
@@ -648,12 +663,12 @@ class _VenueFormPageState extends State<VenueFormPage> {
               // Basic Information Section
               Text(
                 'Basic Information',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              
+
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
@@ -663,7 +678,7 @@ class _VenueFormPageState extends State<VenueFormPage> {
                 validator: (v) => v == null || v.isEmpty ? 'Required' : null,
               ),
               const SizedBox(height: 12),
-              
+
               TextFormField(
                 controller: _descController,
                 decoration: const InputDecoration(
@@ -674,7 +689,7 @@ class _VenueFormPageState extends State<VenueFormPage> {
                 validator: (v) => v == null || v.isEmpty ? 'Required' : null,
               ),
               const SizedBox(height: 12),
-              
+
               TextFormField(
                 controller: _addressController,
                 decoration: const InputDecoration(
@@ -684,16 +699,16 @@ class _VenueFormPageState extends State<VenueFormPage> {
                 validator: (v) => v == null || v.isEmpty ? 'Required' : null,
               ),
               const SizedBox(height: 12),
-              
+
               // Contact Information Section
               Text(
                 'Contact Information',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              
+
               TextFormField(
                 controller: _contactPhoneController,
                 decoration: const InputDecoration(
@@ -703,7 +718,7 @@ class _VenueFormPageState extends State<VenueFormPage> {
                 keyboardType: TextInputType.phone,
               ),
               const SizedBox(height: 12),
-              
+
               TextFormField(
                 controller: _contactEmailController,
                 decoration: const InputDecoration(
@@ -713,16 +728,16 @@ class _VenueFormPageState extends State<VenueFormPage> {
                 keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 16),
-              
+
               // Pricing Section
               Text(
                 'Pricing (per hour)',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              
+
               Row(
                 children: [
                   Expanded(
@@ -751,16 +766,16 @@ class _VenueFormPageState extends State<VenueFormPage> {
                 ],
               ),
               const SizedBox(height: 16),
-              
+
               // Capacity Section
               Text(
                 'Capacity',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              
+
               Row(
                 children: [
                   Expanded(
@@ -787,16 +802,16 @@ class _VenueFormPageState extends State<VenueFormPage> {
                 ],
               ),
               const SizedBox(height: 16),
-              
+
               // Amenities Section
               Text(
                 'Amenities',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              
+
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -818,23 +833,21 @@ class _VenueFormPageState extends State<VenueFormPage> {
                 }).toList(),
               ),
               const SizedBox(height: 24),
-              
+
               // Maintenance Status Section
               Text(
                 'Maintenance Status',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(
                 'Mark your venue as closed for maintenance if needed.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey[600],
-                ),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
               ),
               const SizedBox(height: 16),
-              
+
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -871,10 +884,7 @@ class _VenueFormPageState extends State<VenueFormPage> {
                               Expanded(
                                 child: Text(
                                   'Venue will be marked as closed for maintenance. Users will not be able to book during this time.',
-                                  style: TextStyle(
-                                    color: Colors.orange[700],
-                                    fontSize: 12,
-                                  ),
+                                  style: TextStyle(color: Colors.orange[700], fontSize: 12),
                                 ),
                               ),
                             ],
@@ -885,13 +895,13 @@ class _VenueFormPageState extends State<VenueFormPage> {
                 ),
               ),
               const SizedBox(height: 24),
-              
+
               // Operating Hours Section
               Text(
                 'Operating Hours',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               Card(
@@ -902,9 +912,9 @@ class _VenueFormPageState extends State<VenueFormPage> {
                     children: [
                       Text(
                         'Operating Hours',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 16),
                       Row(
@@ -977,87 +987,76 @@ class _VenueFormPageState extends State<VenueFormPage> {
                 ),
               ),
               const SizedBox(height: 24),
-              
+
               // Room Management Section
               Text(
                 'Room Management',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(
                 'Add rooms to your venue. Each room will have its own ID and details.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey[600],
-                ),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
               ),
               const SizedBox(height: 16),
-              
+
               // Rooms List
               ...rooms.asMap().entries.map((entry) {
                 final index = entry.key;
                 final room = entry.value;
                 return _buildRoomCard(index, room);
               }),
-              
+
               // Add Room Button
               OutlinedButton.icon(
                 onPressed: _addRoom,
                 icon: const Icon(Icons.add),
                 label: const Text('Add Room'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
+                style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12)),
               ),
               const SizedBox(height: 24),
-              
+
               // Images Section
               Text(
                 'Images',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              
+
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  ...imageUrls.map((url) => Stack(
-                    children: [
-                      Image.network(
-                        url,
-                        width: 100,
-                        height: 100,
-                        fit: BoxFit.cover,
-                      ),
-                      Positioned(
-                        top: 4,
-                        right: 4,
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              imageUrls.remove(url);
-                            });
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: Colors.red,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.close,
-                              color: Colors.white,
-                              size: 16,
+                  ...imageUrls.map(
+                    (url) => Stack(
+                      children: [
+                        Image.network(url, width: 100, height: 100, fit: BoxFit.cover),
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                imageUrls.remove(url);
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.close, color: Colors.white, size: 16),
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  )),
+                      ],
+                    ),
+                  ),
                   GestureDetector(
                     onTap: _pickAndUploadImage,
                     child: Container(
@@ -1067,17 +1066,13 @@ class _VenueFormPageState extends State<VenueFormPage> {
                         border: Border.all(color: Colors.grey),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(
-                        Icons.add_a_photo,
-                        size: 40,
-                        color: Colors.grey,
-                      ),
+                      child: const Icon(Icons.add_a_photo, size: 40, color: Colors.grey),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
-              
+
               // Submit Button
               isSubmitting
                   ? const Center(child: CircularProgressIndicator())
@@ -1109,4 +1104,4 @@ class _VenueFormPageState extends State<VenueFormPage> {
       ),
     );
   }
-} 
+}

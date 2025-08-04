@@ -113,7 +113,7 @@ class _EmptyState extends StatelessWidget {
   final String message;
   final VoidCallback? onAction;
   final String? actionLabel;
-  const _EmptyState({required this.message});
+  const _EmptyState({required this.message, this.onAction, this.actionLabel});
   @override
   Widget build(BuildContext context) {
     return Center(
