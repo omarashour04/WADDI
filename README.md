@@ -17,7 +17,7 @@ A comprehensive Flutter-based venue booking platform that connects venue owners 
 - **Room management**: Add multiple rooms with individual details (capacity, price, amenities, images)
 - **Maintenance mode**: Mark venues/rooms as closed for maintenance
 - **Operating hours**: Set open/close times and time slot duration
-- **Image upload**: Firebase Storage integration for venue and room images
+- **Image upload**: Firebase Storage integration with organized structure ✅ **NEW - Implemented structured storage**
 
 ### 📅 Booking System
 - **Time slot selection**: Replace duration-based with specific time slots (9:00, 9:30, etc.)
@@ -26,6 +26,7 @@ A comprehensive Flutter-based venue booking platform that connects venue owners 
 - **Booking management**: View, modify, cancel bookings
 - **Status tracking**: Pending, confirmed, in-progress, completed, cancelled
 - **Booking history**: Past bookings with ratings/reviews
+- **Venue owner booking access**: ✅ **NEW - Fixed booking visibility for venue owners**
 
 ### 🔍 Search & Discovery
 - **Advanced search filters**: Price range, capacity, amenities, location
@@ -49,10 +50,11 @@ A comprehensive Flutter-based venue booking platform that connects venue owners 
 
 ### 🏢 Venue Owner Features ✅ **RECENTLY ENHANCED**
 - **Dashboard**: Overview of all owned venues with statistics
-- **Bookings Management**: View and manage all bookings across venues
+- **Bookings Management**: View and manage all bookings across venues ✅ **NEW - Fixed bottom navigation access**
 - **Reports & Analytics**: Real-time revenue, booking, and rating analytics
 - **Maintenance Management**: Full CRUD operations for maintenance requests
 - **Role-based Navigation**: Customized bottom navigation for venue owners
+- **Image Management**: ✅ **NEW - Structured Firebase Storage for venue and room images**
 
 ## 🚧 Known Issues & Limitations
 
@@ -80,6 +82,21 @@ A comprehensive Flutter-based venue booking platform that connects venue owners 
 - ✅ **Rating Calculation**: Fixed placeholder ratings to show actual calculated averages
 - ✅ **Role-based Navigation**: Implemented proper bottom navigation for venue owners
 - ✅ **Currency Unification**: Standardized all currency displays to EGP (Egyptian Pound)
+- ✅ **Venue Bookings Access**: Fixed booking visibility from bottom navigation bar
+- ✅ **Firebase Storage Structure**: Implemented organized image storage system
+
+### 📅 Booking System
+- ✅ **Venue Owner Booking View**: Fixed bookings not appearing in bottom navigation
+- ✅ **Data Structure Alignment**: Aligned booking queries with actual Firestore structure
+- ✅ **Booking Grouping**: Implemented room-based booking grouping for better organization
+
+### 🖼️ Image Management ✅ **NEW SECTION**
+- ✅ **Structured Storage**: Implemented organized Firebase Storage paths
+- ✅ **Path Sanitization**: Automatic sanitization of venue and room names for storage paths
+- ✅ **Automatic URL Storage**: Image URLs automatically saved to Firestore
+- ✅ **Venue Images**: Stored at `venues/{sanitizedVenueName}/`
+- ✅ **Room Images**: Stored at `venues/{sanitizedVenueName}/{sanitizedRoomName}/`
+- ✅ **Error Handling**: Proper fallbacks for missing or failed image uploads
 
 ## 🚀 Future Improvements
 
@@ -167,11 +184,12 @@ A comprehensive Flutter-based venue booking platform that connects venue owners 
 - Create/edit venues
 - Manage rooms
 - View venue analytics with real-time data
-- Handle bookings across all venues
+- Handle bookings across all venues ✅ **NEW - Fixed access from bottom navigation**
 - Set maintenance status
 - Manage operating hours
 - Full maintenance request management
 - Role-specific navigation
+- Image management with structured storage ✅ **NEW**
 
 ### 👨‍💼 Admin
 - All venue owner features
@@ -207,8 +225,20 @@ A comprehensive Flutter-based venue booking platform that connects venue owners 
    - Add Android/iOS apps
    - Download configuration files
    - Enable Firestore, Auth, Storage, Functions
+   - Configure Firebase Storage rules for image uploads
 
-4. **Run the app**
+4. **Firebase Storage Configuration** ✅ **NEW**
+   ```plaintext
+   service firebase.storage {
+     match /b/{bucket}/o {
+       match /{allPaths=**} {
+         allow read, write: if request.auth != null;
+       }
+     }
+   }
+   ```
+
+5. **Run the app**
    ```bash
    flutter run
    ```
@@ -234,6 +264,7 @@ A comprehensive Flutter-based venue booking platform that connects venue owners 
 - Role-based access control
 - Input validation
 - Secure API calls
+- Firebase Storage security rules ✅ **NEW**
 
 ### Planned Security Enhancements
 - Data encryption
@@ -297,7 +328,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Last Updated**: December 2024
-**Version**: 1.1.0
+**Version**: 1.2.0
 **Status**: Development Phase - Recent Major Updates
 **Branch**: ashour
 **Recent Updates**: 
@@ -307,4 +338,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - ✅ Implemented maintenance management
 - ✅ Fixed rating calculations
 - ✅ Unified currency to EGP
+- ✅ Fixed venue owner booking access from bottom navigation
+- ✅ Implemented structured Firebase Storage for images
+- ✅ Added automatic image URL storage to Firestore
 - ⚠️ Next: Reviews logic improvements & Google Maps integration
