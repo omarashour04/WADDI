@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waddi_platform/shared/themes/app_colors.dart';
 import 'package:waddi_platform/features/auth/presentation/providers/auth_provider.dart';
 import 'package:waddi_platform/shared/providers/shared_providers.dart';
+import 'package:waddi_platform/shared/services/offline_mode_service.dart';
+import 'package:waddi_platform/shared/widgets/offline_mode_widget.dart';
 
 class MainScaffold extends ConsumerWidget {
   final Widget child;
@@ -29,7 +31,16 @@ class MainScaffold extends ConsumerWidget {
         foregroundColor: currentTheme == ThemeMode.dark ? Colors.white : AppColors.textOnPrimary,
         elevation: 0,
       ),
-      body: SafeArea(child: child),
+      body: Column(
+        children: [
+          // Offline status bar
+          const OfflineStatusBar(),
+          // Main content
+          Expanded(
+            child: SafeArea(child: child),
+          ),
+        ],
+      ),
       bottomNavigationBar: _buildBottomNavigationBar(context, ref, userRole, isGuest),
     );
   }
@@ -58,6 +69,18 @@ class MainScaffold extends ConsumerWidget {
             case 4:
               targetRoute = '/profile';
               break;
+          }
+
+          // Check if operation is allowed offline
+          final offlineService = OfflineModeService.instance;
+          if (!offlineService.isOperationAllowed(OfflineOperation.venueOwnerOperations)) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(offlineService.getOfflineMessage(OfflineOperation.venueOwnerOperations)),
+                backgroundColor: Colors.orange,
+              ),
+            );
+            return;
           }
 
           // Add route to navigation history before navigating
@@ -99,6 +122,18 @@ class MainScaffold extends ConsumerWidget {
               break;
           }
 
+          // Check if operation is allowed offline
+          final offlineService = OfflineModeService.instance;
+          if (!offlineService.isOperationAllowed(OfflineOperation.adminOperations)) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(offlineService.getOfflineMessage(OfflineOperation.adminOperations)),
+                backgroundColor: Colors.orange,
+              ),
+            );
+            return;
+          }
+
           // Add route to navigation history before navigating
           ref.read(navigationHistoryProvider.notifier).addRoute(targetRoute);
           context.go(targetRoute);
@@ -119,19 +154,24 @@ class MainScaffold extends ConsumerWidget {
       currentIndex: currentIndex,
       onTap: (index) {
         String targetRoute = '/home';
+        OfflineOperation? operation;
+        
         switch (index) {
           case 0:
             targetRoute = '/home';
             break;
           case 1:
             targetRoute = '/search';
+            operation = OfflineOperation.searchVenues;
             break;
           case 2:
             targetRoute = '/venues';
+            operation = OfflineOperation.browseVenues;
             break;
           case 3:
             if (!isGuest) {
               targetRoute = '/bookings';
+              operation = OfflineOperation.viewBookings;
             } else {
               // Show dialog for guest users
               showDialog(
@@ -159,7 +199,22 @@ class MainScaffold extends ConsumerWidget {
             break;
           case 4:
             targetRoute = '/profile';
+            operation = OfflineOperation.viewProfile;
             break;
+        }
+
+        // Check if operation is allowed offline
+        if (operation != null) {
+          final offlineService = OfflineModeService.instance;
+          if (!offlineService.isOperationAllowed(operation)) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(offlineService.getOfflineMessage(operation)),
+                backgroundColor: Colors.orange,
+              ),
+            );
+            return;
+          }
         }
 
         // Add route to navigation history before navigating

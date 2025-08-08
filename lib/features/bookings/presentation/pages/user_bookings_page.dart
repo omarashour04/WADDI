@@ -99,7 +99,7 @@ class _UserBookingsPageState extends ConsumerState<UserBookingsPage>
             : TabBarView(
                 controller: _tabController,
                 children: [
-                  _buildBookingsList(bookingState.bookings),
+                  _buildBookingsList(bookingState.allBookings),
                   _buildBookingsList(bookingState.upcomingBookings),
                   _buildBookingsList(bookingState.pastBookings),
                 ],

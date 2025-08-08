@@ -12,6 +12,7 @@ import 'core/services/app_state_service.dart';
 import 'core/services/android_back_button_service.dart';
 import 'shared/providers/shared_providers.dart';
 import 'features/accessibility/presentation/providers/accessibility_provider.dart';
+import 'shared/services/offline_mode_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -67,6 +68,9 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
+
+      // Initialize offline mode service
+      await OfflineModeService.instance.initialize();
 
       // Initialize other services
       ref.read(themeProvider);

@@ -310,20 +310,56 @@ class _BookingDetailsContent extends ConsumerWidget {
   Widget _buildBookingInfo(BuildContext context) {
     final startTime = booking.startTime;
     final endTime = booking.endTime;
-    final duration = endTime.difference(startTime).inHours;
+    final isOpenEnded = _isOpenEndedBooking();
     final dateFormat = '${_getMonthName(startTime.month)} ${startTime.day}, ${startTime.year}';
-    final timeFormat =
-        '${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')} - ${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}';
+    final timeFormat = isOpenEnded
+        ? '${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')} - Open-ended'
+        : '${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')} - ${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}';
 
     return Column(
       children: [
         _buildInfoRow('Date', dateFormat),
         _buildInfoRow('Time', timeFormat),
-        _buildInfoRow('Duration', '$duration hour${duration > 1 ? 's' : ''}'),
-        _buildInfoRow('Total Cost', 'EGP ${booking.totalPrice.toStringAsFixed(2)}'),
+        _buildInfoRow('Number of People', '${booking.numberOfPeople} person${booking.numberOfPeople != 1 ? 's' : ''}'),
+        _buildInfoRow('Duration', isOpenEnded 
+            ? 'To be determined' 
+            : '${booking.durationHours} hour${booking.durationHours != 1 ? 's' : ''}'),
+        _buildInfoRow('Total Cost', isOpenEnded 
+            ? 'To be determined (Cash only)' 
+            : 'EGP ${booking.totalPrice.toStringAsFixed(2)}'),
         _buildInfoRow('Status', booking.actualStatus, isStatus: true),
+        if (isOpenEnded) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.orange[100],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.orange[300]!),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.orange[700], size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'This is an open-ended booking. Please contact the venue owner for end time and pricing details.',
+                    style: TextStyle(
+                      color: Colors.orange[700],
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
+  }
+
+  bool _isOpenEndedBooking() {
+    return booking.durationHours == 0 && booking.totalPrice == 0.0;
   }
 
   Widget _buildInfoRow(String label, String value, {bool isStatus = false}) {

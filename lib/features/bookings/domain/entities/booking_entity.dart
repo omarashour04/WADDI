@@ -17,6 +17,12 @@ class BookingEntity {
   final String? notes;
   final int? rating;
   final String? review;
+  final int numberOfPeople;
+  final bool isCheckedIn;
+  final DateTime? checkedInAt;
+  final String? checkedInBy; // userId of who checked them in
+  final String? qrCode; // Unique QR code for this booking
+  final DateTime? autoCancellationTime; // When booking will be auto-cancelled if not checked in
 
   BookingEntity({
     required this.id,
@@ -30,9 +36,15 @@ class BookingEntity {
     required this.durationHours,
     required this.totalPrice,
     required this.status,
+    required this.notes,
+    required this.numberOfPeople,
     required this.createdAt,
-    this.updatedAt,
-    this.notes,
+    required this.updatedAt,
+    this.isCheckedIn = false,
+    this.checkedInAt,
+    this.checkedInBy,
+    this.qrCode,
+    this.autoCancellationTime,
     this.rating,
     this.review,
   });
@@ -54,6 +66,11 @@ class BookingEntity {
       'notes': notes,
       'rating': rating,
       'review': review,
+      'numberOfPeople': numberOfPeople,
+      'isCheckedIn': isCheckedIn,
+      'checkedInAt': checkedInAt != null ? Timestamp.fromDate(checkedInAt!) : null,
+      'checkedInBy': checkedInBy,
+      'qrCode': qrCode,
     };
   }
 
@@ -75,6 +92,11 @@ class BookingEntity {
       notes: map['notes'],
       rating: map['rating'],
       review: map['review'],
+      numberOfPeople: map['numberOfPeople'] ?? 1,
+      isCheckedIn: map['isCheckedIn'] ?? false,
+      checkedInAt: map['checkedInAt'] != null ? (map['checkedInAt'] as Timestamp).toDate() : null,
+      checkedInBy: map['checkedInBy'],
+      qrCode: map['qrCode'],
     );
   }
 
@@ -95,6 +117,11 @@ class BookingEntity {
     String? notes,
     int? rating,
     String? review,
+    int? numberOfPeople,
+    bool? isCheckedIn,
+    DateTime? checkedInAt,
+    String? checkedInBy,
+    String? qrCode,
   }) {
     return BookingEntity(
       id: id ?? this.id,
@@ -113,6 +140,11 @@ class BookingEntity {
       notes: notes ?? this.notes,
       rating: rating ?? this.rating,
       review: review ?? this.review,
+      numberOfPeople: numberOfPeople ?? this.numberOfPeople,
+      isCheckedIn: isCheckedIn ?? this.isCheckedIn,
+      checkedInAt: checkedInAt ?? this.checkedInAt,
+      checkedInBy: checkedInBy ?? this.checkedInBy,
+      qrCode: qrCode ?? this.qrCode,
     );
   }
 
@@ -122,6 +154,12 @@ class BookingEntity {
     
     // If already cancelled, return cancelled
     if (status == 'cancelled') return 'cancelled';
+    
+    // Check if booking should be auto-cancelled (10 minutes late for cash payments)
+    if (!isCheckedIn && status == 'confirmed' && totalPrice == 0.0) {
+      final checkInDeadline = startTime.add(const Duration(minutes: 10));
+      if (now.isAfter(checkInDeadline)) return 'cancelled';
+    }
     
     // If booking time has passed, mark as completed
     if (endTime.isBefore(now)) return 'completed';
@@ -151,4 +189,10 @@ class BookingEntity {
 
   bool get canCancel => isUpcoming && status == 'confirmed';
   bool get canReview => isPast && status == 'completed' && rating == null;
+  
+  // Check-in related getters
+  bool get needsCheckIn => status == 'confirmed' && !isCheckedIn && startTime.isBefore(DateTime.now().add(const Duration(minutes: 10)));
+  bool get isOverdueForCheckIn => status == 'confirmed' && !isCheckedIn && DateTime.now().isAfter(startTime.add(const Duration(minutes: 10)));
+  bool get isCashPayment => totalPrice == 0.0;
+  bool get canCheckIn => status == 'confirmed' && !isCheckedIn && !isOverdueForCheckIn;
 } 

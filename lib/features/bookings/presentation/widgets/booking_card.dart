@@ -83,7 +83,9 @@ class BookingCard extends StatelessWidget {
                 Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
                 const SizedBox(width: 8),
                 Text(
-                  '${_formatTime(booking.startTime)} - ${_formatTime(booking.endTime)}',
+                  _isOpenEndedBooking()
+                      ? '${_formatTime(booking.startTime)} - Open-ended'
+                      : '${_formatTime(booking.startTime)} - ${_formatTime(booking.endTime)}',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ],
@@ -94,7 +96,9 @@ class BookingCard extends StatelessWidget {
                 Icon(Icons.schedule, size: 16, color: Colors.grey[600]),
                 const SizedBox(width: 8),
                 Text(
-                  '${booking.durationHours} hour${booking.durationHours != 1 ? 's' : ''}',
+                  _isOpenEndedBooking()
+                      ? 'Duration: To be determined'
+                      : '${booking.durationHours} hour${booking.durationHours != 1 ? 's' : ''}',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ],
@@ -105,11 +109,24 @@ class BookingCard extends StatelessWidget {
                 Icon(Icons.attach_money, size: 16, color: Colors.grey[600]),
                 const SizedBox(width: 8),
                 Text(
-                  '\$${booking.totalPrice.toStringAsFixed(2)}',
+                  _isOpenEndedBooking()
+                      ? 'Price: To be determined (Cash only)'
+                      : '\$${booking.totalPrice.toStringAsFixed(2)}',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.green[700],
+                    color: _isOpenEndedBooking() ? Colors.orange[700] : Colors.green[700],
                   ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(Icons.people, size: 16, color: Colors.grey[600]),
+                const SizedBox(width: 8),
+                Text(
+                  '${booking.numberOfPeople} person${booking.numberOfPeople != 1 ? 's' : ''}',
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ],
             ),
@@ -247,5 +264,10 @@ class BookingCard extends StatelessWidget {
 
   String _formatTime(DateTime time) {
     return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+  }
+
+  bool _isOpenEndedBooking() {
+    // Check if it's an open-ended booking based on duration and price
+    return booking.durationHours == 0 && booking.totalPrice == 0.0;
   }
 } 

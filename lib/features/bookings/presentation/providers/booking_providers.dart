@@ -4,9 +4,10 @@ import '../../domain/repositories/booking_repository.dart';
 import '../../domain/usecases/check_room_availability.dart';
 import '../../domain/usecases/create_booking.dart';
 import '../../domain/entities/booking_entity.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 final bookingRepositoryProvider = Provider<BookingRepository>((ref) {
-  return BookingRepositoryImpl();
+  return BookingRepositoryImpl(FirebaseFirestore.instance);
 });
 
 final checkRoomAvailabilityProvider = Provider<CheckRoomAvailability>((ref) {

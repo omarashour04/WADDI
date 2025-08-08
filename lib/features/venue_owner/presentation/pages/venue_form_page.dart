@@ -115,6 +115,7 @@ class _VenueFormPageState extends State<VenueFormPage> {
   List<RoomData> rooms = [];
   bool isSubmitting = false;
   bool isClosedForMaintenance = false;
+  bool allowOpenEndedBookings = false; // New field for open-ended bookings
   String? error;
 
   // Available amenities options
@@ -186,6 +187,9 @@ class _VenueFormPageState extends State<VenueFormPage> {
 
         // Load maintenance status
         isClosedForMaintenance = data['isClosedForMaintenance'] ?? false;
+
+        // Load open-ended bookings status
+        allowOpenEndedBookings = data['allowOpenEndedBookings'] ?? false;
 
         // Load rooms
         await _loadRooms();
@@ -310,6 +314,7 @@ class _VenueFormPageState extends State<VenueFormPage> {
         'averageRating': 0.0,
         'totalReviews': 0,
         'isClosedForMaintenance': isClosedForMaintenance,
+        'allowOpenEndedBookings': allowOpenEndedBookings,
         'openTime': _openTimeController.text.trim(),
         'closeTime': _closeTimeController.text.trim(),
         'timeSlotDuration': int.tryParse(_timeSlotDurationController.text) ?? 30,
@@ -885,6 +890,67 @@ class _VenueFormPageState extends State<VenueFormPage> {
                                 child: Text(
                                   'Venue will be marked as closed for maintenance. Users will not be able to book during this time.',
                                   style: TextStyle(color: Colors.orange[700], fontSize: 12),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Open-Ended Bookings Section
+              Text(
+                'Open-Ended Bookings',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Allow users to book open-ended periods (e.g., for monthly rentals).',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 16),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SwitchListTile(
+                        title: const Text('Allow Open-Ended Bookings'),
+                        subtitle: const Text('Enable open-ended booking periods'),
+                        value: allowOpenEndedBookings,
+                        onChanged: (value) {
+                          setState(() {
+                            allowOpenEndedBookings = value;
+                          });
+                        },
+                        secondary: Icon(
+                          allowOpenEndedBookings ? Icons.calendar_today : Icons.calendar_today_outlined,
+                          color: allowOpenEndedBookings ? Colors.green : Colors.grey,
+                        ),
+                      ),
+                      if (allowOpenEndedBookings)
+                        Container(
+                          margin: const EdgeInsets.only(top: 8),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.green[50],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.green[200]!),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.info_outline, color: Colors.green[700], size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Users can book open-ended periods (e.g., monthly rentals).',
+                                  style: TextStyle(color: Colors.green[700], fontSize: 12),
                                 ),
                               ),
                             ],

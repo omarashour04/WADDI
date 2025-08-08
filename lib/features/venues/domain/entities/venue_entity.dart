@@ -23,6 +23,7 @@ class VenueEntity {
   final String openTime; // Format: "09:00"
   final String closeTime; // Format: "22:00"
   final int timeSlotDuration; // Duration in minutes (30, 60, etc.)
+  final bool allowOpenEndedBookings; // Allow customers to book without end time
   final Timestamp createdAt;
   final Timestamp updatedAt;
 
@@ -48,6 +49,7 @@ class VenueEntity {
     required this.openTime,
     required this.closeTime,
     required this.timeSlotDuration,
+    required this.allowOpenEndedBookings,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -104,6 +106,7 @@ class VenueEntity {
         openTime: data['openTime'] ?? '00:00',
         closeTime: data['closeTime'] ?? '00:00',
         timeSlotDuration: data['timeSlotDuration'] ?? 30,
+        allowOpenEndedBookings: data['allowOpenEndedBookings'] ?? false,
         createdAt: data['createdAt'] is Timestamp ? data['createdAt'] : Timestamp.now(),
         updatedAt: data['updatedAt'] is Timestamp ? data['updatedAt'] : Timestamp.now(),
       );
@@ -135,6 +138,7 @@ class VenueEntity {
         openTime: '00:00',
         closeTime: '00:00',
         timeSlotDuration: 30,
+        allowOpenEndedBookings: false,
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       );
@@ -163,6 +167,7 @@ class VenueEntity {
       'openTime': openTime,
       'closeTime': closeTime,
       'timeSlotDuration': timeSlotDuration,
+      'allowOpenEndedBookings': allowOpenEndedBookings,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
     };

@@ -1,13 +1,293 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
+import * as nodemailer from 'nodemailer';
 
 admin.initializeApp();
+
+// Email configuration
+const transporter = nodemailer.createTransporter({
+    service: 'gmail',
+    auth: {
+        user: functions.config().email?.user || 'your-email@gmail.com',
+        pass: functions.config().email?.password || 'your-app-password',
+    },
+});
 
 // Helper: Check admin role
 async function isAdmin(context: functions.https.CallableContext): Promise<boolean> {
     if (!context.auth) return false;
     const userDoc = await admin.firestore().collection('users').doc(context.auth.uid).get();
     return userDoc.exists && userDoc.data()?.role === 'admin';
+}
+
+// Helper: Generate booking receipt HTML
+function generateBookingReceiptHTML(booking: any, userName: string, venueOwnerName: string): string {
+    const startDate = new Date(booking.startTime).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+
+    const startTime = new Date(booking.startTime).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    const endTime = new Date(booking.endTime).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Booking Confirmation - WADDI Platform</title>
+        <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+            .receipt { background: white; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin: 20px 0; }
+            .receipt-row { display: flex; justify-content: space-between; margin: 10px 0; padding: 8px 0; border-bottom: 1px solid #eee; }
+            .receipt-row:last-child { border-bottom: none; font-weight: bold; font-size: 1.1em; }
+            .total { background: #f0f8ff; padding: 15px; border-radius: 5px; margin-top: 15px; }
+            .footer { text-align: center; margin-top: 30px; color: #666; font-size: 0.9em; }
+            .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 10px 5px; }
+            .status-confirmed { color: #28a745; font-weight: bold; }
+            .status-pending { color: #ffc107; font-weight: bold; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🎉 Booking Confirmed!</h1>
+                <p>Thank you for choosing WADDI Platform</p>
+            </div>
+            
+            <div class="content">
+                <h2>Hello ${userName},</h2>
+                <p>Your booking has been successfully confirmed! Here are the details:</p>
+                
+                <div class="receipt">
+                    <h3>📋 Booking Receipt</h3>
+                    
+                    <div class="receipt-row">
+                        <span><strong>Booking ID:</strong></span>
+                        <span>#${booking.id}</span>
+                    </div>
+                    
+                    <div class="receipt-row">
+                        <span><strong>Venue:</strong></span>
+                        <span>${booking.venueName}</span>
+                    </div>
+                    
+                    <div class="receipt-row">
+                        <span><strong>Room:</strong></span>
+                        <span>${booking.roomName}</span>
+                    </div>
+                    
+                    <div class="receipt-row">
+                        <span><strong>Date:</strong></span>
+                        <span>${startDate}</span>
+                    </div>
+                    
+                    <div class="receipt-row">
+                        <span><strong>Time:</strong></span>
+                        <span>${startTime} - ${endTime}</span>
+                    </div>
+                    
+                    <div class="receipt-row">
+                        <span><strong>Duration:</strong></span>
+                        <span>${booking.durationHours} hour(s)</span>
+                    </div>
+                    
+                    <div class="receipt-row">
+                        <span><strong>Status:</strong></span>
+                        <span class="status-${booking.status}">${booking.status.toUpperCase()}</span>
+                    </div>
+                    
+                    ${booking.notes ? `
+                    <div class="receipt-row">
+                        <span><strong>Special Notes:</strong></span>
+                        <span>${booking.notes}</span>
+                    </div>
+                    ` : ''}
+                    
+                    <div class="total">
+                        <div class="receipt-row">
+                            <span><strong>Total Amount:</strong></span>
+                            <span><strong>EGP ${booking.totalPrice.toFixed(2)}</strong></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <h3>📍 Venue Contact Information</h3>
+                <p><strong>Venue Owner:</strong> ${venueOwnerName}</p>
+                <p>If you have any questions about your booking, please contact the venue owner directly.</p>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="https://waddi-platform.web.app/bookings" class="button">View My Bookings</a>
+                    <a href="https://waddi-platform.web.app/support" class="button">Contact Support</a>
+                </div>
+                
+                <div style="background: #e8f4fd; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                    <h4>📝 Important Information</h4>
+                    <ul>
+                        <li>Please arrive 10 minutes before your scheduled time</li>
+                        <li>Bring a valid ID for verification</li>
+                        <li>Follow the venue's rules and regulations</li>
+                        <li>Contact the venue owner if you need to make changes</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer">
+                <p>© 2024 WADDI Platform. All rights reserved.</p>
+                <p>This is an automated email. Please do not reply to this message.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
+}
+
+// Helper: Generate booking cancellation HTML
+function generateCancellationHTML(booking: any, userName: string, venueOwnerName: string): string {
+    const startDate = new Date(booking.startTime).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+
+    const startTime = new Date(booking.startTime).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Booking Cancelled - WADDI Platform</title>
+        <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: #dc3545; color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+            .booking-details { background: white; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin: 20px 0; }
+            .footer { text-align: center; margin-top: 30px; color: #666; font-size: 0.9em; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>❌ Booking Cancelled</h1>
+                <p>WADDI Platform</p>
+            </div>
+            
+            <div class="content">
+                <h2>Hello ${userName},</h2>
+                <p>Your booking has been cancelled. Here are the details:</p>
+                
+                <div class="booking-details">
+                    <h3>📋 Cancelled Booking Details</h3>
+                    <p><strong>Booking ID:</strong> #${booking.id}</p>
+                    <p><strong>Venue:</strong> ${booking.venueName}</p>
+                    <p><strong>Room:</strong> ${booking.roomName}</p>
+                    <p><strong>Date:</strong> ${startDate}</p>
+                    <p><strong>Time:</strong> ${startTime}</p>
+                    <p><strong>Amount:</strong> EGP ${booking.totalPrice.toFixed(2)}</p>
+                </div>
+                
+                <p>If you have any questions about this cancellation, please contact the venue owner: <strong>${venueOwnerName}</strong></p>
+                
+                <p>We hope to see you again soon!</p>
+            </div>
+            
+            <div class="footer">
+                <p>© 2024 WADDI Platform. All rights reserved.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
+}
+
+// Helper: Generate booking reminder HTML
+function generateReminderHTML(booking: any, userName: string, venueOwnerName: string): string {
+    const startDate = new Date(booking.startTime).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+
+    const startTime = new Date(booking.startTime).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    const endTime = new Date(booking.endTime).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Booking Reminder - WADDI Platform</title>
+        <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: #ffc107; color: #333; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+            .reminder { background: white; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin: 20px 0; }
+            .footer { text-align: center; margin-top: 30px; color: #666; font-size: 0.9em; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>⏰ Booking Reminder</h1>
+                <p>Your booking is coming up soon!</p>
+            </div>
+            
+            <div class="content">
+                <h2>Hello ${userName},</h2>
+                <p>This is a friendly reminder about your upcoming booking:</p>
+                
+                <div class="reminder">
+                    <h3>📅 Your Booking Details</h3>
+                    <p><strong>Venue:</strong> ${booking.venueName}</p>
+                    <p><strong>Room:</strong> ${booking.roomName}</p>
+                    <p><strong>Date:</strong> ${startDate}</p>
+                    <p><strong>Time:</strong> ${startTime} - ${endTime}</p>
+                    <p><strong>Duration:</strong> ${booking.durationHours} hour(s)</p>
+                    <p><strong>Amount:</strong> EGP ${booking.totalPrice.toFixed(2)}</p>
+                </div>
+                
+                <p><strong>Venue Owner:</strong> ${venueOwnerName}</p>
+                
+                <p>Please arrive 10 minutes before your scheduled time. We look forward to seeing you!</p>
+            </div>
+            
+            <div class="footer">
+                <p>© 2024 WADDI Platform. All rights reserved.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
 }
 
 // User Management
@@ -269,5 +549,84 @@ export const addMaintenanceFields = functions.https.onCall(async (data, context)
     } catch (error) {
         console.error('Error adding maintenance fields:', error);
         throw new functions.https.HttpsError('internal', 'Failed to add maintenance fields');
+    }
+});
+
+// Email Functions
+export const sendBookingConfirmationEmail = functions.https.onCall(async (data, context) => {
+    try {
+        const { userEmail, userName, booking, venueOwnerEmail, venueOwnerName } = data;
+
+        if (!userEmail || !userName || !booking) {
+            throw new functions.https.HttpsError('invalid-argument', 'Missing required parameters');
+        }
+
+        const htmlContent = generateBookingReceiptHTML(booking, userName, venueOwnerName);
+
+        const mailOptions = {
+            from: `"WADDI Platform" <${functions.config().email?.user || 'noreply@waddi.com'}>`,
+            to: userEmail,
+            subject: `🎉 Booking Confirmed - ${booking.venueName}`,
+            html: htmlContent,
+        };
+
+        await transporter.sendMail(mailOptions);
+
+        return { success: true, message: 'Booking confirmation email sent successfully' };
+    } catch (error) {
+        console.error('Error sending booking confirmation email:', error);
+        throw new functions.https.HttpsError('internal', 'Failed to send booking confirmation email');
+    }
+});
+
+export const sendBookingCancellationEmail = functions.https.onCall(async (data, context) => {
+    try {
+        const { userEmail, userName, booking, venueOwnerEmail, venueOwnerName } = data;
+
+        if (!userEmail || !userName || !booking) {
+            throw new functions.https.HttpsError('invalid-argument', 'Missing required parameters');
+        }
+
+        const htmlContent = generateCancellationHTML(booking, userName, venueOwnerName);
+
+        const mailOptions = {
+            from: `"WADDI Platform" <${functions.config().email?.user || 'noreply@waddi.com'}>`,
+            to: userEmail,
+            subject: `❌ Booking Cancelled - ${booking.venueName}`,
+            html: htmlContent,
+        };
+
+        await transporter.sendMail(mailOptions);
+
+        return { success: true, message: 'Booking cancellation email sent successfully' };
+    } catch (error) {
+        console.error('Error sending booking cancellation email:', error);
+        throw new functions.https.HttpsError('internal', 'Failed to send booking cancellation email');
+    }
+});
+
+export const sendBookingReminderEmail = functions.https.onCall(async (data, context) => {
+    try {
+        const { userEmail, userName, booking, venueOwnerEmail, venueOwnerName } = data;
+
+        if (!userEmail || !userName || !booking) {
+            throw new functions.https.HttpsError('invalid-argument', 'Missing required parameters');
+        }
+
+        const htmlContent = generateReminderHTML(booking, userName, venueOwnerName);
+
+        const mailOptions = {
+            from: `"WADDI Platform" <${functions.config().email?.user || 'noreply@waddi.com'}>`,
+            to: userEmail,
+            subject: `⏰ Booking Reminder - ${booking.venueName}`,
+            html: htmlContent,
+        };
+
+        await transporter.sendMail(mailOptions);
+
+        return { success: true, message: 'Booking reminder email sent successfully' };
+    } catch (error) {
+        console.error('Error sending booking reminder email:', error);
+        throw new functions.https.HttpsError('internal', 'Failed to send booking reminder email');
     }
 }); 

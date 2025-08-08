@@ -43,6 +43,7 @@ import '../features/venues/presentation/pages/venue_details_page.dart';
 import '../features/home/presentation/pages/home_page.dart';
 import '../features/admin/presentation/pages/admin_create_venue_owner_page.dart';
 import '../features/admin/presentation/pages/admin_database_setup_page.dart';
+import '../features/admin/presentation/pages/email_test_page.dart';
 import '../features/bookings/presentation/widgets/booking_form.dart';
 import '../features/venues/presentation/pages/advanced_search_page.dart';
 import '../features/venues/presentation/pages/venues_map_page.dart';
@@ -489,6 +490,18 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
+        path: '/admin/email-test',
+        builder: (context, state) => const EmailTestPage(),
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.user == null || authState.user!.role != 'admin') {
+            return '/login';
+          }
+          return null;
+        },
+      ),
+      GoRoute(
         path: '/admin/create-venue-owner',
         builder: (context, state) => const AdminCreateVenueOwnerPage(),
         redirect: (context, state) {
@@ -667,6 +680,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             roomId: queryParams['roomId'] ?? '',
             roomName: queryParams['roomName'] ?? '',
             hourlyPrice: double.tryParse(queryParams['hourlyPrice'] ?? '0') ?? 0,
+            openTime: queryParams['openTime'] ?? '09:00',
+            closeTime: queryParams['closeTime'] ?? '22:00',
+            timeSlotDuration: int.tryParse(queryParams['timeSlotDuration'] ?? '30') ?? 30,
+            allowOpenEndedBookings: queryParams['allowOpenEndedBookings'] == 'true',
           );
         },
         redirect: (context, state) {

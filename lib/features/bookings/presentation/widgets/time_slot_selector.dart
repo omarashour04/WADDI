@@ -8,6 +8,8 @@ class TimeSlotSelector extends StatefulWidget {
   final DateTime selectedDate;
   final List<Map<String, dynamic>> existingBookings;
   final Function(List<String>) onTimeSlotsSelected;
+  final bool singleSelection; // New parameter for single selection mode
+  final bool isOpenEndedBooking; // New parameter for open-ended booking mode
 
   const TimeSlotSelector({
     super.key,
@@ -17,6 +19,8 @@ class TimeSlotSelector extends StatefulWidget {
     required this.selectedDate,
     required this.existingBookings,
     required this.onTimeSlotsSelected,
+    this.singleSelection = false, // Default to multiple selection
+    this.isOpenEndedBooking = false, // Default to regular booking
   });
 
   @override
@@ -75,11 +79,17 @@ class _TimeSlotSelectorState extends State<TimeSlotSelector> {
             spacing: 8,
             runSpacing: 8,
             children: timeSlots.map((timeSlot) {
-              final isAvailable = TimeSlotUtils.isTimeSlotAvailable(
-                timeSlot: timeSlot,
-                date: widget.selectedDate,
-                existingBookings: widget.existingBookings,
-              );
+              final isAvailable = widget.isOpenEndedBooking
+                  ? TimeSlotUtils.isTimeSlotAvailableForOpenEndedBooking(
+                      timeSlot: timeSlot,
+                      date: widget.selectedDate,
+                      existingBookings: widget.existingBookings,
+                    )
+                  : TimeSlotUtils.isTimeSlotAvailable(
+                      timeSlot: timeSlot,
+                      date: widget.selectedDate,
+                      existingBookings: widget.existingBookings,
+                    );
               
               final isSelected = selectedTimeSlots.contains(timeSlot);
               
@@ -96,7 +106,14 @@ class _TimeSlotSelectorState extends State<TimeSlotSelector> {
                 onSelected: isAvailable ? (selected) {
                   setState(() {
                     if (selected) {
-                      selectedTimeSlots.add(timeSlot);
+                      if (widget.singleSelection) {
+                        // For single selection, clear all and add only the selected one
+                        selectedTimeSlots.clear();
+                        selectedTimeSlots.add(timeSlot);
+                      } else {
+                        // For multiple selection, add to existing selection
+                        selectedTimeSlots.add(timeSlot);
+                      }
                     } else {
                       selectedTimeSlots.remove(timeSlot);
                     }

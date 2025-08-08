@@ -16,6 +16,8 @@ import '../../../../shared/widgets/lottie_animations.dart';
 import '../../../../shared/widgets/firebase_image_widget.dart';
 import '../../../../shared/widgets/smart_back_button.dart';
 import 'package:waddi_platform/shared/providers/shared_providers.dart';
+import 'package:waddi_platform/shared/widgets/offline_mode_widget.dart';
+import 'package:waddi_platform/shared/services/offline_mode_service.dart';
 
 class VenuesPage extends ConsumerStatefulWidget {
   const VenuesPage({super.key});
@@ -54,148 +56,151 @@ class _VenuesPageState extends ConsumerState<VenuesPage> {
           elevation: 0,
           leading: SmartBackButton(),
         ),
-        body: SingleChildScrollView(
-          child: Column(
-            children: [
-              // Search Section
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: SizedBox(
-                        height: 50,
-                        child: TextField(
-                          controller: searchController,
-                          decoration: InputDecoration(
-                            hintText: 'Search for venues',
-                            prefixIcon: const Icon(Icons.search),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 12,
+        body: OfflineModeWidget(
+          operation: OfflineOperation.browseVenues,
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                // Search Section
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 50,
+                          child: TextField(
+                            controller: searchController,
+                            decoration: InputDecoration(
+                              hintText: 'Search for venues',
+                              prefixIcon: const Icon(Icons.search),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                            ),
+                            onSubmitted: (query) {
+                              if (query.trim().isNotEmpty) {
+                                // Navigate to search page with the query
+                                context.go('/search?query=${Uri.encodeComponent(query.trim())}');
+                              }
+                            },
+                            onTap: () {
+                              // Navigate to search page when tapped
+                              context.go('/search');
+                            },
+                            readOnly: true, // Make it read-only so it acts as a button
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.filter_list),
+                        onPressed: () {
+                          // Navigate to search page with filter dialog
+                          context.go('/search');
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.location_searching),
+                        tooltip: 'Search by address',
+                        onPressed: () {
+                          // Navigate to search page for location search
+                          context.go('/search');
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                // Featured Venues Section
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Featured Venues',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 300, // Fixed reasonable height
+                        child: venuesAsync.when(
+                          data: (venues) {
+                            print('DEBUG: Loaded ${venues.length} venues');
+                            for (var venue in venues) {
+                              print('DEBUG: Venue ${venue.name} - Images: ${venue.images}');
+                            }
+                            final featuredVenues = venues.take(4).toList();
+                            if (featuredVenues.isEmpty) {
+                              return Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.store_outlined, size: 64, color: Colors.grey[400]),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'No venues found',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Please try again later',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyMedium?.copyWith(color: Colors.grey[500]),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                            return ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: featuredVenues.length,
+                              itemBuilder: (context, index) {
+                                final venue = featuredVenues[index];
+                                return _VenueCard(venue: venue);
+                              },
+                            );
+                          },
+                          loading: () => const Center(child: CircularProgressIndicator()),
+                          error: (error, stack) => Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.error_outline, size: 64, color: Colors.red[400]),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Error loading venues',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium?.copyWith(color: Colors.red[600]),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Please try again later',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodyMedium?.copyWith(color: Colors.grey[500]),
+                                ),
+                              ],
                             ),
                           ),
-                          onSubmitted: (query) {
-                            if (query.trim().isNotEmpty) {
-                              // Navigate to search page with the query
-                              context.go('/search?query=${Uri.encodeComponent(query.trim())}');
-                            }
-                          },
-                          onTap: () {
-                            // Navigate to search page when tapped
-                            context.go('/search');
-                          },
-                          readOnly: true, // Make it read-only so it acts as a button
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      icon: const Icon(Icons.filter_list),
-                      onPressed: () {
-                        // Navigate to search page with filter dialog
-                        context.go('/search');
-                      },
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.location_searching),
-                      tooltip: 'Search by address',
-                      onPressed: () {
-                        // Navigate to search page for location search
-                        context.go('/search');
-                      },
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              // Featured Venues Section
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Featured Venues',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white
-                            : AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      height: 300, // Fixed reasonable height
-                      child: venuesAsync.when(
-                        data: (venues) {
-                          print('DEBUG: Loaded ${venues.length} venues');
-                          for (var venue in venues) {
-                            print('DEBUG: Venue ${venue.name} - Images: ${venue.images}');
-                          }
-                          final featuredVenues = venues.take(4).toList();
-                          if (featuredVenues.isEmpty) {
-                            return Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.store_outlined, size: 64, color: Colors.grey[400]),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'No venues found',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Please try again later',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodyMedium?.copyWith(color: Colors.grey[500]),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }
-                          return ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: featuredVenues.length,
-                            itemBuilder: (context, index) {
-                              final venue = featuredVenues[index];
-                              return _VenueCard(venue: venue);
-                            },
-                          );
-                        },
-                        loading: () => const Center(child: CircularProgressIndicator()),
-                        error: (error, stack) => Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.error_outline, size: 64, color: Colors.red[400]),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Error loading venues',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.titleMedium?.copyWith(color: Colors.red[600]),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Please try again later',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodyMedium?.copyWith(color: Colors.grey[500]),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

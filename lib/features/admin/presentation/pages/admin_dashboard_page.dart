@@ -246,6 +246,17 @@ class AdminDashboardPage extends ConsumerWidget {
                       onTap: () => context.go('/admin/database-setup'),
                     ),
                   ),
+                  SizedBox(
+                    width: (MediaQuery.of(context).size.width - 64) / 2,
+                    child: _buildActionCard(
+                      context,
+                      icon: Icons.email,
+                      title: 'Email Test',
+                      subtitle: 'Test email functionality',
+                      color: Colors.orange,
+                      onTap: () => context.go('/admin/email-test'),
+                    ),
+                  ),
                 ],
               ),
 
