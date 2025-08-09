@@ -159,6 +159,9 @@ class VenueRepositoryImpl implements VenueRepository {
           venuesQuery = venuesQuery.where('amenities', arrayContains: amenity);
         }
       }
+      if (filter.openEndedOnly == true) {
+        venuesQuery = venuesQuery.where('allowOpenEndedBookings', isEqualTo: true);
+      }
       if (filter.gameTypes != null && filter.gameTypes!.isNotEmpty) {
         for (final gameType in filter.gameTypes!) {
           venuesQuery = venuesQuery.where('gameTypes', arrayContains: gameType);

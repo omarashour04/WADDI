@@ -2,15 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:waddi_platform/shared/widgets/main_scaffold.dart';
-import 'package:waddi_platform/shared/widgets/smart_back_button.dart';
 import 'package:waddi_platform/shared/widgets/custom_button.dart';
 import 'package:waddi_platform/shared/widgets/custom_text_field.dart';
 import 'package:waddi_platform/shared/widgets/loading_indicator.dart';
 import 'package:waddi_platform/shared/themes/app_colors.dart';
-import 'package:waddi_platform/shared/themes/app_typography.dart';
 import 'package:waddi_platform/features/auth/presentation/providers/auth_provider.dart';
-import 'package:waddi_platform/features/bookings/presentation/providers/booking_providers.dart';
-import 'package:waddi_platform/shared/providers/shared_providers.dart';
 
 class BookingFlowPage extends ConsumerStatefulWidget {
   final String venueId;

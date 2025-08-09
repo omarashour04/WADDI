@@ -1,19 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:waddi_platform/shared/widgets/main_scaffold.dart';
-import 'package:waddi_platform/shared/widgets/smart_back_button.dart';
-import 'package:waddi_platform/shared/widgets/custom_button.dart';
-import 'package:waddi_platform/shared/widgets/custom_text_field.dart';
-import 'package:waddi_platform/shared/widgets/loading_indicator.dart';
 import 'package:waddi_platform/shared/themes/app_colors.dart';
-import 'package:waddi_platform/shared/themes/app_typography.dart';
 import 'package:waddi_platform/features/auth/presentation/providers/auth_provider.dart';
 import 'package:waddi_platform/features/venues/presentation/providers/venue_providers.dart';
-import 'package:waddi_platform/shared/providers/shared_providers.dart';
-import '../../domain/entities/room_entity.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waddi_platform/features/bookings/presentation/widgets/smart_booking_form.dart';
 
 class RoomsPage extends ConsumerStatefulWidget {
@@ -104,6 +94,7 @@ class _RoomsPageState extends ConsumerState<RoomsPage> {
             openTime: venue.openTime,
             closeTime: venue.closeTime,
             timeSlotDuration: venue.timeSlotDuration,
+            allowOpenEndedBookings: venue.allowOpenEndedBookings,
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),

@@ -28,4 +28,20 @@ abstract class BookingRepository {
     required List<DateTime> dates,
   });
   Future<void> addReview(String bookingId, int rating, String review);
+
+  // Check-in flows
+  Future<void> checkInByRoomScan({
+    required String userId,
+    required String venueId,
+    required String roomId,
+  });
+
+  Future<void> ownerCheckIn({
+    required String bookingId,
+    required String ownerUserId,
+  });
+
+  // Enforce no-show auto-cancellation (15 minutes after start)
+  // Returns number of bookings updated
+  Future<int> enforceNoShowCancellations({String? userId, String? venueId});
 } 

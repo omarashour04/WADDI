@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/smart_back_button.dart';
-import 'room_form_page.dart';
 
 class RoomManagementPage extends StatelessWidget {
   final String venueId;
@@ -74,11 +73,14 @@ class RoomManagementPage extends StatelessWidget {
                         context.go('/venue-owner/room-form?venueId=$venueId&roomId=$roomId');
                       } else if (value == 'delete') {
                         _deleteRoom(context, venueId, roomId);
+                      } else if (value == 'qr') {
+                        context.go('/venue-owner/room-qr?venueId=$venueId&roomId=$roomId');
                       }
                     },
                     itemBuilder: (context) => [
                       const PopupMenuItem(value: 'edit', child: Text('Edit')),
                       const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                      const PopupMenuItem(value: 'qr', child: Text('View/Print QR')),
                     ],
                   ),
                 ),

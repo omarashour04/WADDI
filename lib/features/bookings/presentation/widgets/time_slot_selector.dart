@@ -93,17 +93,18 @@ class _TimeSlotSelectorState extends State<TimeSlotSelector> {
               
               final isSelected = selectedTimeSlots.contains(timeSlot);
               
+              final isPast = TimeSlotUtils.timeSlotToDateTime(timeSlot, widget.selectedDate).isBefore(DateTime.now());
               return FilterChip(
                 label: Text(
                   TimeSlotUtils.formatTimeSlot(timeSlot),
                   style: TextStyle(
-                    color: isAvailable 
-                      ? (isSelected ? Colors.white : Colors.black)
-                      : Colors.grey,
+                    color: (!isAvailable || isPast)
+                        ? Colors.grey
+                        : (isSelected ? Colors.white : Colors.black),
                   ),
                 ),
                 selected: isSelected,
-                onSelected: isAvailable ? (selected) {
+                onSelected: (isAvailable && !isPast) ? (selected) {
                   setState(() {
                     if (selected) {
                       if (widget.singleSelection) {
@@ -123,7 +124,7 @@ class _TimeSlotSelectorState extends State<TimeSlotSelector> {
                   final sortedSlots = selectedTimeSlots.toList()..sort();
                   widget.onTimeSlotsSelected(sortedSlots);
                 } : null,
-                backgroundColor: isAvailable ? Colors.grey[200] : Colors.grey[100],
+                backgroundColor: (!isAvailable || isPast) ? Colors.grey[100] : Colors.grey[200],
                 selectedColor: Theme.of(context).primaryColor,
                 checkmarkColor: Colors.white,
                 disabledColor: Colors.grey[100],

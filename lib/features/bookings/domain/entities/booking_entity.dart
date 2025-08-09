@@ -23,6 +23,9 @@ class BookingEntity {
   final String? checkedInBy; // userId of who checked them in
   final String? qrCode; // Unique QR code for this booking
   final DateTime? autoCancellationTime; // When booking will be auto-cancelled if not checked in
+  final bool? reminder24hSent;
+  final bool? reminder1hSent;
+  final bool? reminder15mSent;
 
   BookingEntity({
     required this.id,
@@ -47,6 +50,9 @@ class BookingEntity {
     this.autoCancellationTime,
     this.rating,
     this.review,
+    this.reminder24hSent,
+    this.reminder1hSent,
+    this.reminder15mSent,
   });
 
   Map<String, dynamic> toMap() {
@@ -71,6 +77,9 @@ class BookingEntity {
       'checkedInAt': checkedInAt != null ? Timestamp.fromDate(checkedInAt!) : null,
       'checkedInBy': checkedInBy,
       'qrCode': qrCode,
+      'reminder24hSent': reminder24hSent ?? false,
+      'reminder1hSent': reminder1hSent ?? false,
+      'reminder15mSent': reminder15mSent ?? false,
     };
   }
 
@@ -97,6 +106,9 @@ class BookingEntity {
       checkedInAt: map['checkedInAt'] != null ? (map['checkedInAt'] as Timestamp).toDate() : null,
       checkedInBy: map['checkedInBy'],
       qrCode: map['qrCode'],
+      reminder24hSent: map['reminder24hSent'] ?? false,
+      reminder1hSent: map['reminder1hSent'] ?? false,
+      reminder15mSent: map['reminder15mSent'] ?? false,
     );
   }
 
@@ -122,6 +134,9 @@ class BookingEntity {
     DateTime? checkedInAt,
     String? checkedInBy,
     String? qrCode,
+    bool? reminder24hSent,
+    bool? reminder1hSent,
+    bool? reminder15mSent,
   }) {
     return BookingEntity(
       id: id ?? this.id,
@@ -145,6 +160,9 @@ class BookingEntity {
       checkedInAt: checkedInAt ?? this.checkedInAt,
       checkedInBy: checkedInBy ?? this.checkedInBy,
       qrCode: qrCode ?? this.qrCode,
+      reminder24hSent: reminder24hSent ?? this.reminder24hSent,
+      reminder1hSent: reminder1hSent ?? this.reminder1hSent,
+      reminder15mSent: reminder15mSent ?? this.reminder15mSent,
     );
   }
 
@@ -190,9 +208,9 @@ class BookingEntity {
   bool get canCancel => isUpcoming && status == 'confirmed';
   bool get canReview => isPast && status == 'completed' && rating == null;
   
-  // Check-in related getters
-  bool get needsCheckIn => status == 'confirmed' && !isCheckedIn && startTime.isBefore(DateTime.now().add(const Duration(minutes: 10)));
-  bool get isOverdueForCheckIn => status == 'confirmed' && !isCheckedIn && DateTime.now().isAfter(startTime.add(const Duration(minutes: 10)));
+  // Check-in related getters (15-minute window)
+  bool get needsCheckIn => status == 'confirmed' && !isCheckedIn && startTime.isBefore(DateTime.now().add(const Duration(minutes: 15)));
+  bool get isOverdueForCheckIn => status == 'confirmed' && !isCheckedIn && DateTime.now().isAfter(startTime.add(const Duration(minutes: 15)));
   bool get isCashPayment => totalPrice == 0.0;
   bool get canCheckIn => status == 'confirmed' && !isCheckedIn && !isOverdueForCheckIn;
 } 

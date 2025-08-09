@@ -41,7 +41,7 @@ class _BookingFormState extends ConsumerState<BookingForm> {
   final _notesController = TextEditingController();
   bool _isLoading = false;
   bool _isOpenEndedBooking = false; // New field for open-ended booking
-  int _numberOfPeople = 1; // Added numberOfPeople variable
+  final int _numberOfPeople = 1; // Added numberOfPeople variable
 
   @override
   void dispose() {

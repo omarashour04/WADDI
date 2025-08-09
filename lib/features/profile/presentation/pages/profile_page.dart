@@ -3,15 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:waddi_platform/shared/widgets/main_scaffold.dart';
 import 'package:waddi_platform/shared/widgets/smart_back_button.dart';
-import 'package:waddi_platform/shared/widgets/custom_button.dart';
-import 'package:waddi_platform/shared/widgets/custom_text_field.dart';
-import 'package:waddi_platform/shared/widgets/loading_indicator.dart';
 import 'package:waddi_platform/shared/themes/app_colors.dart';
-import 'package:waddi_platform/shared/themes/app_typography.dart';
 import 'package:waddi_platform/features/auth/presentation/providers/auth_provider.dart';
-import 'package:waddi_platform/shared/providers/shared_providers.dart';
-import '../../../../core/services/app_state_service.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -323,8 +316,10 @@ class ProfilePage extends ConsumerWidget {
                 const SizedBox(height: 16),
 
                 // Role Management Section (for testing)
-                if (authState.user?.role == 'user' && authState.status == AuthStatus.authenticated)
-                  _buildRolePromotionSection(context, ref),
+                if (authState.status == AuthStatus.authenticated) ...[
+                  if (authState.user?.role == 'user') _buildRolePromotionSection(context, ref),
+                  if (authState.user?.role == 'venue_owner') _buildVenueOwnerRoleSwitchSection(context, ref),
+                ],
 
                 // Guest User Conversion Section
                 if (authState.status == AuthStatus.unauthenticated)
@@ -753,6 +748,65 @@ class ProfilePage extends ConsumerWidget {
                 ScaffoldMessenger.of(
                   context,
                 ).showSnackBar(const SnackBar(content: Text('Promoted to Venue Owner!')));
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVenueOwnerRoleSwitchSection(BuildContext context, WidgetRef ref) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.black.withOpacity(0.3)
+                : Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'Role Management (Testing)',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.purple,
+                  ),
+            ),
+          ),
+          _ProfileOption(
+            title: 'Switch to Admin',
+            icon: Icons.admin_panel_settings,
+            onTap: () async {
+              await ref.read(authProvider.notifier).promoteToAdmin();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Switched to Admin')), 
+                );
+              }
+            },
+          ),
+          _ProfileOption(
+            title: 'Switch to User',
+            icon: Icons.person,
+            onTap: () async {
+              await ref.read(authProvider.notifier).updateUserRole('user');
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Switched to User')), 
+                );
               }
             },
           ),

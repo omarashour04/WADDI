@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../shared/themes/app_colors.dart';
 import '../../domain/entities/booking_entity.dart';
 import '../providers/booking_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
-import '../../../../shared/widgets/custom_button.dart';
-import '../../../../shared/widgets/loading_indicator.dart';
 import 'smart_time_slot_selector.dart';
 
 class SmartBookingForm extends ConsumerStatefulWidget {
@@ -16,6 +13,7 @@ class SmartBookingForm extends ConsumerStatefulWidget {
   final String openTime;
   final String closeTime;
   final int timeSlotDuration;
+  final bool allowOpenEndedBookings;
 
   const SmartBookingForm({
     super.key,
@@ -24,6 +22,7 @@ class SmartBookingForm extends ConsumerStatefulWidget {
     required this.openTime,
     required this.closeTime,
     required this.timeSlotDuration,
+    required this.allowOpenEndedBookings,
   });
 
   @override
@@ -413,13 +412,19 @@ class _SmartBookingFormState extends ConsumerState<SmartBookingForm> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: GestureDetector(
-                      onTap: () => setState(() => _isOpenEndedBooking = true),
+                      onTap: widget.allowOpenEndedBookings
+                          ? () => setState(() => _isOpenEndedBooking = true)
+                          : null,
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: _isOpenEndedBooking ? Colors.orange[50] : Colors.grey[100],
+                          color: _isOpenEndedBooking
+                                  ? Colors.orange[50]
+                                  : (widget.allowOpenEndedBookings ? Colors.grey[100] : Colors.grey[200]),
                           border: Border.all(
-                            color: _isOpenEndedBooking ? Colors.orange : Colors.grey,
+                            color: _isOpenEndedBooking
+                                ? Colors.orange
+                                : (widget.allowOpenEndedBookings ? Colors.grey : Colors.grey.shade400),
                             width: 2,
                           ),
                           borderRadius: BorderRadius.circular(8),
@@ -428,21 +433,27 @@ class _SmartBookingFormState extends ConsumerState<SmartBookingForm> {
                           children: [
                             Icon(
                               Icons.access_time_filled,
-                              color: _isOpenEndedBooking ? Colors.orange : Colors.grey,
+                              color: _isOpenEndedBooking
+                                  ? Colors.orange
+                                  : (widget.allowOpenEndedBookings ? Colors.grey : Colors.grey.shade400),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               'Open-Ended',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: _isOpenEndedBooking ? Colors.orange : Colors.grey,
+                                color: _isOpenEndedBooking
+                                    ? Colors.orange
+                                    : (widget.allowOpenEndedBookings ? Colors.grey : Colors.grey.shade400),
                               ),
                             ),
                             Text(
                               'Flexible duration',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: _isOpenEndedBooking ? Colors.orange : Colors.grey,
+                                color: _isOpenEndedBooking
+                                    ? Colors.orange
+                                    : (widget.allowOpenEndedBookings ? Colors.grey : Colors.grey.shade400),
                               ),
                             ),
                           ],
@@ -452,6 +463,30 @@ class _SmartBookingFormState extends ConsumerState<SmartBookingForm> {
                   ),
                 ],
               ),
+              if (!widget.allowOpenEndedBookings)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.grey[700], size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Open‑ended bookings are not available for this venue.',
+                            style: TextStyle(color: Colors.grey[800], fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               if (_isOpenEndedBooking) ...[
                 const SizedBox(height: 12),
                 Container(
@@ -746,7 +781,7 @@ class _SmartBookingFormState extends ConsumerState<SmartBookingForm> {
                           subtitle: Text('Capacity: ${room['capacity']} people • \$${room['hourlyPrice']}/hour'),
                           trailing: Icon(Icons.check_circle, color: Colors.green[600]),
                         ),
-                      )).toList(),
+                      )),
                     ],
                   );
                 },

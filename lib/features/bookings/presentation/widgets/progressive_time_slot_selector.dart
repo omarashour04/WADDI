@@ -283,20 +283,26 @@ class _ProgressiveTimeSlotSelectorState extends ConsumerState<ProgressiveTimeSlo
                 children: _displayedTimeSlots.map((timeSlot) {
                   final isSelected = selectedTimeSlots.contains(timeSlot);
                   
-                  return FilterChip(
+                   final slotDateTime = TimeSlotUtils.timeSlotToDateTime(timeSlot, widget.selectedDate);
+                   final isPast = slotDateTime.isBefore(DateTime.now());
+                   return FilterChip(
                     label: Text(
                       TimeSlotUtils.formatTimeSlot(timeSlot),
                       style: TextStyle(
-                        color: isSelected ? Colors.white : Colors.black,
+                        color: isPast
+                            ? Colors.grey
+                            : (isSelected ? Colors.white : Colors.black),
                       ),
                     ),
                     selected: isSelected,
-                    onSelected: (selected) => _toggleTimeSlot(timeSlot),
-                    backgroundColor: Colors.grey[200],
+                     onSelected: isPast ? null : (selected) => _toggleTimeSlot(timeSlot),
+                     backgroundColor: isPast ? Colors.grey[100] : Colors.grey[200],
                     selectedColor: widget.isOpenEndedBooking ? Colors.orange : Colors.blue,
                     checkmarkColor: Colors.white,
                     side: BorderSide(
-                      color: isSelected 
+                      color: isPast
+                          ? Colors.grey[300]!
+                          : (isSelected) 
                           ? (widget.isOpenEndedBooking ? Colors.orange : Colors.blue)
                           : Colors.grey[400]!,
                     ),

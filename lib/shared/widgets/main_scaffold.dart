@@ -165,8 +165,31 @@ class MainScaffold extends ConsumerWidget {
             operation = OfflineOperation.searchVenues;
             break;
           case 2:
-            targetRoute = '/venues';
-            operation = OfflineOperation.browseVenues;
+            // Quick Scan entry
+            if (!isGuest) {
+              targetRoute = '/check-in';
+              // scanning is online-only because it writes to Firestore
+              operation = OfflineOperation.viewBookings; // reuse messaging
+            } else {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Login Required'),
+                  content: const Text('Please log in to scan a room QR and check in.'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        context.push('/login');
+                      },
+                      child: const Text('Login'),
+                    ),
+                  ],
+                ),
+              );
+              return;
+            }
             break;
           case 3:
             if (!isGuest) {
@@ -224,7 +247,7 @@ class MainScaffold extends ConsumerWidget {
       items: [
         const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
         const BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
-        const BottomNavigationBarItem(icon: Icon(Icons.place), label: 'Venues'),
+        const BottomNavigationBarItem(icon: Icon(Icons.qr_code_scanner), label: 'Scan'),
         const BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Bookings'),
         const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
       ],

@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 
 class TimeSlotUtils {
+  /// Returns true if the provided [timeSlot] (HH:MM) on [date] is strictly before now
+  static bool _isTimeSlotInPast(String timeSlot, DateTime date) {
+    final now = DateTime.now();
+    final slot = timeSlotToDateTime(timeSlot, date);
+    // Compare only with actual current time
+    return slot.isBefore(now);
+  }
   /// Generate time slots based on venue operating hours
   static List<String> generateTimeSlots({
     required String openTime,
@@ -11,24 +18,32 @@ class TimeSlotUtils {
     
     try {
       // Parse open and close times
-      final openParts = openTime.split(':');
-      final closeParts = closeTime.split(':');
+      final openParts = openTime.trim().split(':');
+      final closeParts = closeTime.trim().split(':');
       
       if (openParts.length != 2 || closeParts.length != 2) {
         return slots;
       }
       
-      final openHour = int.parse(openParts[0]);
-      final openMinute = int.parse(openParts[1]);
-      final closeHour = int.parse(closeParts[0]);
-      final closeMinute = int.parse(closeParts[1]);
+      final openHour = int.tryParse(openParts[0]) ?? 9;
+      final openMinute = int.tryParse(openParts[1]) ?? 0;
+      final closeHour = int.tryParse(closeParts[0]) ?? 23;
+      final closeMinute = int.tryParse(closeParts[1]) ?? 0;
       
       // Convert to minutes for easier calculation
-      final openMinutes = openHour * 60 + openMinute;
-      final closeMinutes = closeHour * 60 + closeMinute;
+      int openMinutes = openHour * 60 + openMinute;
+      int closeMinutes = closeHour * 60 + closeMinute;
+
+      // If venue times are invalid/unset (e.g., 00:00-00:00), fallback to 09:00-23:00
+      if (closeMinutes <= openMinutes) {
+        openMinutes = 9 * 60;   // 09:00
+        closeMinutes = 23 * 60; // 23:00
+      }
+
+      final stepMinutes = slotDurationMinutes > 0 ? slotDurationMinutes : 60;
       
       // Generate slots
-      for (int minutes = openMinutes; minutes < closeMinutes; minutes += slotDurationMinutes) {
+      for (int minutes = openMinutes; minutes < closeMinutes; minutes += stepMinutes) {
         final hour = minutes ~/ 60;
         final minute = minutes % 60;
         final timeString = '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
@@ -49,6 +64,11 @@ class TimeSlotUtils {
   }) {
     final bookingDate = DateTime(date.year, date.month, date.day);
     
+    // If this is today and slot time already passed, consider not available
+    if (_isTimeSlotInPast(timeSlot, bookingDate)) {
+      return false;
+    }
+
     // Check if any existing booking conflicts with this time slot
     for (final booking in existingBookings) {
       final bookingStart = (booking['startTime'] as DateTime);
@@ -97,6 +117,11 @@ class TimeSlotUtils {
       slotTime.hour,
       slotTime.minute,
     );
+
+    // If this is today and slot time already passed, consider not available
+    if (slotDateTime.isBefore(DateTime.now())) {
+      return false;
+    }
     
     // Check if any existing booking starts after our start time
     // or if any booking overlaps with our start time
@@ -139,11 +164,22 @@ class TimeSlotUtils {
     required List<Map<String, dynamic>> existingBookings,
     required bool isOpenEnded,
   }) {
-    // Filter rooms that can accommodate the group
-    final suitableRooms = rooms.where((room) => 
-      (room['capacity'] ?? 0) >= numberOfPeople && 
-      (room['isClosedForMaintenance'] ?? false) == false
-    ).toList();
+    // Filter rooms that can accommodate the group (tolerant defaults)
+    final suitableRooms = rooms.where((room) {
+      final rawCapacity = room['capacity'];
+      int capacityValue;
+      if (rawCapacity is int) {
+        capacityValue = rawCapacity;
+      } else if (rawCapacity is String) {
+        capacityValue = int.tryParse(rawCapacity) ?? 0;
+      } else {
+        capacityValue = 0;
+      }
+      // If capacity is missing or 0, treat as large to avoid hiding all rooms
+      if (capacityValue <= 0) capacityValue = 999;
+      final closed = (room['isClosedForMaintenance'] ?? false) == true;
+      return !closed && capacityValue >= numberOfPeople;
+    }).toList();
 
     if (suitableRooms.isEmpty) {
       return false; // No suitable rooms available
@@ -196,7 +232,17 @@ class TimeSlotUtils {
       slotDurationMinutes: slotDurationMinutes,
     );
 
-    return allTimeSlots.where((timeSlot) => 
+    // Fallback: if no rooms configured, assume generic availability by time only
+    if (rooms.isEmpty) {
+      return allTimeSlots
+          .where((timeSlot) => !_isTimeSlotInPast(timeSlot, DateTime(date.year, date.month, date.day)))
+          .toList();
+    }
+
+    return allTimeSlots
+        // filter out slots in the past for current day
+        .where((timeSlot) => !_isTimeSlotInPast(timeSlot, DateTime(date.year, date.month, date.day)))
+        .where((timeSlot) => 
       isTimeSlotAvailableForCapacity(
         timeSlot: timeSlot,
         date: date,

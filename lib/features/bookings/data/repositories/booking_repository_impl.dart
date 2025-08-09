@@ -98,6 +98,14 @@ class BookingRepositoryImpl implements BookingRepository {
   @override
   Future<String> createBooking(BookingEntity booking) async {
     try {
+      // Guard: reject creating bookings in the past
+      final now = DateTime.now();
+      if (booking.startTime.isBefore(now)) {
+        throw Exception('Cannot create a booking in the past');
+      }
+      if (booking.endTime.isBefore(booking.startTime)) {
+        throw Exception('Invalid time range');
+      }
       final docRef = await _firestore.collection('bookings').add(booking.toMap());
       return docRef.id;
     } catch (e) {
@@ -182,6 +190,10 @@ class BookingRepositoryImpl implements BookingRepository {
   @override
   Future<bool> isRoomAvailable(String venueId, String roomId, DateTime startTime, DateTime endTime) async {
     try {
+      // Guard: cannot check availability for past start times
+      if (startTime.isBefore(DateTime.now())) {
+        return false;
+      }
       final snapshot = await _firestore
           .collection('bookings')
           .where('venueId', isEqualTo: venueId)
@@ -204,10 +216,119 @@ class BookingRepositoryImpl implements BookingRepository {
     }
   }
 
+  @override
+  Future<void> checkInByRoomScan({
+    required String userId,
+    required String venueId,
+    required String roomId,
+  }) async {
+    // Find an active booking for this user/venue/room within 15-minute window
+    final now = DateTime.now();
+    final fifteenMinsAfter = now.add(const Duration(minutes: 0));
+
+    final qs = await _firestore
+        .collection('bookings')
+        .where('userId', isEqualTo: userId)
+        .where('venueId', isEqualTo: venueId)
+        .where('roomId', isEqualTo: roomId)
+        .where('status', isEqualTo: 'confirmed')
+        .get();
+
+    if (qs.docs.isEmpty) {
+      throw Exception('No active booking found for this room.');
+    }
+
+    // Pick the booking that is within the window
+    final candidates = qs.docs
+        .map((d) => BookingEntity.fromMap(d.data(), d.id))
+        .where((b) {
+          final windowEnd = b.startTime.add(const Duration(minutes: 15));
+          return b.startTime.isBefore(now.add(const Duration(minutes: 1))) && now.isBefore(windowEnd) && !b.isCheckedIn;
+        })
+        .toList();
+
+    if (candidates.isEmpty) {
+      throw Exception('Booking not within check-in window or already checked in.');
+    }
+
+    final booking = candidates.first;
+
+    await _firestore.runTransaction((trx) async {
+      final ref = _firestore.collection('bookings').doc(booking.id);
+      final snap = await trx.get(ref);
+      if (!snap.exists) throw Exception('Booking not found');
+      final data = snap.data() as Map<String, dynamic>;
+      if (data['status'] != 'confirmed') throw Exception('Booking not confirmed');
+      if ((data['isCheckedIn'] ?? false) == true) throw Exception('Already checked in');
+      final start = (data['startTime'] as Timestamp).toDate();
+      if (DateTime.now().isAfter(start.add(const Duration(minutes: 15)))) {
+        throw Exception('Check-in window expired');
+      }
+      trx.update(ref, {
+        'isCheckedIn': true,
+        'checkedInAt': FieldValue.serverTimestamp(),
+        'checkedInBy': userId,
+        'status': 'in_progress',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    });
+  }
+
+  @override
+  Future<void> ownerCheckIn({required String bookingId, required String ownerUserId}) async {
+    await _firestore.runTransaction((trx) async {
+      final ref = _firestore.collection('bookings').doc(bookingId);
+      final snap = await trx.get(ref);
+      if (!snap.exists) throw Exception('Booking not found');
+      final data = snap.data() as Map<String, dynamic>;
+      if (data['status'] != 'confirmed') throw Exception('Booking not confirmed');
+      if ((data['isCheckedIn'] ?? false) == true) throw Exception('Already checked in');
+      final start = (data['startTime'] as Timestamp).toDate();
+      if (DateTime.now().isAfter(start.add(const Duration(minutes: 15)))) {
+        throw Exception('Check-in window expired');
+      }
+      trx.update(ref, {
+        'isCheckedIn': true,
+        'checkedInAt': FieldValue.serverTimestamp(),
+        'checkedInBy': ownerUserId,
+        'status': 'in_progress',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    });
+  }
+
+  @override
+  Future<int> enforceNoShowCancellations({String? userId, String? venueId}) async {
+    // Client-side sweep (recommended server cron for production)
+    Query q = _firestore.collection('bookings').where('status', isEqualTo: 'confirmed').where('isCheckedIn', isEqualTo: false);
+    if (userId != null) q = q.where('userId', isEqualTo: userId);
+    if (venueId != null) q = q.where('venueId', isEqualTo: venueId);
+    final now = DateTime.now();
+    final qs = await q.get();
+    int updated = 0;
+    final batch = _firestore.batch();
+    for (final d in qs.docs) {
+      final start = (d['startTime'] as Timestamp).toDate();
+      if (now.isAfter(start.add(const Duration(minutes: 15)))) {
+        batch.update(d.reference, {
+          'status': 'cancelled',
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        updated++;
+      }
+    }
+    if (updated > 0) await batch.commit();
+    return updated;
+  }
+
   /// Check if room is available for open-ended booking starting at the given time
   /// This checks if there are any bookings after the start time
+  @override
   Future<bool> isRoomAvailableForOpenEndedBooking(String venueId, String roomId, DateTime startTime) async {
     try {
+      if (startTime.isBefore(DateTime.now())) {
+        return false;
+      }
       final snapshot = await _firestore
           .collection('bookings')
           .where('venueId', isEqualTo: venueId)
@@ -234,6 +355,7 @@ class BookingRepositoryImpl implements BookingRepository {
 
   /// Find the best available room for a given capacity and time
   /// Returns the room with the smallest capacity that can accommodate the group
+  @override
   Future<Map<String, dynamic>?> findBestAvailableRoom({
     required String venueId,
     required int numberOfPeople,
@@ -293,6 +415,7 @@ class BookingRepositoryImpl implements BookingRepository {
   }
 
   /// Get all rooms and their bookings for availability checking
+  @override
   Future<Map<String, dynamic>> getVenueAvailabilityData({
     required String venueId,
     required DateTime date,
@@ -334,24 +457,26 @@ class BookingRepositoryImpl implements BookingRepository {
         final startOfDay = DateTime(date.year, date.month, date.day);
         final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
 
-        final bookingsSnapshot = await _firestore
-            .collection('bookings')
-            .where('venueId', isEqualTo: venueId)
-            .where('roomId', isEqualTo: roomDoc.id)
-            .where('startTime', isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
-            .where('endTime', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-            .where('status', whereIn: ['confirmed', 'pending'])
-            .get();
+      // Avoid composite index errors: query by a single field (roomId) and filter in memory by date window and status
+      final bookingsSnapshot = await _firestore
+          .collection('bookings')
+          .where('roomId', isEqualTo: roomDoc.id)
+          .get();
 
-        for (final bookingDoc in bookingsSnapshot.docs) {
-          final bookingData = bookingDoc.data();
+      for (final bookingDoc in bookingsSnapshot.docs) {
+        final bookingData = bookingDoc.data();
+        final start = (bookingData['startTime'] as Timestamp).toDate();
+        final end = (bookingData['endTime'] as Timestamp).toDate();
+        final status = (bookingData['status'] ?? 'confirmed') as String;
+        if (start.isBefore(endOfDay) && end.isAfter(startOfDay) && (status == 'confirmed' || status == 'pending')) {
           allBookings.add({
             'roomId': roomDoc.id,
-            'startTime': (bookingData['startTime'] as Timestamp).toDate(),
-            'endTime': (bookingData['endTime'] as Timestamp).toDate(),
-            'status': bookingData['status'] ?? 'confirmed',
+            'startTime': start,
+            'endTime': end,
+            'status': status,
           });
         }
+      }
       }
 
       final result = {
@@ -373,6 +498,7 @@ class BookingRepositoryImpl implements BookingRepository {
   }
 
   /// Batch load availability data for multiple dates
+  @override
   Future<Map<DateTime, Map<String, dynamic>>> batchGetVenueAvailabilityData({
     required String venueId,
     required List<DateTime> dates,

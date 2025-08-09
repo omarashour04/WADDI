@@ -51,6 +51,8 @@ import '../features/favorites/presentation/pages/favorites_page.dart';
 import '../features/venue_owner/presentation/pages/room_form_page.dart';
 import '../features/accessibility/presentation/pages/accessibility_settings_page.dart';
 import '../features/notifications/presentation/pages/notifications_page.dart';
+import '../features/bookings/presentation/pages/user_check_in_scanner_page.dart';
+import '../features/venue_owner/presentation/pages/room_qr_poster_page.dart';
 
 // Helper function to check if user needs to change password on first login
 Future<bool> _checkFirstLogin(String userId) async {
@@ -572,6 +574,22 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
+        path: '/venue-owner/room-qr',
+        builder: (context, state) {
+          final venueId = state.uri.queryParameters['venueId'] ?? '';
+          final roomId = state.uri.queryParameters['roomId'] ?? '';
+          return RoomQrPosterPage(venueId: venueId, roomId: roomId);
+        },
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.user == null || authState.user!.role != 'venue_owner') {
+            return '/login';
+          }
+          return null;
+        },
+      ),
+      GoRoute(
         path: '/venue-owner/bookings/:venueId',
         builder: (context, state) => VenueBookingsPage(venueId: state.pathParameters['venueId']!),
         redirect: (context, state) {
@@ -661,6 +679,18 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/bookings',
         builder: (context, state) => const UserBookingsPage(),
+        redirect: (context, state) {
+          final container = ProviderScope.containerOf(context);
+          final authState = container.read(authProvider);
+          if (authState.user == null || authState.user!.isGuestUser) {
+            return '/login';
+          }
+          return null;
+        },
+      ),
+      GoRoute(
+        path: '/check-in',
+        builder: (context, state) => const UserCheckInScannerPage(),
         redirect: (context, state) {
           final container = ProviderScope.containerOf(context);
           final authState = container.read(authProvider);

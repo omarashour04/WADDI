@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/review_providers.dart';
 import '../../domain/entities/review_entity.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:waddi_platform/features/auth/auth_injection.dart';

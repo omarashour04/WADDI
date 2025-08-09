@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/smart_back_button.dart';
 import '../../../bookings/domain/entities/booking_entity.dart';
 

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/notification_popup.dart';
 
@@ -48,6 +50,38 @@ class NotificationService {
       }
     } catch (e) {
       print('Error checking notifications: $e');
+    }
+  }
+
+  // Request permission and register FCM token to users/{uid}.fcmTokens
+  static Future<void> initializePushForUser({required String uid}) async {
+    try {
+      final messaging = FirebaseMessaging.instance;
+      // iOS/Android13+ permission
+      final settings = await messaging.requestPermission(alert: true, badge: true, sound: true);
+      if (kDebugMode) {
+        print('FCM permission: ${settings.authorizationStatus}');
+      }
+      final token = await messaging.getToken();
+      if (token != null) {
+        final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
+        await userRef.set({
+          'fcmTokens': FieldValue.arrayUnion([token]),
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
+      // Listen for token refresh
+      FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+        final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
+        await userRef.set({
+          'fcmTokens': FieldValue.arrayUnion([newToken]),
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      });
+    } catch (e) {
+      if (kDebugMode) {
+        print('FCM init failed: $e');
+      }
     }
   }
 

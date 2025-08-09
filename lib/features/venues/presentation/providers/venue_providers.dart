@@ -102,12 +102,13 @@ class VenueFilter {
   final String? priceRange;
   final List<String>? amenities;
   final List<String>? gameTypes;
+  final bool? openEndedOnly;
 
-  VenueFilter({this.minRating, this.priceRange, this.amenities, this.gameTypes});
+  VenueFilter({this.minRating, this.priceRange, this.amenities, this.gameTypes, this.openEndedOnly});
 
   @override
   int get hashCode {
-    return Object.hash(minRating, priceRange, amenities, gameTypes);
+    return Object.hash(minRating, priceRange, amenities, gameTypes, openEndedOnly);
   }
 
   @override
@@ -117,6 +118,7 @@ class VenueFilter {
         other.minRating == minRating &&
         other.priceRange == priceRange &&
         other.amenities == amenities &&
-        other.gameTypes == gameTypes;
+        other.gameTypes == gameTypes &&
+        other.openEndedOnly == openEndedOnly;
   }
 }

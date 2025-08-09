@@ -141,6 +141,58 @@ class BookingNotifier extends StateNotifier<BookingState> {
     }
   }
 
+  Future<void> checkInByRoomScan({
+    required String userId,
+    required String venueId,
+    required String roomId,
+  }) async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+    try {
+      await _repository.checkInByRoomScan(userId: userId, venueId: venueId, roomId: roomId);
+      // Refresh list for that user
+      final updatedBookings = await _repository.getUserBookings(userId);
+      final upcoming = updatedBookings.where((b) => b.isUpcoming).toList();
+      final past = updatedBookings.where((b) => b.isPast).toList();
+      state = state.copyWith(
+        allBookings: updatedBookings,
+        upcomingBookings: upcoming,
+        pastBookings: past,
+        isLoading: false,
+      );
+    } catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      rethrow;
+    }
+  }
+
+  Future<void> ownerCheckIn({required String bookingId, required String ownerUserId}) async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+    try {
+      await _repository.ownerCheckIn(bookingId: bookingId, ownerUserId: ownerUserId);
+      // If we have current bookings in state, just patch the item
+      final updated = state.allBookings.map((b) {
+        if (b.id == bookingId) {
+          return b.copyWith(isCheckedIn: true, checkedInBy: ownerUserId, checkedInAt: DateTime.now(), status: 'in_progress');
+        }
+        return b;
+      }).toList();
+      final upcoming = updated.where((b) => b.isUpcoming).toList();
+      final past = updated.where((b) => b.isPast).toList();
+      state = state.copyWith(allBookings: updated, upcomingBookings: upcoming, pastBookings: past, isLoading: false);
+    } catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      rethrow;
+    }
+  }
+
+  Future<int> enforceNoShowCancellations({String? userId, String? venueId}) async {
+    try {
+      return await _repository.enforceNoShowCancellations(userId: userId, venueId: venueId);
+    } catch (e) {
+      return 0;
+    }
+  }
+
   Future<void> addReview(String bookingId, int rating, String review) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
 

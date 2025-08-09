@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
-import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
 import 'firebase_options.dart';
 import 'routes/app_router.dart';
-import 'core/services/app_state_service.dart';
 import 'core/services/android_back_button_service.dart';
 import 'shared/providers/shared_providers.dart';
 import 'features/accessibility/presentation/providers/accessibility_provider.dart';
 import 'shared/services/offline_mode_service.dart';
+import 'shared/services/notification_service.dart';
+import 'features/auth/presentation/providers/auth_provider.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -75,6 +75,39 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
       // Initialize other services
       ref.read(themeProvider);
       ref.read(languageProvider);
+      final auth = ref.read(authProvider);
+      if (auth.user != null && !auth.isGuestUser) {
+        await NotificationService.initializePushForUser(uid: auth.user!.id);
+      }
+
+      // Handle FCM messages
+      // Foreground
+      FirebaseMessaging.onMessage.listen((message) {
+        if (!mounted) return;
+        final notif = message.notification;
+        final text = notif?.title ?? notif?.body ?? 'New notification';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(text)),
+        );
+      });
+      // App opened from background via notification tap
+      FirebaseMessaging.onMessageOpenedApp.listen((message) {
+        final bookingId = message.data['bookingId'];
+        if (bookingId != null && mounted) {
+          ref.read(goRouterProvider).go('/booking-details/$bookingId');
+        }
+      });
+      // App launched from terminated via notification tap
+      final initialMsg = await FirebaseMessaging.instance.getInitialMessage();
+      if (initialMsg != null) {
+        final bookingId = initialMsg.data['bookingId'];
+        if (bookingId != null && mounted) {
+          // Delay until router ready
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ref.read(goRouterProvider).go('/booking-details/$bookingId');
+          });
+        }
+      }
       
       // Initialize accessibility settings after the widget is built
       WidgetsBinding.instance.addPostFrameCallback((_) {

@@ -64,7 +64,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '458693507291',
     projectId: 'waddi-platform-dev',
     storageBucket: 'waddi-platform-dev.firebasestorage.app',
-    androidClientId: '458693507291-p4g13mv5tcoa748p8bh9c9o9ei0o9h08.apps.googleusercontent.com',
+    androidClientId: '458693507291-4jrbaf9vdu9t0vcb37080ralk40fhirb.apps.googleusercontent.com',
     iosClientId: '458693507291-cnt3r1e1sfvae3p9obm0ugsfk4ql2gkq.apps.googleusercontent.com',
     iosBundleId: 'com.example.waddi',
   );
@@ -82,11 +82,12 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions windows = FirebaseOptions(
     apiKey: 'AIzaSyCCGcTMjlBY3zBqjy_CGDzAMXeYnFT9Xoo',
-    appId: '1:458693507291:web:f7f4190e74fecfe54bf4fe',
+    appId: '1:458693507291:web:75118fa6caf90be64bf4fe',
     messagingSenderId: '458693507291',
     projectId: 'waddi-platform-dev',
     authDomain: 'waddi-platform-dev.firebaseapp.com',
     storageBucket: 'waddi-platform-dev.firebasestorage.app',
-    measurementId: 'G-JZRYXL6PZH',
+    measurementId: 'G-1HQ27WML61',
   );
+
 }

@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../venues/presentation/providers/venue_providers.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/utils/storage_utils.dart';
 
@@ -191,6 +193,11 @@ class _VenueFormPageState extends State<VenueFormPage> {
         // Load open-ended bookings status
         allowOpenEndedBookings = data['allowOpenEndedBookings'] ?? false;
 
+        // Load operating hours fields
+        _openTimeController.text = (data['openTime'] ?? '').toString();
+        _closeTimeController.text = (data['closeTime'] ?? '').toString();
+        _timeSlotDurationController.text = (data['timeSlotDuration'] ?? 30).toString();
+
         // Load rooms
         await _loadRooms();
 
@@ -302,17 +309,13 @@ class _VenueFormPageState extends State<VenueFormPage> {
       final minCapacity = int.tryParse(_minCapacityController.text) ?? 0;
       final maxCapacity = int.tryParse(_maxCapacityController.text) ?? 0;
 
-      final data = {
+      final baseData = {
         'name': _nameController.text.trim(),
         'description': _descController.text.trim(),
         'address': _addressController.text.trim(),
         'contactPhone': _contactPhoneController.text.trim(),
         'contactEmail': _contactEmailController.text.trim(),
         'images': imageUrls,
-        'ownerId': widget.ownerId,
-        'status': status, // 'approved' for admin, 'pending' for venue owners
-        'averageRating': 0.0,
-        'totalReviews': 0,
         'isClosedForMaintenance': isClosedForMaintenance,
         'allowOpenEndedBookings': allowOpenEndedBookings,
         'openTime': _openTimeController.text.trim(),
@@ -325,23 +328,44 @@ class _VenueFormPageState extends State<VenueFormPage> {
         'blockedDates': [],
         'amenities': selectedAmenities,
         'location': GeoPoint(0, 0), // Default location
-        'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
       String venueId;
       if (widget.venueId == null) {
         // Create new venue
-        final venueDoc = await FirebaseFirestore.instance.collection('venues').add(data);
+        final createData = {
+          ...baseData,
+          'ownerId': widget.ownerId,
+          'status': status, // 'approved' for admin, 'pending' for venue owners
+          'averageRating': 0.0,
+          'totalReviews': 0,
+          'createdAt': FieldValue.serverTimestamp(),
+        };
+        final venueDoc = await FirebaseFirestore.instance.collection('venues').add(createData);
         venueId = venueDoc.id;
       } else {
         // Update existing venue
-        await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).update(data);
+        // Do not overwrite immutable/owner fields on update
+        final updateData = {
+          ...baseData,
+          // keep existing ownerId/status/createdAt/ratings as-is
+        };
+        await FirebaseFirestore.instance
+            .collection('venues')
+            .doc(widget.venueId)
+            .update(updateData);
         venueId = widget.venueId!;
       }
 
       // Save rooms
       await _saveRooms(venueId);
+
+      // Invalidate venue caches so lists reflect changes immediately
+      try {
+        final container = ProviderScope.containerOf(context);
+        container.read(cacheInvalidationProvider)();
+      } catch (_) {}
 
       // Show success message
       if (context.mounted) {

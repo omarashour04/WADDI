@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/support_ticket_providers.dart';
 import '../../domain/entities/support_ticket_entity.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'help_center_page.dart';

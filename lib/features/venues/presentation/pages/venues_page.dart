@@ -9,13 +9,8 @@ import 'package:go_router/go_router.dart';
 import 'package:waddi_platform/shared/widgets/main_scaffold.dart';
 import 'package:waddi_platform/features/auth/presentation/providers/auth_provider.dart';
 import 'package:waddi_platform/shared/themes/app_colors.dart';
-import '../../../../core/services/app_state_service.dart';
-import '../../../../shared/widgets/skeleton_loader.dart';
-import '../../../../shared/widgets/pull_to_refresh_wrapper.dart';
-import '../../../../shared/widgets/lottie_animations.dart';
 import '../../../../shared/widgets/firebase_image_widget.dart';
 import '../../../../shared/widgets/smart_back_button.dart';
-import 'package:waddi_platform/shared/providers/shared_providers.dart';
 import 'package:waddi_platform/shared/widgets/offline_mode_widget.dart';
 import 'package:waddi_platform/shared/services/offline_mode_service.dart';
 
@@ -97,10 +92,7 @@ class _VenuesPageState extends ConsumerState<VenuesPage> {
                       const SizedBox(width: 8),
                       IconButton(
                         icon: const Icon(Icons.filter_list),
-                        onPressed: () {
-                          // Navigate to search page with filter dialog
-                          context.go('/search');
-                        },
+                        onPressed: () => _showFilterDialog(context),
                       ),
                       IconButton(
                         icon: const Icon(Icons.location_searching),
@@ -222,6 +214,7 @@ class _VenuesPageState extends ConsumerState<VenuesPage> {
         // Example options - in real app, fetch from Firestore or config
         final amenitiesOptions = ['WiFi', 'Parking', 'Cafeteria', 'Locker Room', 'Showers'];
         final gameTypesOptions = ['Football', 'Basketball', 'Tennis', 'Padel', 'Volleyball'];
+        bool openEndedOnly = ref.read(venueFilterProvider).openEndedOnly ?? false;
         return StatefulBuilder(
           builder: (context, setState) => AlertDialog(
             title: const Text('Filters'),
@@ -316,6 +309,13 @@ class _VenuesPageState extends ConsumerState<VenuesPage> {
                         )
                         .toList(),
                   ),
+                  const SizedBox(height: 16),
+                  SwitchListTile(
+                    title: const Text('Open‑ended only'),
+                    subtitle: const Text('Show venues that allow open‑ended bookings'),
+                    value: openEndedOnly,
+                    onChanged: (v) => setState(() => openEndedOnly = v),
+                  ),
                 ],
               ),
             ),
@@ -327,6 +327,7 @@ class _VenuesPageState extends ConsumerState<VenuesPage> {
                     priceRange: priceRange,
                     amenities: selectedAmenities,
                     gameTypes: selectedGameTypes,
+                    openEndedOnly: openEndedOnly,
                   );
                   Navigator.of(context).pop();
                 },

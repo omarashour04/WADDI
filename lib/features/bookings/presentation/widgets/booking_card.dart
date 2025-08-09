@@ -187,6 +187,24 @@ class BookingCard extends StatelessWidget {
                       child: const Text('Cancel'),
                     ),
                   ),
+                if (booking.canCheckIn)
+                  ...[
+                    if (booking.canCancel || booking.canReview) const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          // Navigate to a simple scanner page that reads room QR
+                          // The scanner page will call the provider to check in by room scan
+                          context.go('/check-in');
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.purple,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Scan to Check In'),
+                      ),
+                    ),
+                  ],
                 if (booking.canReview && onReview != null) ...[
                   if (booking.canCancel) const SizedBox(width: 8),
                   Expanded(

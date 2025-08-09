@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/themes/app_colors.dart';
 import '../../../../shared/widgets/main_scaffold.dart';
 import '../../../bookings/domain/entities/booking_entity.dart';
+import '../../../bookings/presentation/providers/booking_provider.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 
 class VenueOwnerBookingsPage extends ConsumerWidget {
   final String ownerId;
@@ -134,6 +136,32 @@ class VenueOwnerBookingsPage extends ConsumerWidget {
                                           _getStatusIcon(bookingEntity.status),
                                           color: _getStatusColor(bookingEntity.status),
                                         ),
+                                        if (bookingEntity.status == 'confirmed' && !bookingEntity.isCheckedIn &&
+                                            DateTime.now().isBefore(bookingEntity.startTime.add(const Duration(minutes: 15))))
+                                          IconButton(
+                                            tooltip: 'Check in user',
+                                            icon: const Icon(Icons.play_circle, color: Colors.green),
+                                            onPressed: () async {
+                                              final ownerId = ref.read(authProvider).user?.id ?? '';
+                                              try {
+                                                await ref.read(bookingStateProvider.notifier).ownerCheckIn(
+                                                      bookingId: booking.id,
+                                                      ownerUserId: ownerId,
+                                                    );
+                                                if (context.mounted) {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    const SnackBar(content: Text('User checked in')),
+                                                  );
+                                                }
+                                              } catch (e) {
+                                                if (context.mounted) {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(content: Text('Check-in failed: $e')),
+                                                  );
+                                                }
+                                              }
+                                            },
+                                          ),
                                         IconButton(
                                           icon: const Icon(Icons.cancel, color: Colors.red),
                                           onPressed: () =>

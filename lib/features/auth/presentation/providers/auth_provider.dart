@@ -5,7 +5,6 @@ import 'package:waddi_platform/features/auth/domain/usecases/reset_password.dart
 import 'package:waddi_platform/features/users/domain/entities/user_entity.dart';
 import 'package:waddi_platform/core/errors/failures.dart';
 import 'package:waddi_platform/features/auth/auth_injection.dart';
-import 'package:waddi_platform/features/auth/domain/repositories/auth_repository.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';

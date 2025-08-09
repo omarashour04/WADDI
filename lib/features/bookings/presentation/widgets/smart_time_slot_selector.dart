@@ -196,7 +196,7 @@ class _SmartTimeSlotSelectorState extends ConsumerState<SmartTimeSlotSelector> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'No rooms with capacity for ${widget.numberOfPeople} people are available at this time. Try a different date or reduce the number of people.',
+                        'Try another date or reduce people. If rooms are not configured yet, times may appear empty. We will show generic times soon.',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.orange[700],

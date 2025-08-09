@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/themes/app_colors.dart';
 import '../../../../shared/widgets/main_scaffold.dart';
+import '../../../venues/presentation/providers/venue_providers.dart';
 
 class AdminVenuesPage extends ConsumerStatefulWidget {
   const AdminVenuesPage({super.key});
@@ -355,6 +356,11 @@ class _AdminVenuesPageState extends ConsumerState<AdminVenuesPage> {
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
+      // Invalidate cached venue lists so users see the update immediately
+      try {
+        ref.read(cacheInvalidationProvider)();
+      } catch (_) {}
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Venue approved successfully!'),
@@ -375,6 +381,10 @@ class _AdminVenuesPageState extends ConsumerState<AdminVenuesPage> {
         'status': 'rejected',
         'updatedAt': FieldValue.serverTimestamp(),
       });
+
+      try {
+        ref.read(cacheInvalidationProvider)();
+      } catch (_) {}
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -413,6 +423,10 @@ class _AdminVenuesPageState extends ConsumerState<AdminVenuesPage> {
             .collection('venues')
             .doc(venueId)
             .delete();
+
+        try {
+          ref.read(cacheInvalidationProvider)();
+        } catch (_) {}
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

@@ -5,7 +5,7 @@ import * as nodemailer from 'nodemailer';
 admin.initializeApp();
 
 // Email configuration
-const transporter = nodemailer.createTransporter({
+const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
         user: functions.config().email?.user || 'your-email@gmail.com',
@@ -630,3 +630,122 @@ export const sendBookingReminderEmail = functions.https.onCall(async (data, cont
         throw new functions.https.HttpsError('internal', 'Failed to send booking reminder email');
     }
 }); 
+
+// =============================
+// Booking reminders + auto-cancel
+// =============================
+
+type BookingDoc = FirebaseFirestore.QueryDocumentSnapshot<FirebaseFirestore.DocumentData>;
+
+function minutesUntil(date: Date, from: Date): number {
+  return Math.round((date.getTime() - from.getTime()) / 60000);
+}
+
+async function fetchUserTokens(userId: string): Promise<string[]> {
+  if (!userId) return [];
+  const userSnap = await admin.firestore().collection('users').doc(userId).get();
+  const data = userSnap.data() || {} as any;
+  const tokens: string[] = Array.isArray(data.fcmTokens) ? data.fcmTokens.filter((t: any) => typeof t === 'string') : [];
+  return tokens;
+}
+
+async function sendPush(tokens: string[], title: string, body: string, data?: Record<string, string>) {
+  if (!tokens.length) return;
+  const message: admin.messaging.MulticastMessage = {
+    tokens,
+    notification: { title, body },
+    data: data || {},
+    android: { priority: 'high' },
+    apns: { payload: { aps: { sound: 'default' } } },
+  };
+  await admin.messaging().sendEachForMulticast(message);
+}
+
+async function processRemindersAndNoShows(): Promise<{ reminders: number; cancelled: number; }> {
+  const now = new Date();
+  const db = admin.firestore();
+
+  // Query top-level 'bookings' collection (primary in app)
+  const bookingsSnap = await db.collection('bookings')
+    .where('status', '==', 'confirmed')
+    .where('startTime', '>=', admin.firestore.Timestamp.fromDate(new Date(now.getTime() - 24 * 60 * 60000)))
+    .where('startTime', '<=', admin.firestore.Timestamp.fromDate(new Date(now.getTime() + 24 * 60 * 60000)))
+    .get();
+
+  let remindersSent = 0;
+  let cancelledCount = 0;
+
+  const batch = db.batch();
+
+  for (const doc of bookingsSnap.docs) {
+    const b = doc.data() as any;
+    const start: Date = (b.startTime instanceof admin.firestore.Timestamp) ? b.startTime.toDate() : new Date(b.startTime);
+    const mins = minutesUntil(start, now);
+    const userId: string = b.userId || b.userID || '';
+    const bookingId: string = doc.id;
+    const venueName: string = b.venueName || 'Your Venue';
+    const roomName: string = b.roomName || 'Room';
+
+    // Auto-cancel: not checked in within 15 mins after start
+    const isCheckedIn = Boolean(b.isCheckedIn);
+    if (!isCheckedIn && now.getTime() >= start.getTime() + 15 * 60000) {
+      batch.update(doc.ref, {
+        status: 'cancelled',
+        cancellationReason: 'no_show',
+        autoCancelledAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      cancelledCount += 1;
+      continue; // no reminders after cancellation
+    }
+
+    // Reminders windows (run every ~5m)
+    const reminder24hSent = Boolean(b.reminder24hSent);
+    const reminder1hSent = Boolean(b.reminder1hSent);
+    const reminder15mSent = Boolean(b.reminder15mSent);
+
+    // 24h: mins ~ 1440 +- 5
+    if (!reminder24hSent && mins <= 1440 && mins >= 1435) {
+      const tokens = await fetchUserTokens(userId);
+      await sendPush(tokens, 'Booking tomorrow', `Your ${roomName} at ${venueName} is tomorrow at ${start.toLocaleTimeString()}`, {
+        type: 'booking_reminder_24h', bookingId,
+      });
+      batch.update(doc.ref, { reminder24hSent: true });
+      remindersSent += 1;
+    }
+
+    // 1h: mins ~ 60 +- 5
+    if (!reminder1hSent && mins <= 60 && mins >= 55) {
+      const tokens = await fetchUserTokens(userId);
+      await sendPush(tokens, 'Booking in 1 hour', `Your ${roomName} at ${venueName} starts in 1 hour`, {
+        type: 'booking_reminder_1h', bookingId,
+      });
+      batch.update(doc.ref, { reminder1hSent: true });
+      remindersSent += 1;
+    }
+
+    // 15m: mins ~ 15 +- 5
+    if (!reminder15mSent && mins <= 15 && mins >= 10) {
+      const tokens = await fetchUserTokens(userId);
+      await sendPush(tokens, 'Booking in 15 minutes', `Your ${roomName} at ${venueName} starts soon. Please arrive and scan the room QR to check in.`, {
+        type: 'booking_reminder_15m', bookingId,
+      });
+      batch.update(doc.ref, { reminder15mSent: true });
+      remindersSent += 1;
+    }
+  }
+
+  // Commit batched updates
+  await batch.commit();
+
+  return { reminders: remindersSent, cancelled: cancelledCount };
+}
+
+// Run every 5 minutes
+export const scheduleBookingRemindersAndAutoCancel = functions.pubsub
+  .schedule('every 5 minutes')
+  .timeZone('UTC')
+  .onRun(async () => {
+    const res = await processRemindersAndNoShows();
+    console.log('Reminders sent:', res.reminders, 'Auto-cancelled:', res.cancelled);
+  });
