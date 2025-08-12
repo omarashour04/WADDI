@@ -4,6 +4,8 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/services.dart';
 import '../../../venues/presentation/providers/venue_providers.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/utils/storage_utils.dart';
@@ -99,8 +101,7 @@ class _VenueFormPageState extends State<VenueFormPage> {
   final _addressController = TextEditingController();
   final _contactPhoneController = TextEditingController();
   final _contactEmailController = TextEditingController();
-
-  // New controllers for additional fields
+  final _googleMapsLinkController = TextEditingController();
   final _minPriceController = TextEditingController();
   final _maxPriceController = TextEditingController();
   final _minCapacityController = TextEditingController();
@@ -145,7 +146,17 @@ class _VenueFormPageState extends State<VenueFormPage> {
   @override
   void initState() {
     super.initState();
-    if (widget.venueId != null) _loadVenue();
+    _loadVenue();
+    
+    // Add listener to Google Maps link controller for reactive UI
+    _googleMapsLinkController.addListener(() {
+      setState(() {});
+    });
+    
+    // Add listener to address controller for reactive UI
+    _addressController.addListener(() {
+      setState(() {});
+    });
   }
 
   @override
@@ -155,6 +166,7 @@ class _VenueFormPageState extends State<VenueFormPage> {
     _addressController.dispose();
     _contactPhoneController.dispose();
     _contactEmailController.dispose();
+    _googleMapsLinkController.dispose();
     _minPriceController.dispose();
     _maxPriceController.dispose();
     _minCapacityController.dispose();
@@ -172,6 +184,7 @@ class _VenueFormPageState extends State<VenueFormPage> {
         _addressController.text = data['address'] ?? '';
         _contactPhoneController.text = data['contactPhone'] ?? '';
         _contactEmailController.text = data['contactEmail'] ?? '';
+        _googleMapsLinkController.text = data['googleMapsLink'] ?? '';
         imageUrls = List<String>.from(data['images'] ?? []);
 
         // Load price range
@@ -275,6 +288,592 @@ class _VenueFormPageState extends State<VenueFormPage> {
     }
   }
 
+  Future<void> _testGoogleMapsLink() async {
+    final link = _googleMapsLinkController.text.trim();
+    if (link.isEmpty) return;
+    
+    try {
+      final uri = Uri.parse(link);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not launch Google Maps link.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Invalid Google Maps link: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _generateGoogleMapsLinkFromAddress() async {
+    final address = _addressController.text.trim();
+    if (address.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enter an address first.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    final encodedAddress = Uri.encodeComponent(address);
+    final googleMapsLink = 'https://www.google.com/maps/search/?api=1&query=$encodedAddress';
+
+    if (await canLaunchUrl(Uri.parse(googleMapsLink))) {
+      _googleMapsLinkController.text = googleMapsLink;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Generated Google Maps link: $googleMapsLink'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not generate Google Maps link for address: $address'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _searchOnGoogleMaps() async {
+    final address = _addressController.text.trim();
+    if (address.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enter an address first.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    final encodedAddress = Uri.encodeComponent(address);
+    final googleMapsLink = 'https://www.google.com/maps/search/?api=1&query=$encodedAddress';
+
+    if (await canLaunchUrl(Uri.parse(googleMapsLink))) {
+      await launchUrl(Uri.parse(googleMapsLink), mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not launch Google Maps search for address: $address'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _copyGoogleMapsLink() async {
+    final link = _googleMapsLinkController.text.trim();
+    if (link.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Google Maps link is empty.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    try {
+      await Clipboard.setData(ClipboardData(text: link));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Google Maps link copied to clipboard!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to copy Google Maps link: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Validate and suggest improvements for Google Maps links
+  String? _validateGoogleMapsLink(String? value) {
+    if (value == null || value.isEmpty) return null;
+    
+    // Check if it's a valid URL
+    final uri = Uri.tryParse(value);
+    if (uri == null || !uri.hasScheme) {
+      return 'Please enter a valid URL starting with http:// or https://';
+    }
+    
+    // Check if it's a Google Maps link
+    if (!value.contains('maps.google.com') && !value.contains('goo.gl/maps')) {
+      return 'Please enter a valid Google Maps link (maps.google.com or goo.gl/maps)';
+    }
+    
+    // Suggest HTTPS for security
+    if (!value.startsWith('https://')) {
+      return 'Consider using HTTPS for security (https://maps.google.com/...)';
+    }
+    
+    // Check for common issues
+    if (value.contains('maps.google.com/maps?q=') && !value.contains('api=1')) {
+      return 'Consider adding "&api=1" for better mobile experience';
+    }
+    
+    return null;
+  }
+
+  /// Automatically improve Google Maps links
+  void _improveGoogleMapsLink() {
+    final link = _googleMapsLinkController.text.trim();
+    if (link.isEmpty) return;
+    
+    String improvedLink = link;
+    
+    // Add HTTPS if missing
+    if (!link.startsWith('https://')) {
+      improvedLink = link.replaceFirst('http://', 'https://');
+      if (!improvedLink.startsWith('https://')) {
+        improvedLink = 'https://$improvedLink';
+      }
+    }
+    
+    // Add API parameter for better mobile experience
+    if (improvedLink.contains('maps.google.com/maps?q=') && !improvedLink.contains('api=1')) {
+      if (improvedLink.contains('&')) {
+        improvedLink = improvedLink.replaceFirst('&', '&api=1&');
+      } else {
+        improvedLink = '$improvedLink&api=1';
+      }
+    }
+    
+    if (improvedLink != link) {
+      _googleMapsLinkController.text = improvedLink;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Google Maps link improved automatically!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _previewGoogleMapsLink() async {
+    final link = _googleMapsLinkController.text.trim();
+    if (link.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Google Maps link is empty.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    try {
+      final uri = Uri.parse(link);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not launch Google Maps link for preview.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error previewing Google Maps link: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Show Google Maps link details in a dialog
+  void _showGoogleMapsLinkDetails() {
+    final link = _googleMapsLinkController.text.trim();
+    if (link.isEmpty) return;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Google Maps Link Details'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Link:', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: SelectableText(
+                link,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text('Actions:', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () {
+                    _copyGoogleMapsLink();
+                    Navigator.of(context).pop();
+                  },
+                  icon: const Icon(Icons.copy, size: 16),
+                  label: const Text('Copy'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    _testGoogleMapsLink();
+                    Navigator.of(context).pop();
+                  },
+                  icon: const Icon(Icons.open_in_new, size: 16),
+                  label: const Text('Test'),
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Check if Google Maps link is accessible
+  Future<bool> _isGoogleMapsLinkAccessible(String link) async {
+    try {
+      final uri = Uri.parse(link);
+      return await canLaunchUrl(uri);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Show Google Maps link status summary
+  void _showGoogleMapsLinkStatus() {
+    final link = _googleMapsLinkController.text.trim();
+    if (link.isEmpty) return;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Google Maps Link Status'),
+        content: FutureBuilder<bool>(
+          future: _isGoogleMapsLinkAccessible(link),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            
+            final isAccessible = snapshot.data ?? false;
+            final validationResult = _validateGoogleMapsLink(link);
+            
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      isAccessible ? Icons.check_circle : Icons.error,
+                      color: isAccessible ? Colors.green : Colors.red,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      isAccessible ? 'Link is accessible' : 'Link may not be accessible',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: isAccessible ? Colors.green : Colors.red,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                if (validationResult != null) ...[
+                  Row(
+                    children: [
+                      const Icon(Icons.warning, color: Colors.orange),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          validationResult,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.orange,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                Text('Link:', style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: SelectableText(
+                    link,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Extract location information from Google Maps link
+  Map<String, double>? _extractLocationFromGoogleMapsLink(String link) {
+    try {
+      final uri = Uri.parse(link);
+      
+      // Handle different Google Maps link formats
+      if (link.contains('maps.google.com/maps?q=')) {
+        final query = uri.queryParameters['q'];
+        if (query != null) {
+          // Try to extract coordinates from query
+          final coordsMatch = RegExp(r'(-?\d+\.\d+),(-?\d+\.\d+)').firstMatch(query);
+          if (coordsMatch != null) {
+            final lat = double.parse(coordsMatch.group(1)!);
+            final lng = double.parse(coordsMatch.group(2)!);
+            return {'latitude': lat, 'longitude': lng};
+          }
+        }
+      } else if (link.contains('maps.google.com/maps/place/')) {
+        // Handle place links
+        final pathSegments = uri.pathSegments;
+        if (pathSegments.length >= 3) {
+          final coordsMatch = RegExp(r'(-?\d+\.\d+),(-?\d+\.\d+)').firstMatch(pathSegments.last);
+          if (coordsMatch != null) {
+            final lat = double.parse(coordsMatch.group(1)!);
+            final lng = double.parse(coordsMatch.group(2)!);
+            return {'latitude': lat, 'longitude': lng};
+          }
+        }
+      }
+      
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Show extracted location information
+  void _showExtractedLocation() {
+    final link = _googleMapsLinkController.text.trim();
+    if (link.isEmpty) return;
+    
+    final location = _extractLocationFromGoogleMapsLink(link);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Extracted Location'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (location != null) ...[
+              Row(
+                children: [
+                  const Icon(Icons.location_on, color: Colors.green),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Location detected from Google Maps link',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: Colors.green,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text('Latitude: ${location['latitude']?.toStringAsFixed(6)}'),
+              Text('Longitude: ${location['longitude']?.toStringAsFixed(6)}'),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () {
+                  // Here you could update the venue's location field if you have one
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Location coordinates extracted successfully!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.save, size: 16),
+                label: const Text('Use This Location'),
+              ),
+            ] else ...[
+              Row(
+                children: [
+                  const Icon(Icons.location_off, color: Colors.orange),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Could not extract location from this link',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: Colors.orange,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'The Google Maps link format may not contain coordinates, or the format is not supported.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Generate QR code for Google Maps link
+  void _generateQRCodeForGoogleMapsLink() {
+    final link = _googleMapsLinkController.text.trim();
+    if (link.isEmpty) return;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Google Maps QR Code'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Scan this QR code to open the Google Maps link:',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: Column(
+                children: [
+                  // Here you would generate and display the QR code
+                  // For now, we'll show a placeholder
+                  Container(
+                    width: 200,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.qr_code, size: 64, color: Colors.grey),
+                          SizedBox(height: 8),
+                          Text(
+                            'QR Code Placeholder',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                          Text(
+                            'Install qr_flutter package to generate actual QR codes',
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Link: $link',
+                    style: Theme.of(context).textTheme.bodySmall,
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -315,6 +914,9 @@ class _VenueFormPageState extends State<VenueFormPage> {
         'address': _addressController.text.trim(),
         'contactPhone': _contactPhoneController.text.trim(),
         'contactEmail': _contactEmailController.text.trim(),
+        'googleMapsLink': _googleMapsLinkController.text.trim().isEmpty 
+            ? null 
+            : _googleMapsLinkController.text.trim(),
         'images': imageUrls,
         'isClosedForMaintenance': isClosedForMaintenance,
         'allowOpenEndedBookings': allowOpenEndedBookings,
@@ -756,6 +1358,173 @@ class _VenueFormPageState extends State<VenueFormPage> {
                 ),
                 keyboardType: TextInputType.emailAddress,
               ),
+              const SizedBox(height: 12),
+
+              TextFormField(
+                controller: _googleMapsLinkController,
+                decoration: InputDecoration(
+                  labelText: 'Google Maps Link',
+                  hintText: 'https://maps.google.com/... or https://goo.gl/maps/...',
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.map),
+                  helperText: 'Paste the Google Maps link for your venue location',
+                  suffixIcon: _googleMapsLinkController.text.isNotEmpty && 
+                              _googleMapsLinkController.text.contains('maps.google.com') || 
+                              _googleMapsLinkController.text.contains('goo.gl/maps')
+                      ? const Icon(Icons.check_circle, color: Colors.green)
+                      : Tooltip(
+                          message: 'How to get Google Maps link:\n'
+                              '1. Go to Google Maps\n'
+                              '2. Search for your venue address\n'
+                              '3. Click "Share" and copy the link\n'
+                              '4. Paste it here',
+                          child: const Icon(Icons.help_outline, color: Colors.blue),
+                        ),
+                ),
+                keyboardType: TextInputType.url,
+                validator: _validateGoogleMapsLink,
+                onChanged: (value) {
+                  // Auto-format the Google Maps link
+                  if (value.isNotEmpty && !value.startsWith('http')) {
+                    if (value.contains('maps.google.com') || value.contains('goo.gl/maps')) {
+                      _googleMapsLinkController.text = 'https://$value';
+                      _googleMapsLinkController.selection = TextSelection.fromPosition(
+                        TextPosition(offset: _googleMapsLinkController.text.length),
+                      );
+                    }
+                  }
+                },
+              ),
+              const SizedBox(height: 8),
+              
+              // Test Google Maps Link Button
+              if (_googleMapsLinkController.text.isNotEmpty)
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _testGoogleMapsLink(),
+                        icon: const Icon(Icons.open_in_new, size: 16),
+                        label: const Text('Test Link'),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: Colors.blue),
+                          foregroundColor: Colors.blue,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        _googleMapsLinkController.clear();
+                        setState(() {});
+                      },
+                      icon: const Icon(Icons.clear, size: 16),
+                      label: const Text('Clear'),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.red),
+                        foregroundColor: Colors.red,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => _copyGoogleMapsLink(),
+                      icon: const Icon(Icons.copy, size: 16),
+                      label: const Text('Copy'),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.purple),
+                        foregroundColor: Colors.purple,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => _improveGoogleMapsLink(),
+                      icon: const Icon(Icons.auto_fix_high, size: 16),
+                      label: const Text('Improve'),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.teal),
+                        foregroundColor: Colors.teal,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => _previewGoogleMapsLink(),
+                      icon: const Icon(Icons.preview, size: 16),
+                      label: const Text('Preview'),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.indigo),
+                        foregroundColor: Colors.indigo,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => _showGoogleMapsLinkDetails(),
+                      icon: const Icon(Icons.info, size: 16),
+                      label: const Text('Details'),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.amber),
+                        foregroundColor: Colors.amber,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => _showGoogleMapsLinkStatus(),
+                      icon: const Icon(Icons.analytics, size: 16),
+                      label: const Text('Status'),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.cyan),
+                        foregroundColor: Colors.cyan,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => _showExtractedLocation(),
+                      icon: const Icon(Icons.location_on, size: 16),
+                      label: const Text('Location'),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.purple),
+                        foregroundColor: Colors.purple,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => _generateQRCodeForGoogleMapsLink(),
+                      icon: const Icon(Icons.qr_code, size: 16),
+                      label: const Text('QR Code'),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.orange),
+                        foregroundColor: Colors.orange,
+                      ),
+                    ),
+                  ],
+                ),
+              
+              // Generate Google Maps Link Button
+              if (_addressController.text.isNotEmpty && _googleMapsLinkController.text.isEmpty)
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _generateGoogleMapsLinkFromAddress(),
+                        icon: const Icon(Icons.auto_fix_high, size: 16),
+                        label: const Text('Generate Link'),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: Colors.green),
+                          foregroundColor: Colors.green,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => _searchOnGoogleMaps(),
+                      icon: const Icon(Icons.search, size: 16),
+                      label: const Text('Search'),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.orange),
+                        foregroundColor: Colors.orange,
+                      ),
+                    ),
+                  ],
+                ),
               const SizedBox(height: 16),
 
               // Pricing Section

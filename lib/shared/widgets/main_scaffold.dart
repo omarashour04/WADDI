@@ -26,11 +26,6 @@ class MainScaffold extends ConsumerWidget {
     final userRole = authState.user?.role;
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: currentTheme == ThemeMode.dark ? AppColors.primaryDark : AppColors.primary,
-        foregroundColor: currentTheme == ThemeMode.dark ? Colors.white : AppColors.textOnPrimary,
-        elevation: 0,
-      ),
       body: Column(
         children: [
           // Offline status bar
@@ -162,7 +157,6 @@ class MainScaffold extends ConsumerWidget {
             break;
           case 1:
             targetRoute = '/search';
-            operation = OfflineOperation.searchVenues;
             break;
           case 2:
             // Quick Scan entry

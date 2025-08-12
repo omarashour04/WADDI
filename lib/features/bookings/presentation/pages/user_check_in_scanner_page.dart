@@ -3,8 +3,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:go_router/go_router.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/booking_provider.dart';
+import '../../../../shared/widgets/main_scaffold.dart';
 
 class UserCheckInScannerPage extends ConsumerStatefulWidget {
   const UserCheckInScannerPage({super.key});
@@ -57,35 +59,39 @@ class _UserCheckInScannerPageState extends ConsumerState<UserCheckInScannerPage>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Scan Room QR to Check In')),
-      body: Column(
-        children: [
-          Expanded(
-            child: MobileScanner(
-              onDetect: (capture) {
-                final codes = capture.barcodes;
-                if (codes.isNotEmpty) {
-                  final raw = codes.first.rawValue;
-                  if (raw != null) {
-                    _handleScan(raw);
+    return MainScaffold(
+      currentIndex: 2, // Scan tab is at index 2
+      userId: ref.read(authProvider).user?.id ?? '',
+      child: Scaffold(
+        appBar: AppBar(title: const Text('Scan Room QR to Check In')),
+        body: Column(
+          children: [
+            Expanded(
+              child: MobileScanner(
+                onDetect: (capture) {
+                  final codes = capture.barcodes;
+                  if (codes.isNotEmpty) {
+                    final raw = codes.first.rawValue;
+                    if (raw != null) {
+                      _handleScan(raw);
+                    }
                   }
-                }
-              },
+                },
+              ),
             ),
-          ),
-          if (_processing)
-            const Padding(
-              padding: EdgeInsets.all(12.0),
-              child: CircularProgressIndicator(),
-            ),
-          if (_error != null)
-            Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Text(_error!, style: const TextStyle(color: Colors.red)),
-            ),
-          const SizedBox(height: 12),
-        ],
+            if (_processing)
+              const Padding(
+                padding: EdgeInsets.all(12.0),
+                child: CircularProgressIndicator(),
+              ),
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              ),
+            const SizedBox(height: 12),
+          ],
+        ),
       ),
     );
   }

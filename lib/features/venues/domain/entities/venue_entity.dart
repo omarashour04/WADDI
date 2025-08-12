@@ -24,6 +24,7 @@ class VenueEntity {
   final String closeTime; // Format: "22:00"
   final int timeSlotDuration; // Duration in minutes (30, 60, etc.)
   final bool allowOpenEndedBookings; // Allow customers to book without end time
+  final String? googleMapsLink; // Google Maps URL for directions
   final Timestamp createdAt;
   final Timestamp updatedAt;
 
@@ -50,6 +51,7 @@ class VenueEntity {
     required this.closeTime,
     required this.timeSlotDuration,
     required this.allowOpenEndedBookings,
+    required this.googleMapsLink,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -107,6 +109,7 @@ class VenueEntity {
         closeTime: data['closeTime'] ?? '00:00',
         timeSlotDuration: data['timeSlotDuration'] ?? 30,
         allowOpenEndedBookings: data['allowOpenEndedBookings'] ?? false,
+        googleMapsLink: data['googleMapsLink'] as String?,
         createdAt: data['createdAt'] is Timestamp ? data['createdAt'] : Timestamp.now(),
         updatedAt: data['updatedAt'] is Timestamp ? data['updatedAt'] : Timestamp.now(),
       );
@@ -139,6 +142,7 @@ class VenueEntity {
         closeTime: '00:00',
         timeSlotDuration: 30,
         allowOpenEndedBookings: false,
+        googleMapsLink: null,
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       );
@@ -168,6 +172,7 @@ class VenueEntity {
       'closeTime': closeTime,
       'timeSlotDuration': timeSlotDuration,
       'allowOpenEndedBookings': allowOpenEndedBookings,
+      'googleMapsLink': googleMapsLink,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
     };

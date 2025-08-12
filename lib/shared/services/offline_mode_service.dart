@@ -24,6 +24,10 @@ class OfflineModeService {
     try {
       // Check initial connectivity
       _isOnline = await _checkConnectivity();
+      
+      // Validate and repair offline data on initialization
+      await validateAndRepairOfflineData();
+      
       _isInitialized = true;
 
       // Listen to connectivity changes
@@ -149,7 +153,9 @@ class OfflineModeService {
         'timestamp': DateTime.now().millisecondsSinceEpoch,
       };
       
-      await prefs.setString('offline_user_bookings', jsonEncode(bookingsData));
+      // Validate that all data is JSON serializable
+      final jsonString = jsonEncode(bookingsData);
+      await prefs.setString('offline_user_bookings', jsonString);
       
       if (kDebugMode) {
         print('Stored ${bookings.length} user bookings for offline access');
@@ -157,6 +163,15 @@ class OfflineModeService {
     } catch (e) {
       if (kDebugMode) {
         print('Error storing user bookings for offline: $e');
+        // Log the problematic data for debugging
+        try {
+          for (int i = 0; i < bookings.length; i++) {
+            final booking = bookings[i];
+            jsonEncode(booking); // Test each booking individually
+          }
+        } catch (jsonError) {
+          print('JSON serialization error in booking: $jsonError');
+        }
       }
     }
   }
@@ -167,7 +182,7 @@ class OfflineModeService {
       final prefs = await SharedPreferences.getInstance();
       final bookingsString = prefs.getString('offline_user_bookings');
       
-      if (bookingsString == null) return [];
+      if (bookingsString == null || bookingsString.isEmpty) return [];
 
       final bookingsData = jsonDecode(bookingsString) as Map<String, dynamic>;
       final timestamp = bookingsData['timestamp'] as int;
@@ -180,11 +195,26 @@ class OfflineModeService {
       } else {
         // Remove expired data
         await prefs.remove('offline_user_bookings');
+        if (kDebugMode) {
+          print('Offline bookings expired, removed from storage');
+        }
         return [];
       }
     } catch (e) {
       if (kDebugMode) {
         print('Error retrieving offline user bookings: $e');
+      }
+      // Clear corrupted data
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('offline_user_bookings');
+        if (kDebugMode) {
+          print('Cleared corrupted offline bookings data');
+        }
+      } catch (clearError) {
+        if (kDebugMode) {
+          print('Error clearing corrupted offline data: $clearError');
+        }
       }
       return [];
     }
@@ -239,20 +269,171 @@ class OfflineModeService {
     }
   }
 
-  /// Clear all offline data
-  Future<void> clearOfflineData() async {
+  /// Clear all offline data (useful for logout or data corruption)
+  Future<void> clearAllOfflineData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('offline_user_bookings');
       await prefs.remove('offline_user_profile');
       
       if (kDebugMode) {
-        print('Cleared all offline data');
+        print('All offline data cleared');
       }
     } catch (e) {
       if (kDebugMode) {
         print('Error clearing offline data: $e');
       }
+    }
+  }
+
+  /// Check if offline data exists and is valid
+  Future<bool> hasValidOfflineData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Check bookings
+      final bookingsString = prefs.getString('offline_user_bookings');
+      if (bookingsString != null && bookingsString.isNotEmpty) {
+        final bookingsData = jsonDecode(bookingsString) as Map<String, dynamic>;
+        final timestamp = bookingsData['timestamp'] as int;
+        final cacheAge = DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(timestamp));
+        
+        if (cacheAge.inHours < 24) {
+          return true;
+        }
+      }
+      
+      // Check profile
+      final profileString = prefs.getString('offline_user_profile');
+      if (profileString != null && profileString.isNotEmpty) {
+        final profileData = jsonDecode(profileString) as Map<String, dynamic>;
+        final timestamp = profileData['timestamp'] as int;
+        final cacheAge = DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(timestamp));
+        
+        if (cacheAge.inHours < 24) {
+          return true;
+        }
+      }
+      
+      return false;
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error checking offline data validity: $e');
+      }
+      return false;
+    }
+  }
+
+  /// Get offline data statistics
+  Future<Map<String, dynamic>> getOfflineDataStats() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final stats = <String, dynamic>{};
+      
+      // Check bookings
+      final bookingsString = prefs.getString('offline_user_bookings');
+      if (bookingsString != null && bookingsString.isNotEmpty) {
+        final bookingsData = jsonDecode(bookingsString) as Map<String, dynamic>;
+        final timestamp = bookingsData['timestamp'] as int;
+        final cacheAge = DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(timestamp));
+        final bookings = bookingsData['bookings'] as List;
+        
+        stats['bookings'] = {
+          'count': bookings.length,
+          'age_hours': cacheAge.inHours,
+          'is_valid': cacheAge.inHours < 24,
+        };
+      }
+      
+      // Check profile
+      final profileString = prefs.getString('offline_user_profile');
+      if (profileString != null && profileString.isNotEmpty) {
+        final profileData = jsonDecode(profileString) as Map<String, dynamic>;
+        final timestamp = profileData['timestamp'] as int;
+        final cacheAge = DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(timestamp));
+        
+        stats['profile'] = {
+          'age_hours': cacheAge.inHours,
+          'is_valid': cacheAge.inHours < 24,
+        };
+      }
+      
+      return stats;
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error getting offline data stats: $e');
+      }
+      return {};
+    }
+  }
+
+  /// Validate and repair offline data
+  Future<bool> validateAndRepairOfflineData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      bool needsRepair = false;
+      
+      // Validate bookings data
+      final bookingsString = prefs.getString('offline_user_bookings');
+      if (bookingsString != null && bookingsString.isNotEmpty) {
+        try {
+          final bookingsData = jsonDecode(bookingsString) as Map<String, dynamic>;
+          final timestamp = bookingsData['timestamp'] as int;
+          final bookings = bookingsData['bookings'] as List;
+          
+          // Check if data structure is valid
+          if (bookings is! List) {
+            needsRepair = true;
+          } else {
+            // Validate each booking
+            for (final booking in bookings) {
+              if (booking is! Map<String, dynamic>) {
+                needsRepair = true;
+                break;
+              }
+            }
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            print('Bookings data corrupted: $e');
+          }
+          needsRepair = true;
+        }
+      }
+      
+      // Validate profile data
+      final profileString = prefs.getString('offline_user_profile');
+      if (profileString != null && profileString.isNotEmpty) {
+        try {
+          final profileData = jsonDecode(profileString) as Map<String, dynamic>;
+          if (profileData is! Map<String, dynamic>) {
+            needsRepair = true;
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            print('Profile data corrupted: $e');
+          }
+          needsRepair = true;
+        }
+      }
+      
+      // Repair if needed
+      if (needsRepair) {
+        if (kDebugMode) {
+          print('Repairing corrupted offline data...');
+        }
+        await clearAllOfflineData();
+        return false; // Data was corrupted and cleared
+      }
+      
+      return true; // Data is valid
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error validating offline data: $e');
+      }
+      // If validation itself fails, clear data to be safe
+      await clearAllOfflineData();
+      return false;
     }
   }
 

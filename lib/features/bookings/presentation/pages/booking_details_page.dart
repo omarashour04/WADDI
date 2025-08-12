@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:waddi_platform/shared/themes/app_colors.dart';
 import 'package:waddi_platform/features/auth/presentation/providers/auth_provider.dart';
 import 'package:waddi_platform/features/bookings/domain/entities/booking_entity.dart';
 import 'package:waddi_platform/features/venues/domain/entities/venue_entity.dart';
@@ -22,17 +21,17 @@ class BookingDetailsPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.textOnPrimary,
         title: const Text('Booking Details'),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            try {
-              context.pop();
-            } catch (e) {
-              context.go('/bookings/${authState.user?.id}');
+            // Use a more robust back navigation approach
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            } else {
+              // Fallback to direct navigation to bookings page
+              context.go('/bookings');
             }
           },
         ),
@@ -49,11 +48,11 @@ class BookingDetailsPage extends ConsumerWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.error_outline, size: 64, color: Colors.red[400]),
+              Icon(Icons.error_outline, size: 64, color: Theme.of(context).colorScheme.error),
               const SizedBox(height: 16),
               Text(
                 'Error loading booking details',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.red[600]),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Theme.of(context).colorScheme.error),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
@@ -79,7 +78,6 @@ class _BookingDetailsContent extends ConsumerWidget {
     final roomAsync = ref.watch(roomProvider(booking.roomId));
 
     return Container(
-      color: AppColors.backgroundLight,
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -91,7 +89,7 @@ class _BookingDetailsContent extends ConsumerWidget {
               title: 'Venue',
               child: venueAsync.when(
                 data: (venue) => _buildVenueInfo(context, venue),
-                loading: () => _buildVenueSkeleton(),
+                loading: () => _buildVenueSkeleton(context),
                 error: (_, __) => _buildVenueInfo(context, null),
               ),
             ),
@@ -104,7 +102,7 @@ class _BookingDetailsContent extends ConsumerWidget {
               title: 'Room Details',
               child: roomAsync.when(
                 data: (room) => _buildRoomInfo(context, room),
-                loading: () => _buildRoomSkeleton(),
+                loading: () => _buildRoomSkeleton(context),
                 error: (_, __) => _buildRoomInfo(context, null),
               ),
             ),
@@ -138,11 +136,11 @@ class _BookingDetailsContent extends ConsumerWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -155,7 +153,7 @@ class _BookingDetailsContent extends ConsumerWidget {
             title,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 16),
@@ -166,63 +164,62 @@ class _BookingDetailsContent extends ConsumerWidget {
   }
 
   Widget _buildVenueInfo(BuildContext context, VenueEntity? venue) {
-    return Row(
-      children: [
-        // Venue Image
-        Container(
-          width: 60,
-          height: 60,
-          decoration: BoxDecoration(
-            color: AppColors.primaryLight,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: venue?.images.isNotEmpty == true
-              ? ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    venue!.images.first,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Icon(Icons.business, color: AppColors.primary, size: 30);
-                    },
-                  ),
-                )
-              : Icon(Icons.business, color: AppColors.primary, size: 30),
-        ),
-        const SizedBox(width: 12),
-        // Venue Info
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Text(
-                venue?.name ?? 'Game Haven',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(8),
                 ),
+                child: venue != null
+                    ? Icon(Icons.business, color: Theme.of(context).colorScheme.primary, size: 30)
+                    : Icon(Icons.business, color: Theme.of(context).colorScheme.primary, size: 30),
               ),
-              const SizedBox(height: 4),
-              Text(
-                venue?.address ?? '123 Elm Street, Anytown',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      venue?.name ?? 'Unknown Venue',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    Text(
+                      venue?.description ?? 'No description available',
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _buildVenueSkeleton() {
+  Widget _buildVenueSkeleton(BuildContext context) {
     return Row(
       children: [
         Container(
           width: 60,
           height: 60,
           decoration: BoxDecoration(
-            color: Colors.grey[300],
+            color: Theme.of(context).colorScheme.surfaceVariant,
             borderRadius: BorderRadius.circular(8),
           ),
         ),
@@ -231,9 +228,9 @@ class _BookingDetailsContent extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(height: 16, width: 120, color: Colors.grey[300]),
+              Container(height: 16, width: 120, color: Theme.of(context).colorScheme.surfaceVariant),
               const SizedBox(height: 4),
-              Container(height: 12, width: 150, color: Colors.grey[300]),
+              Container(height: 12, width: 150, color: Theme.of(context).colorScheme.surfaceVariant),
             ],
           ),
         ),
@@ -249,10 +246,10 @@ class _BookingDetailsContent extends ConsumerWidget {
           width: 60,
           height: 60,
           decoration: BoxDecoration(
-            color: AppColors.primaryLight,
+            color: Theme.of(context).colorScheme.primaryContainer,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(Icons.play_arrow, color: AppColors.primary, size: 30),
+          child: Icon(Icons.play_arrow, color: Theme.of(context).colorScheme.primary, size: 30),
         ),
         const SizedBox(width: 12),
         // Room Info
@@ -263,7 +260,7 @@ class _BookingDetailsContent extends ConsumerWidget {
               Text(
                 room?.name ?? 'Private Gaming Room',
                 style: TextStyle(
-                  color: AppColors.textPrimary,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
@@ -271,7 +268,7 @@ class _BookingDetailsContent extends ConsumerWidget {
               const SizedBox(height: 4),
               Text(
                 'Room ${room?.id ?? '1'}',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
               ),
             ],
           ),
@@ -280,14 +277,14 @@ class _BookingDetailsContent extends ConsumerWidget {
     );
   }
 
-  Widget _buildRoomSkeleton() {
+  Widget _buildRoomSkeleton(BuildContext context) {
     return Row(
       children: [
         Container(
           width: 60,
           height: 60,
           decoration: BoxDecoration(
-            color: Colors.grey[300],
+            color: Theme.of(context).colorScheme.surfaceVariant,
             borderRadius: BorderRadius.circular(8),
           ),
         ),
@@ -296,9 +293,9 @@ class _BookingDetailsContent extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(height: 16, width: 140, color: Colors.grey[300]),
+              Container(height: 16, width: 140, color: Theme.of(context).colorScheme.surfaceVariant),
               const SizedBox(height: 4),
-              Container(height: 12, width: 80, color: Colors.grey[300]),
+              Container(height: 12, width: 80, color: Theme.of(context).colorScheme.surfaceVariant),
             ],
           ),
         ),
@@ -317,34 +314,34 @@ class _BookingDetailsContent extends ConsumerWidget {
 
     return Column(
       children: [
-        _buildInfoRow('Date', dateFormat),
-        _buildInfoRow('Time', timeFormat),
-        _buildInfoRow('Number of People', '${booking.numberOfPeople} person${booking.numberOfPeople != 1 ? 's' : ''}'),
-        _buildInfoRow('Duration', isOpenEnded 
+        _buildInfoRow(context, 'Date', dateFormat),
+        _buildInfoRow(context, 'Time', timeFormat),
+        _buildInfoRow(context, 'Number of People', '${booking.numberOfPeople} person${booking.numberOfPeople != 1 ? 's' : ''}'),
+        _buildInfoRow(context, 'Duration', isOpenEnded 
             ? 'To be determined' 
             : '${booking.durationHours} hour${booking.durationHours != 1 ? 's' : ''}'),
-        _buildInfoRow('Total Cost', isOpenEnded 
+        _buildInfoRow(context, 'Total Cost', isOpenEnded 
             ? 'To be determined (Cash only)' 
             : 'EGP ${booking.totalPrice.toStringAsFixed(2)}'),
-        _buildInfoRow('Status', booking.actualStatus, isStatus: true),
+        _buildInfoRow(context, 'Status', booking.actualStatus, isStatus: true),
         if (isOpenEnded) ...[
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.orange[100],
+              color: Theme.of(context).colorScheme.tertiaryContainer,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.orange[300]!),
+              border: Border.all(color: Theme.of(context).colorScheme.tertiary),
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline, color: Colors.orange[700], size: 20),
+                Icon(Icons.info_outline, color: Theme.of(context).colorScheme.onTertiaryContainer, size: 20),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'This is an open-ended booking. Please contact the venue owner for end time and pricing details.',
                     style: TextStyle(
-                      color: Colors.orange[700],
+                      color: Theme.of(context).colorScheme.onTertiaryContainer,
                       fontSize: 12,
                     ),
                   ),
@@ -361,7 +358,7 @@ class _BookingDetailsContent extends ConsumerWidget {
     return booking.durationHours == 0 && booking.totalPrice == 0.0;
   }
 
-  Widget _buildInfoRow(String label, String value, {bool isStatus = false}) {
+  Widget _buildInfoRow(BuildContext context, String label, String value, {bool isStatus = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -370,7 +367,7 @@ class _BookingDetailsContent extends ConsumerWidget {
           Text(
             label,
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
@@ -378,7 +375,7 @@ class _BookingDetailsContent extends ConsumerWidget {
           Text(
             value,
             style: TextStyle(
-              color: isStatus ? _getStatusColor(value) : AppColors.textPrimary,
+              color: isStatus ? _getStatusColor(value, context) : Theme.of(context).colorScheme.onSurface,
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
@@ -388,23 +385,23 @@ class _BookingDetailsContent extends ConsumerWidget {
     );
   }
 
-  Color _getStatusColor(String status) {
+  Color _getStatusColor(String status, BuildContext context) {
     switch (status.toLowerCase()) {
       case 'confirmed':
-        return Colors.green;
+        return Theme.of(context).colorScheme.primary;
       case 'pending':
-        return Colors.orange;
+        return Theme.of(context).colorScheme.tertiary;
       case 'cancelled':
-        return Colors.red;
+        return Theme.of(context).colorScheme.error;
       default:
-        return AppColors.textPrimary;
+        return Theme.of(context).colorScheme.onSurface;
     }
   }
 
   Widget _buildCancellationPolicy(BuildContext context) {
     return Text(
       'Cancellations must be made at least 24 hours in advance for a full refund.',
-      style: TextStyle(color: AppColors.textSecondary, fontSize: 14, height: 1.5),
+      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14, height: 1.5),
     );
   }
 
@@ -475,8 +472,6 @@ class _BookingDetailsContent extends ConsumerWidget {
                   );
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.secondary,
-              foregroundColor: AppColors.textOnSecondary,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
@@ -499,13 +494,17 @@ class _BookingDetailsContent extends ConsumerWidget {
                   .read(venueProvider(booking.venueId))
                   .when(
                     data: (venue) {
-                      if (venue?.address != null && venue!.address.isNotEmpty) {
-                        // Launch maps with venue address
-                        _launchDirections(context, venue.address);
+                      if (venue?.googleMapsLink != null && venue!.googleMapsLink!.isNotEmpty) {
+                        // Use the Google Maps link if available
+                        _launchGoogleMapsLink(context, venue.googleMapsLink!);
+                      } else if (venue?.address != null && venue!.address.isNotEmpty) {
+                        // Fall back to address-based directions
+                        final generatedLink = _generateGoogleMapsLink(venue!.address);
+                        _launchGoogleMapsLink(context, generatedLink);
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Address not available for this venue.'),
+                            content: Text('Location information not available for this venue.'),
                             duration: Duration(seconds: 2),
                           ),
                         );
@@ -516,15 +515,14 @@ class _BookingDetailsContent extends ConsumerWidget {
                     ).showSnackBar(const SnackBar(content: Text('Loading venue information...'))),
                     error: (_, __) => ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Unable to load venue address.'),
+                        content: Text('Unable to load venue location information.'),
                         duration: Duration(seconds: 2),
                       ),
                     ),
                   );
             },
             style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.textPrimary,
-              side: BorderSide(color: Colors.grey[300]!),
+              side: BorderSide(color: Theme.of(context).colorScheme.outline),
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
@@ -572,8 +570,8 @@ class _BookingDetailsContent extends ConsumerWidget {
                           await _cancelBooking(context, ref, booking.id);
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white,
+                          backgroundColor: Theme.of(context).colorScheme.error,
+                          foregroundColor: Theme.of(context).colorScheme.onError,
                         ),
                         child: const Text('Cancel Booking'),
                       ),
@@ -582,8 +580,7 @@ class _BookingDetailsContent extends ConsumerWidget {
                 );
               },
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.textPrimary,
-                side: BorderSide(color: Colors.grey[300]!),
+                side: BorderSide(color: Theme.of(context).colorScheme.outline),
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
@@ -648,6 +645,39 @@ class _BookingDetailsContent extends ConsumerWidget {
     }
   }
 
+  Future<void> _launchGoogleMapsLink(BuildContext context, String googleMapsLink) async {
+    try {
+      final uri = Uri.parse(googleMapsLink);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not launch Google Maps app.'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Invalid Google Maps link: $e'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  /// Generate a Google Maps link from an address
+  String _generateGoogleMapsLink(String address) {
+    final encodedAddress = Uri.encodeComponent(address);
+    return 'https://maps.google.com/maps?q=$encodedAddress';
+  }
+
   String _formatDateTime(DateTime date, int durationHours) {
     final startTime = date;
     final endTime = date.add(Duration(hours: durationHours));
@@ -678,8 +708,8 @@ class _BookingDetailsContent extends ConsumerWidget {
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(true),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
+                backgroundColor: Theme.of(context).colorScheme.error,
+                foregroundColor: Theme.of(context).colorScheme.onError,
               ),
               child: const Text('Yes, Cancel'),
             ),
@@ -697,9 +727,9 @@ class _BookingDetailsContent extends ConsumerWidget {
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Booking cancelled successfully.'),
-              backgroundColor: Colors.green,
+            SnackBar(
+              content: const Text('Booking cancelled successfully.'),
+              backgroundColor: Theme.of(context).colorScheme.primary,
             ),
           );
 
@@ -719,7 +749,10 @@ class _BookingDetailsContent extends ConsumerWidget {
       print('DEBUG: Error during booking cancellation: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error cancelling booking: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Error cancelling booking: $e'), 
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
         );
       }
     }

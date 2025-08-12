@@ -14,7 +14,6 @@ import '../features/profile/presentation/pages/profile_page.dart';
 import '../features/profile/presentation/pages/edit_profile_page.dart';
 import '../features/settings/presentation/pages/settings_page.dart';
 // Core feature pages
-import '../features/venues/presentation/pages/venues_page.dart';
 import '../features/venues/presentation/pages/rooms_page.dart';
 import '../features/users/presentation/pages/users_page.dart';
 import '../features/bookings/presentation/pages/booking_confirmation_page.dart';
@@ -339,7 +338,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           return null;
         },
       ),
-      GoRoute(path: '/venues', builder: (context, state) => VenuesPage()),
+      GoRoute(
+        path: '/venues',
+        redirect: (context, state) => '/home',
+      ),
       GoRoute(
         path: '/venues/:venueId',
         builder: (context, state) => VenueDetailsPage(venueId: state.pathParameters['venueId']!),

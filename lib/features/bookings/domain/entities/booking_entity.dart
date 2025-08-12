@@ -83,6 +83,65 @@ class BookingEntity {
     };
   }
 
+  /// Convert to map for offline storage (JSON serializable)
+  Map<String, dynamic> toMapForOffline() {
+    return {
+      'userId': userId,
+      'venueId': venueId,
+      'roomId': roomId,
+      'venueName': venueName,
+      'roomName': roomName,
+      'startTime': startTime.toIso8601String(),
+      'endTime': endTime.toIso8601String(),
+      'durationHours': durationHours,
+      'totalPrice': totalPrice,
+      'status': status,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt?.toIso8601String(),
+      'notes': notes,
+      'rating': rating,
+      'review': review,
+      'numberOfPeople': numberOfPeople,
+      'isCheckedIn': isCheckedIn,
+      'checkedInAt': checkedInAt?.toIso8601String(),
+      'checkedInBy': checkedInBy,
+      'qrCode': qrCode,
+      'reminder24hSent': reminder24hSent ?? false,
+      'reminder1hSent': reminder1hSent ?? false,
+      'reminder15mSent': reminder15mSent ?? false,
+    };
+  }
+
+  /// Create from offline map (JSON deserializable)
+  factory BookingEntity.fromOfflineMap(Map<String, dynamic> map, String id) {
+    return BookingEntity(
+      id: id,
+      userId: map['userId'] ?? '',
+      venueId: map['venueId'] ?? '',
+      roomId: map['roomId'] ?? '',
+      venueName: map['venueName'] ?? '',
+      roomName: map['roomName'] ?? '',
+      startTime: DateTime.parse(map['startTime']),
+      endTime: DateTime.parse(map['endTime']),
+      durationHours: map['durationHours'] ?? 0,
+      totalPrice: (map['totalPrice'] ?? 0.0).toDouble(),
+      status: map['status'] ?? 'pending',
+      createdAt: DateTime.parse(map['createdAt']),
+      updatedAt: map['updatedAt'] != null ? DateTime.parse(map['updatedAt']) : null,
+      notes: map['notes'],
+      numberOfPeople: map['numberOfPeople'] ?? 1,
+      isCheckedIn: map['isCheckedIn'] ?? false,
+      checkedInAt: map['checkedInAt'] != null ? DateTime.parse(map['checkedInAt']) : null,
+      checkedInBy: map['checkedInBy'],
+      qrCode: map['qrCode'],
+      rating: map['rating'],
+      review: map['review'],
+      reminder24hSent: map['reminder24hSent'],
+      reminder1hSent: map['reminder1hSent'],
+      reminder15mSent: map['reminder15mSent'],
+    );
+  }
+
   factory BookingEntity.fromMap(Map<String, dynamic> map, String id) {
     return BookingEntity(
       id: id,

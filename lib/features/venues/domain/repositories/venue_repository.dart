@@ -16,6 +16,7 @@ abstract class VenueRepository {
 
   // Rooms subcollection
   Future<List<RoomEntity>> getRoomsForVenue(String venueId);
+  Future<RoomEntity?> getRoomById(String roomId);
   Future<void> createRoom(String venueId, RoomEntity room);
   Future<void> updateRoom(String venueId, RoomEntity room);
   Future<void> deleteRoom(String venueId, String roomId);

@@ -8,6 +8,7 @@ import 'package:waddi_platform/shared/themes/app_colors.dart';
 import 'package:waddi_platform/features/auth/presentation/providers/auth_provider.dart';
 import '../../../../shared/widgets/firebase_image_widget.dart';
 import '../../../../shared/widgets/smart_back_button.dart';
+import '../../../../shared/widgets/main_scaffold.dart';
 
 class VenueDetailsPage extends ConsumerWidget {
   final String venueId;
@@ -36,195 +37,233 @@ class VenueDetailsPage extends ConsumerWidget {
           );
         }
 
-        return Scaffold(
-          body: CustomScrollView(
-            slivers: [
-              // Custom App Bar
-              SliverAppBar(
-                expandedHeight: 300,
-                floating: false,
-                pinned: true,
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.textOnPrimary,
-                leading: SmartBackButton(),
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.share),
-                    onPressed: () {
-                      // Share functionality
-                    },
-                  ),
-                ],
-                flexibleSpace: FlexibleSpaceBar(
-                  background: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      // Venue Image
-                      venue.images.isNotEmpty
-                          ? FirebaseImageWidget(imageUrl: venue.images.first)
-                          : Container(
-                              color: AppColors.primary,
-                              child: const Icon(Icons.image, size: 100, color: Colors.white),
+        return MainScaffold(
+          currentIndex: 1, // Search tab
+          userId: ref.read(authProvider).user?.id ?? '',
+          child: Scaffold(
+            body: CustomScrollView(
+              slivers: [
+                // Custom App Bar
+                SliverAppBar(
+                  expandedHeight: 300,
+                  floating: false,
+                  pinned: true,
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.textOnPrimary,
+                  leading: SmartBackButton(),
+                  actions: [
+                    IconButton(
+                      icon: const Icon(Icons.share),
+                      onPressed: () {
+                        // Share functionality
+                      },
+                    ),
+                  ],
+                  flexibleSpace: FlexibleSpaceBar(
+                    background: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        // Venue Image
+                        venue.images.isNotEmpty
+                            ? FirebaseImageWidget(imageUrl: venue.images.first)
+                            : Container(
+                                color: AppColors.primary,
+                                child: const Icon(Icons.image, size: 100, color: Colors.white),
+                              ),
+                        // Gradient overlay
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
                             ),
-                      // Gradient overlay
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              // Content
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Venue Name
-                      Text(
-                        venue.name,
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-
-                      // Address
-                      if (venue.address.isNotEmpty)
-                        Row(
-                          children: [
-                            Icon(Icons.location_on, color: AppColors.primary, size: 16),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                venue.address,
-                                style: TextStyle(color: AppColors.textSecondary),
-                              ),
-                            ),
-                          ],
-                        ),
-                      const SizedBox(height: 4),
-
-                      // Phone
-                      if (venue.contactPhone.isNotEmpty)
-                        Row(
-                          children: [
-                            Icon(Icons.phone, color: AppColors.primary, size: 16),
-                            const SizedBox(width: 4),
-                            Text(
-                              venue.contactPhone,
-                              style: TextStyle(color: AppColors.textSecondary),
-                            ),
-                          ],
-                        ),
-
-                      // Email
-                      if (venue.contactEmail.isNotEmpty)
-                        Row(
-                          children: [
-                            Icon(Icons.email, color: AppColors.primary, size: 16),
-                            const SizedBox(width: 4),
-                            Text(
-                              venue.contactEmail,
-                              style: TextStyle(color: AppColors.textSecondary),
-                            ),
-                          ],
-                        ),
-                      const SizedBox(height: 16),
-
-                      // Description
-                      if (venue.description.isNotEmpty) ...[
+                // Content
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Venue Name
                         Text(
-                          'Description',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(venue.description, style: TextStyle(color: AppColors.textSecondary)),
-                        const SizedBox(height: 16),
-                      ],
-
-                      // Pricing Information
-                      if (venue.hourlyPriceRange.isNotEmpty) ...[
-                        Text(
-                          'Pricing',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Icon(Icons.attach_money, color: AppColors.primary, size: 16),
-                            const SizedBox(width: 4),
-                            Text(
-                              'EGP ${venue.hourlyPriceRange['min']?.toString() ?? '0'} - EGP ${venue.hourlyPriceRange['max']?.toString() ?? '0'} per hour',
-                              style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-
-                      // Capacity Information
-                      if (venue.capacityRange.isNotEmpty) ...[
-                        Text(
-                          'Capacity',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Icon(Icons.people, color: AppColors.primary, size: 16),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${venue.capacityRange['min']?.toString() ?? '0'} - ${venue.capacityRange['max']?.toString() ?? '0'} people',
-                              style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-
-                      // Map Section
-                      Container(
-                        height: 150,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.map, size: 40, color: AppColors.primary),
-                              const SizedBox(height: 8),
-                              Text('Map View', style: TextStyle(color: AppColors.textSecondary)),
-                            ],
+                          venue.name,
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 24),
+                        const SizedBox(height: 8),
 
-                      // Amenities Section
-                      if (venue.amenities.isNotEmpty) ...[
+                        // Address
+                        if (venue.address.isNotEmpty)
+                          Row(
+                            children: [
+                              Icon(Icons.location_on, color: AppColors.primary, size: 16),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  venue.address,
+                                  style: TextStyle(color: AppColors.textSecondary),
+                                ),
+                              ),
+                            ],
+                          ),
+                        const SizedBox(height: 4),
+
+                        // Phone
+                        if (venue.contactPhone.isNotEmpty)
+                          Row(
+                            children: [
+                              Icon(Icons.phone, color: AppColors.primary, size: 16),
+                              const SizedBox(width: 4),
+                              Text(
+                                venue.contactPhone,
+                                style: TextStyle(color: AppColors.textSecondary),
+                              ),
+                            ],
+                          ),
+
+                        // Email
+                        if (venue.contactEmail.isNotEmpty)
+                          Row(
+                            children: [
+                              Icon(Icons.email, color: AppColors.primary, size: 16),
+                              const SizedBox(width: 4),
+                              Text(
+                                venue.contactEmail,
+                                style: TextStyle(color: AppColors.textSecondary),
+                              ),
+                            ],
+                          ),
+                        const SizedBox(height: 16),
+
+                        // Description
+                        if (venue.description.isNotEmpty) ...[
+                          Text(
+                            'Description',
+                            style: Theme.of(
+                              context,
+                            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(venue.description, style: TextStyle(color: AppColors.textSecondary)),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // Pricing Information
+                        if (venue.hourlyPriceRange.isNotEmpty) ...[
+                          Text(
+                            'Pricing',
+                            style: Theme.of(
+                              context,
+                            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Icon(Icons.attach_money, color: AppColors.primary, size: 16),
+                              const SizedBox(width: 4),
+                              Text(
+                                'EGP ${venue.hourlyPriceRange['min']?.toString() ?? '0'} - EGP ${venue.hourlyPriceRange['max']?.toString() ?? '0'} per hour',
+                                style: TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // Capacity Information
+                        if (venue.capacityRange.isNotEmpty) ...[
+                          Text(
+                            'Capacity',
+                            style: Theme.of(
+                              context,
+                            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Icon(Icons.people, color: AppColors.primary, size: 16),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${venue.capacityRange['min']?.toString() ?? '0'} - ${venue.capacityRange['max']?.toString() ?? '0'} people',
+                                style: TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // Map Section
+                        Container(
+                          height: 150,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.map, size: 40, color: AppColors.primary),
+                                const SizedBox(height: 8),
+                                Text('Map View', style: TextStyle(color: AppColors.textSecondary)),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Amenities Section
+                        if (venue.amenities.isNotEmpty) ...[
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'Amenities',
+                              style: TextStyle(
+                                color: AppColors.textOnPrimary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+
+                          // Amenities Grid
+                          Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            children: venue.amenities
+                                .map(
+                                  (amenity) => _AmenityCard(
+                                    icon: _getAmenityIcon(amenity),
+                                    title: amenity,
+                                    color: AppColors.primaryLight,
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                          const SizedBox(height: 24),
+                        ],
+
+                        // Reviews Section
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(12),
@@ -233,7 +272,7 @@ class VenueDetailsPage extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            'Amenities',
+                            'Reviews',
                             style: TextStyle(
                               color: AppColors.textOnPrimary,
                               fontWeight: FontWeight.bold,
@@ -242,155 +281,121 @@ class VenueDetailsPage extends ConsumerWidget {
                         ),
                         const SizedBox(height: 12),
 
-                        // Amenities Grid
-                        Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
-                          children: venue.amenities
-                              .map(
-                                (amenity) => _AmenityCard(
-                                  icon: _getAmenityIcon(amenity),
-                                  title: amenity,
-                                  color: AppColors.primaryLight,
-                                ),
-                              )
-                              .toList(),
-                        ),
-                        const SizedBox(height: 24),
-                      ],
-
-                      // Reviews Section
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          'Reviews',
-                          style: TextStyle(
-                            color: AppColors.textOnPrimary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Overall Rating
-                      Row(
-                        children: [
-                          Text(
-                            venue.averageRating.toStringAsFixed(1),
-                            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
+                        // Overall Rating
+                        Row(
+                          children: [
+                            Text(
+                              venue.averageRating.toStringAsFixed(1),
+                              style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: List.generate(5, (index) {
-                                  final rating = venue.averageRating;
-                                  if (index < rating.floor()) {
-                                    return Icon(Icons.star, color: Colors.amber, size: 20);
-                                  } else if (index == rating.floor() && rating % 1 > 0) {
-                                    return Icon(Icons.star_half, color: Colors.amber, size: 20);
-                                  } else {
-                                    return Icon(Icons.star_border, color: Colors.amber, size: 20);
-                                  }
-                                }),
-                              ),
-                              Text(
-                                '${venue.totalReviews} reviews',
-                                style: TextStyle(color: AppColors.textSecondary),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
+                            const SizedBox(width: 8),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: List.generate(5, (index) {
+                                    final rating = venue.averageRating;
+                                    if (index < rating.floor()) {
+                                      return Icon(Icons.star, color: Colors.amber, size: 20);
+                                    } else if (index == rating.floor() && rating % 1 > 0) {
+                                      return Icon(Icons.star_half, color: Colors.amber, size: 20);
+                                    } else {
+                                      return Icon(Icons.star_border, color: Colors.amber, size: 20);
+                                    }
+                                  }),
+                                ),
+                                Text(
+                                  '${venue.totalReviews} reviews',
+                                  style: TextStyle(color: AppColors.textSecondary),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
 
-                      // Individual Reviews
-                      reviewsAsync.when(
-                        data: (reviews) {
-                          if (reviews.isEmpty) {
-                            return const Text('No reviews yet.');
-                          }
-                          return Column(
-                            children: reviews
-                                .take(2)
-                                .map((review) => _ReviewCard(review: review))
-                                .toList(),
-                          );
-                        },
-                        loading: () => const Center(child: CircularProgressIndicator()),
-                        error: (e, st) => Text('Error loading reviews: $e'),
-                      ),
-                      const SizedBox(height: 100), // Space for bottom button
-                    ],
+                        // Individual Reviews
+                        reviewsAsync.when(
+                          data: (reviews) {
+                            if (reviews.isEmpty) {
+                              return const Text('No reviews yet.');
+                            }
+                            return Column(
+                              children: reviews
+                                  .take(2)
+                                  .map((review) => _ReviewCard(review: review))
+                                  .toList(),
+                            );
+                          },
+                          loading: () => const Center(child: CircularProgressIndicator()),
+                          error: (e, st) => Text('Error loading reviews: $e'),
+                        ),
+                        const SizedBox(height: 100), // Space for bottom button
+                      ],
+                    ),
                   ),
-                ),
-              ),
-            ],
-          ),
-          bottomNavigationBar: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, -2),
                 ),
               ],
             ),
-            child: ElevatedButton(
-              onPressed: () {
-                // Check if user is a guest user
-                final authState = ref.watch(authProvider);
-                if (authState.isGuestUser) {
-                  // Show dialog to redirect to login
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Login Required'),
-                      content: const Text(
-                        'Guest users cannot make bookings. Please log in to continue.',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('Cancel'),
-                        ),
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                            context.push('/login');
-                          },
-                          child: const Text('Login'),
-                        ),
-                      ],
-                    ),
-                  );
-                  return;
-                }
-
-                // Navigate to rooms page for authenticated users
-                context.go('/venues/$venueId/rooms');
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.secondary,
-                foregroundColor: AppColors.textOnSecondary,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            bottomNavigationBar: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
               ),
-              child: const Text(
-                'Book Now',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              child: ElevatedButton(
+                onPressed: () {
+                  // Check if user is a guest user
+                  final authState = ref.watch(authProvider);
+                  if (authState.isGuestUser) {
+                    // Show dialog to redirect to login
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Login Required'),
+                        content: const Text(
+                          'Guest users cannot make bookings. Please log in to continue.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('Cancel'),
+                          ),
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                              context.push('/login');
+                            },
+                            child: const Text('Login'),
+                          ),
+                        ],
+                      ),
+                    );
+                    return;
+                  }
+
+                  // Navigate to rooms page for authenticated users
+                  context.go('/venues/$venueId/rooms');
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.secondary,
+                  foregroundColor: AppColors.textOnSecondary,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: const Text(
+                  'Book Now',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ),
