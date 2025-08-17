@@ -41,92 +41,222 @@ class MainScaffold extends ConsumerWidget {
   }
 
   Widget _buildBottomNavigationBar(BuildContext context, WidgetRef ref, String? userRole, bool isGuest) {
+    // Common bottom navigation bar theme
+    final bottomNavTheme = BottomNavigationBarThemeData(
+      backgroundColor: AppColors.primary,
+      selectedItemColor: AppColors.textOnPrimary,
+      unselectedItemColor: AppColors.textOnPrimary.withValues(alpha: 0.7),
+      type: BottomNavigationBarType.fixed,
+      elevation: 8,
+      selectedLabelStyle: const TextStyle(
+        fontWeight: FontWeight.w600,
+        fontSize: 12,
+      ),
+      unselectedLabelStyle: const TextStyle(
+        fontWeight: FontWeight.w500,
+        fontSize: 12,
+      ),
+    );
+
     // Venue Owner Navigation
     if (userRole == 'venue_owner') {
-      return BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: currentIndex,
-        onTap: (index) {
-          String targetRoute = '/venue-owner';
-          switch (index) {
-            case 0:
-              targetRoute = '/venue-owner';
-              break;
-            case 1:
-              targetRoute = '/venue-owner/bookings';
-              break;
-            case 2:
-              targetRoute = '/venue-owner/reports';
-              break;
-            case 3:
-              targetRoute = '/venue-owner/maintenance';
-              break;
-            case 4:
-              targetRoute = '/profile';
-              break;
-          }
+      return Theme(
+        data: Theme.of(context).copyWith(bottomNavigationBarTheme: bottomNavTheme),
+        child: BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
+          currentIndex: currentIndex,
+          onTap: (index) {
+            String targetRoute = '/venue-owner';
+            switch (index) {
+              case 0:
+                targetRoute = '/venue-owner';
+                break;
+              case 1:
+                targetRoute = '/venue-owner/bookings';
+                break;
+              case 2:
+                targetRoute = '/venue-owner/reports';
+                break;
+              case 3:
+                targetRoute = '/venue-owner/maintenance';
+                break;
+              case 4:
+                targetRoute = '/profile';
+                break;
+            }
 
-          // Check if operation is allowed offline
-          final offlineService = OfflineModeService.instance;
-          if (!offlineService.isOperationAllowed(OfflineOperation.venueOwnerOperations)) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(offlineService.getOfflineMessage(OfflineOperation.venueOwnerOperations)),
-                backgroundColor: Colors.orange,
-              ),
-            );
-            return;
-          }
+            // Check if operation is allowed offline
+            final offlineService = OfflineModeService.instance;
+            if (!offlineService.isOperationAllowed(OfflineOperation.venueOwnerOperations)) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(offlineService.getOfflineMessage(OfflineOperation.venueOwnerOperations)),
+                  backgroundColor: AppColors.warning,
+                ),
+              );
+              return;
+            }
 
-          // Add route to navigation history before navigating
-          ref.read(navigationHistoryProvider.notifier).addRoute(targetRoute);
-          context.go(targetRoute);
-        },
-        items: [
-          const BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Dashboard'),
-          const BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Bookings'),
-          const BottomNavigationBarItem(icon: Icon(Icons.analytics), label: 'Reports'),
-          const BottomNavigationBarItem(icon: Icon(Icons.build), label: 'Maintenance'),
-          const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-        ],
+            // Add route to navigation history before navigating
+            ref.read(navigationHistoryProvider.notifier).addRoute(targetRoute);
+            context.go(targetRoute);
+          },
+          items: [
+            const BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Dashboard'),
+            const BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Bookings'),
+            const BottomNavigationBarItem(icon: Icon(Icons.analytics), label: 'Reports'),
+            const BottomNavigationBarItem(icon: Icon(Icons.build), label: 'Maintenance'),
+            const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          ],
+        ),
       );
     }
 
     // Admin Navigation (placeholder for future implementation)
     if (userRole == 'admin') {
-      return BottomNavigationBar(
+      return Theme(
+        data: Theme.of(context).copyWith(bottomNavigationBarTheme: bottomNavTheme),
+        child: BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
+          currentIndex: currentIndex,
+          onTap: (index) {
+            String targetRoute = '/admin';
+            switch (index) {
+              case 0:
+                targetRoute = '/admin';
+                break;
+              case 1:
+                targetRoute = '/admin/users';
+                break;
+              case 2:
+                targetRoute = '/admin/venues';
+                break;
+              case 3:
+                targetRoute = '/admin/bookings';
+                break;
+              case 4:
+                targetRoute = '/profile';
+                break;
+            }
+
+            // Check if operation is allowed offline
+            final offlineService = OfflineModeService.instance;
+            if (!offlineService.isOperationAllowed(OfflineOperation.adminOperations)) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(offlineService.getOfflineMessage(OfflineOperation.adminOperations)),
+                  backgroundColor: AppColors.warning,
+                ),
+              );
+              return;
+            }
+
+            // Add route to navigation history before navigating
+            ref.read(navigationHistoryProvider.notifier).addRoute(targetRoute);
+            context.go(targetRoute);
+          },
+          items: [
+            const BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Dashboard'),
+            const BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Users'),
+            const BottomNavigationBarItem(icon: Icon(Icons.place), label: 'Venues'),
+            const BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Bookings'),
+            const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          ],
+        ),
+      );
+    }
+
+    // Regular User Navigation (existing implementation)
+    return Theme(
+      data: Theme.of(context).copyWith(bottomNavigationBarTheme: bottomNavTheme),
+      child: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         currentIndex: currentIndex,
         onTap: (index) {
-          String targetRoute = '/admin';
+          String targetRoute = '/home';
+          OfflineOperation? operation;
+          
           switch (index) {
             case 0:
-              targetRoute = '/admin';
+              targetRoute = '/home';
               break;
             case 1:
-              targetRoute = '/admin/users';
+              targetRoute = '/search';
               break;
             case 2:
-              targetRoute = '/admin/venues';
+              // Quick Scan entry
+              if (!isGuest) {
+                targetRoute = '/check-in';
+                // scanning is online-only because it writes to Firestore
+                operation = OfflineOperation.viewBookings; // reuse messaging
+              } else {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Login Required'),
+                    content: const Text('Please log in to scan a room QR and check in.'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          context.push('/login');
+                        },
+                        child: const Text('Login'),
+                      ),
+                    ],
+                  ),
+                );
+                return;
+              }
               break;
             case 3:
-              targetRoute = '/admin/bookings';
+              if (!isGuest) {
+                targetRoute = '/bookings';
+                operation = OfflineOperation.viewBookings;
+              } else {
+                // Show dialog for guest users
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Login Required'),
+                    content: const Text('Please log in to view your bookings.'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Cancel'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          context.push('/login');
+                        },
+                        child: const Text('Login'),
+                      ),
+                    ],
+                  ),
+                );
+                return; // Don't navigate if showing dialog
+              }
               break;
             case 4:
               targetRoute = '/profile';
+              operation = OfflineOperation.viewProfile;
               break;
           }
 
           // Check if operation is allowed offline
-          final offlineService = OfflineModeService.instance;
-          if (!offlineService.isOperationAllowed(OfflineOperation.adminOperations)) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(offlineService.getOfflineMessage(OfflineOperation.adminOperations)),
-                backgroundColor: Colors.orange,
-              ),
-            );
-            return;
+          if (operation != null) {
+            final offlineService = OfflineModeService.instance;
+            if (!offlineService.isOperationAllowed(operation)) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(offlineService.getOfflineMessage(operation)),
+                  backgroundColor: AppColors.warning,
+                ),
+              );
+              return;
+            }
           }
 
           // Add route to navigation history before navigating
@@ -134,117 +264,13 @@ class MainScaffold extends ConsumerWidget {
           context.go(targetRoute);
         },
         items: [
-          const BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Dashboard'),
-          const BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Users'),
-          const BottomNavigationBarItem(icon: Icon(Icons.place), label: 'Venues'),
+          const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          const BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
+          const BottomNavigationBarItem(icon: Icon(Icons.qr_code_scanner), label: 'Scan'),
           const BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Bookings'),
           const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
-      );
-    }
-
-    // Regular User Navigation (existing implementation)
-    return BottomNavigationBar(
-      type: BottomNavigationBarType.fixed,
-      currentIndex: currentIndex,
-      onTap: (index) {
-        String targetRoute = '/home';
-        OfflineOperation? operation;
-        
-        switch (index) {
-          case 0:
-            targetRoute = '/home';
-            break;
-          case 1:
-            targetRoute = '/search';
-            break;
-          case 2:
-            // Quick Scan entry
-            if (!isGuest) {
-              targetRoute = '/check-in';
-              // scanning is online-only because it writes to Firestore
-              operation = OfflineOperation.viewBookings; // reuse messaging
-            } else {
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Login Required'),
-                  content: const Text('Please log in to scan a room QR and check in.'),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        context.push('/login');
-                      },
-                      child: const Text('Login'),
-                    ),
-                  ],
-                ),
-              );
-              return;
-            }
-            break;
-          case 3:
-            if (!isGuest) {
-              targetRoute = '/bookings';
-              operation = OfflineOperation.viewBookings;
-            } else {
-              // Show dialog for guest users
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Login Required'),
-                  content: const Text('Please log in to view your bookings.'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Cancel'),
-                    ),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        context.push('/login');
-                      },
-                      child: const Text('Login'),
-                    ),
-                  ],
-                ),
-              );
-              return; // Don't navigate if showing dialog
-            }
-            break;
-          case 4:
-            targetRoute = '/profile';
-            operation = OfflineOperation.viewProfile;
-            break;
-        }
-
-        // Check if operation is allowed offline
-        if (operation != null) {
-          final offlineService = OfflineModeService.instance;
-          if (!offlineService.isOperationAllowed(operation)) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(offlineService.getOfflineMessage(operation)),
-                backgroundColor: Colors.orange,
-              ),
-            );
-            return;
-          }
-        }
-
-        // Add route to navigation history before navigating
-        ref.read(navigationHistoryProvider.notifier).addRoute(targetRoute);
-        context.go(targetRoute);
-      },
-      items: [
-        const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-        const BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
-        const BottomNavigationBarItem(icon: Icon(Icons.qr_code_scanner), label: 'Scan'),
-        const BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Bookings'),
-        const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-      ],
+      ),
     );
   }
 }

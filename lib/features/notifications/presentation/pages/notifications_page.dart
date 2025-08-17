@@ -5,6 +5,7 @@ import '../../../../shared/widgets/smart_back_button.dart';
 import '../providers/notifications_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../widgets/notification_card.dart';
+import '../../../../shared/themes/app_colors.dart';
 
 class NotificationsPage extends ConsumerStatefulWidget {
   const NotificationsPage({super.key});
@@ -46,16 +47,20 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.notifications_off, size: 64, color: Colors.grey[400]),
+              Icon(Icons.notifications_off, size: 64, color: AppColors.grey500),
               const SizedBox(height: 16),
               Text(
                 'Please log in to view notifications',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.grey[600],
+                  color: AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.textOnPrimary,
+                ),
                 onPressed: () => context.go('/login'),
                 child: const Text('Login'),
               ),
@@ -96,7 +101,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                   value: 'clear_all',
                   child: Row(
                     children: [
-                      Icon(Icons.clear_all, color: Colors.red),
+                      Icon(Icons.clear_all, color: AppColors.error),
                       SizedBox(width: 8),
                       Text('Clear All'),
                     ],

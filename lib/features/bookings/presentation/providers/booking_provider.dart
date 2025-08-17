@@ -64,7 +64,9 @@ class BookingNotifier extends StateNotifier<BookingState> {
         ));
 
   Future<void> loadUserBookings(String userId) async {
+    print('DEBUG: loadUserBookings called with userId: $userId');
     if (userId.isEmpty) {
+      print('DEBUG: userId is empty, returning early');
       state = state.copyWith(
         allBookings: [],
         upcomingBookings: [],
@@ -75,15 +77,19 @@ class BookingNotifier extends StateNotifier<BookingState> {
       return;
     }
 
+    print('DEBUG: Setting loading state to true');
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
+      print('DEBUG: Calling repository.getUserBookings');
       final bookings = await _repository.getUserBookings(userId);
+      print('DEBUG: Repository returned ${bookings.length} bookings');
 
-      // Store bookings for offline access
+      // Store bookings for offline access (with error handling)
       try {
         final bookingsData = bookings.map((booking) => booking.toMapForOffline()).toList();
         await OfflineModeService.instance.storeUserBookingsForOffline(bookingsData);
+        print('DEBUG: Stored ${bookingsData.length} bookings offline');
       } catch (e) {
         // Don't fail if offline storage fails
         print('Warning: Failed to store bookings offline: $e');
@@ -93,42 +99,42 @@ class BookingNotifier extends StateNotifier<BookingState> {
       final upcoming = bookings.where((booking) => booking.isUpcoming).toList();
       final past = bookings.where((booking) => booking.isPast).toList();
 
+      print('DEBUG: Categorizing bookings - upcoming: ${upcoming.length}, past: ${past.length}');
+
       state = state.copyWith(
         allBookings: bookings,
         upcomingBookings: upcoming,
         pastBookings: past,
         isLoading: false,
-        errorMessage: null,
+        errorMessage: null, // Ensure error is cleared when data loads successfully
       );
+      print('DEBUG: State updated successfully, isLoading: false, error cleared');
     } catch (e) {
       print('Error loading user bookings: $e');
       
       // Try to load offline data as fallback
-      if (OfflineModeService.instance.isOnline == false) {
+      try {
+        print('DEBUG: Trying to load offline data as fallback');
         await loadOfflineBookings(userId);
-        return;
-      }
-      
-      // Provide more user-friendly error messages
-      String errorMessage;
-      if (e.toString().contains('permission-denied')) {
-        errorMessage = 'Access denied. Please check your permissions.';
-      } else if (e.toString().contains('unavailable')) {
-        errorMessage = 'Service temporarily unavailable. Please try again.';
-      } else if (e.toString().contains('network')) {
-        errorMessage = 'Network error. Please check your connection.';
-      } else {
-        errorMessage = 'Failed to load bookings. Please try again.';
-      }
-      
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: errorMessage,
-      );
-      
-      // Try to load offline data as fallback for network errors
-      if (e.toString().contains('network') || e.toString().contains('unavailable')) {
-        await loadOfflineBookings(userId);
+      } catch (offlineError) {
+        print('DEBUG: Offline data loading also failed: $offlineError');
+        
+        // Provide more user-friendly error messages
+        String errorMessage;
+        if (e.toString().contains('permission-denied')) {
+          errorMessage = 'Access denied. Please check your permissions.';
+        } else if (e.toString().contains('unavailable')) {
+          errorMessage = 'Service temporarily unavailable. Please try again.';
+        } else if (e.toString().contains('network')) {
+          errorMessage = 'Network error. Please check your connection.';
+        } else {
+          errorMessage = 'Failed to load bookings. Please try again.';
+        }
+        
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: errorMessage,
+        );
       }
     }
   }
@@ -136,6 +142,23 @@ class BookingNotifier extends StateNotifier<BookingState> {
   /// Load offline bookings when online loading fails
   Future<void> loadOfflineBookings(String userId) async {
     try {
+      print('DEBUG: loadOfflineBookings called');
+      
+      // Skip offline mode service for now to avoid potential issues
+      print('DEBUG: Skipping offline mode service, setting empty state');
+      
+      state = state.copyWith(
+        allBookings: [],
+        upcomingBookings: [],
+        pastBookings: [],
+        isLoading: false,
+        errorMessage: 'No offline data available. Please check your connection.',
+      );
+      
+      return;
+      
+      // Original offline loading logic commented out for debugging
+      /*
       // First validate offline data
       final isValid = await OfflineModeService.instance.validateAndRepairOfflineData();
       
@@ -182,6 +205,7 @@ class BookingNotifier extends StateNotifier<BookingState> {
           errorMessage: 'No offline data available. Please check your connection.',
         );
       }
+      */
     } catch (e) {
       print('Error loading offline bookings: $e');
       state = state.copyWith(
@@ -442,22 +466,26 @@ class BookingNotifier extends StateNotifier<BookingState> {
     }
   }
 
-  // Method to clear error state and reset
+  /// Clear error state
   void clearError() {
+    state = state.copyWith(errorMessage: null);
+  }
+
+  /// Set error state manually
+  void setError(String errorMessage) {
     state = state.copyWith(
-      errorMessage: null,
       isLoading: false,
+      errorMessage: errorMessage,
     );
   }
 
-  // Method to reset state to initial values
+  /// Reset state to initial values
   void resetState() {
     state = BookingState(
       allBookings: [],
       upcomingBookings: [],
       pastBookings: [],
       isLoading: false,
-      errorMessage: null,
     );
   }
 

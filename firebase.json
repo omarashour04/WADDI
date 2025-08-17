@@ -1,1 +1,28 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"waddi-platform-dev","appId":"1:458693507291:android:fb2f4d3d55be2f904bf4fe","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"waddi-platform-dev","configurations":{"android":"1:458693507291:android:fb2f4d3d55be2f904bf4fe"}}}}},"functions":{"source":"functions"}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "waddi-platform-dev",
+          "appId": "1:458693507291:android:fb2f4d3d55be2f904bf4fe",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "waddi-platform-dev",
+          "configurations": {
+            "android": "1:458693507291:android:fb2f4d3d55be2f904bf4fe"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "functions": {
+    "source": "functions"
+  }
+}

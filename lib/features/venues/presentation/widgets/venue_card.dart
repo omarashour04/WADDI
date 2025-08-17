@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/firebase_image_widget.dart';
+import '../../../../shared/themes/app_colors.dart';
 import '../../domain/entities/venue_entity.dart';
 import '../../../favorites/presentation/providers/favorites_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -41,11 +42,12 @@ class _VenueCardState extends ConsumerState<VenueCard> {
       width: 280,
       margin: const EdgeInsets.only(right: 16),
       child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 6,
+        shadowColor: AppColors.primary.withValues(alpha: 0.2),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: InkWell(
           onTap: () => context.go('/venues/${widget.venue.id}'),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -53,10 +55,27 @@ class _VenueCardState extends ConsumerState<VenueCard> {
               Stack(
                 children: [
                   ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                     child: AspectRatio(
                       aspectRatio: 16 / 9,
                       child: FirebaseImageWidget(imageUrl: imageUrl),
+                    ),
+                  ),
+                  
+                  // Gradient overlay for better text readability
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withValues(alpha: 0.3),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                   
@@ -70,12 +89,19 @@ class _VenueCardState extends ConsumerState<VenueCard> {
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.9),
+                            color: Colors.white.withValues(alpha: 0.95),
                             borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
                           child: Icon(
                             isFavorited ? Icons.favorite : Icons.favorite_border,
-                            color: isFavorited ? Colors.red : Colors.grey[600],
+                            color: isFavorited ? AppColors.error : AppColors.grey600,
                             size: 20,
                           ),
                         ),
@@ -88,18 +114,30 @@ class _VenueCardState extends ConsumerState<VenueCard> {
                       top: 8,
                       left: 8,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.orange,
-                          borderRadius: BorderRadius.circular(8),
+                          color: AppColors.warning,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.warning.withValues(alpha: 0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
                         child: Row(
-                          children: const [
-                            Icon(Icons.engineering, color: Colors.white, size: 16),
-                            SizedBox(width: 4),
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.engineering, color: Colors.white, size: 16),
+                            const SizedBox(width: 4),
                             Text(
                               'Under Maintenance',
-                              style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                color: Colors.white, 
+                                fontSize: 10, 
+                                fontWeight: FontWeight.bold
+                              ),
                             ),
                           ],
                         ),
@@ -111,39 +149,53 @@ class _VenueCardState extends ConsumerState<VenueCard> {
               // Content Section
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.all(12.0),
+                  padding: const EdgeInsets.all(16.0),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         widget.venue.name,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold, 
+                          fontSize: 18,
+                          color: AppColors.textPrimary,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       Flexible(
                         child: Text(
                           widget.venue.description,
-                          style: const TextStyle(color: Colors.grey, fontSize: 13),
+                          style: TextStyle(
+                            color: AppColors.textSecondary, 
+                            fontSize: 14,
+                          ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 12),
                       Row(
                         children: [
-                          Icon(Icons.star, size: 16, color: Colors.amber[600]),
-                          const SizedBox(width: 4),
+                          Icon(Icons.star, size: 18, color: AppColors.warning),
+                          const SizedBox(width: 6),
                           Text(
                             widget.venue.averageRating.toStringAsFixed(1),
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontSize: 14, 
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
                           ),
                           const SizedBox(width: 8),
                           Text(
                             '(${widget.venue.totalReviews})',
-                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                            style: TextStyle(
+                              fontSize: 13, 
+                              color: AppColors.textSecondary,
+                            ),
                           ),
                         ],
                       ),

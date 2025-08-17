@@ -399,6 +399,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return;
       }
 
+      // Don't update if role is already the same
+      if (state.user?.role == newRole) {
+        print('User already has role: $newRole');
+        return;
+      }
+
+      // Validate role
+      if (!['user', 'venue_owner', 'admin'].contains(newRole)) {
+        throw Exception('Invalid role: $newRole');
+      }
+
       state = state.copyWith(status: AuthStatus.loading);
 
       // Check if user document exists in Firestore
@@ -430,7 +441,30 @@ class AuthNotifier extends StateNotifier<AuthState> {
       print('User role updated to: $newRole');
     } catch (e) {
       print('Error updating user role: $e');
-      state = state.copyWith(status: AuthStatus.error, errorMessage: 'Failed to update role: $e');
+      
+      // Provide more specific error messages
+      String errorMessage = 'Failed to update role';
+      if (e.toString().contains('permission-denied')) {
+        errorMessage = 'Permission denied. Please contact support or try again later.';
+      } else if (e.toString().contains('network')) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else {
+        errorMessage = 'Failed to update role: ${e.toString()}';
+      }
+      
+      state = state.copyWith(
+        status: AuthStatus.error, 
+        errorMessage: errorMessage
+      );
+      
+      // Revert to previous state on error
+      await Future.delayed(const Duration(seconds: 3));
+      if (state.status == AuthStatus.error) {
+        state = state.copyWith(
+          status: AuthStatus.authenticated,
+          errorMessage: null
+        );
+      }
     }
   }
 

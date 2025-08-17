@@ -9,6 +9,7 @@ import 'package:waddi_platform/features/venues/domain/entities/venue_entity.dart
 import 'package:shimmer/shimmer.dart';
 import '../../../../shared/widgets/pull_to_refresh_wrapper.dart';
 import '../../../../shared/widgets/lottie_animations.dart';
+import '../../../../shared/themes/app_colors.dart';
 
 class SearchPage extends ConsumerStatefulWidget {
   const SearchPage({super.key});
@@ -64,47 +65,100 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       child: Scaffold(
         body: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
+            Container(
+              margin: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceLight,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.15),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+                border: Border.all(
+                  color: AppColors.primary.withOpacity(0.1),
+                  width: 1,
+                ),
+              ),
+              child: Column(
                 children: [
-                  Expanded(
+                  // Search Bar
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.grey100,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: AppColors.primary.withOpacity(0.2),
+                        width: 1,
+                      ),
+                    ),
                     child: TextField(
                       controller: searchController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         hintText: 'Search by name or location',
-                        prefixIcon: Icon(Icons.search),
+                        hintStyle: TextStyle(
+                          color: AppColors.textSecondary.withOpacity(0.7),
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search_rounded,
+                          color: AppColors.primary,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 16,
+                        ),
                       ),
                       onChanged: (val) => ref.read(venueSearchQueryProvider.notifier).state = val,
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.filter_list),
-                    onPressed: () => _showFilterDialog(context),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.location_searching),
-                    tooltip: 'Search by address',
-                    onPressed: () async {
-                      final address = searchController.text.trim();
-                      if (address.isNotEmpty) {
-                        final location = await geocodingService.getLocationFromAddress(address);
-                        if (location != null) {
-                          // Handle location search - could navigate to map or show results
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Location found: ${location.latitude}, ${location.longitude}',
-                              ),
-                            ),
-                          );
-                        } else {
-                          ScaffoldMessenger.of(
-                            context,
-                          ).showSnackBar(const SnackBar(content: Text('Address not found.')));
-                        }
-                      }
-                    },
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Action Buttons Row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildActionButton(
+                          context,
+                          'Filter',
+                          Icons.filter_list_rounded,
+                          AppColors.primary,
+                          () => _showFilterDialog(context),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildActionButton(
+                          context,
+                          'Location',
+                          Icons.location_searching_rounded,
+                          AppColors.secondary,
+                          () async {
+                            final address = searchController.text.trim();
+                            if (address.isNotEmpty) {
+                              final location = await geocodingService.getLocationFromAddress(address);
+                              if (location != null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Location found: ${location.latitude}, ${location.longitude}',
+                                    ),
+                                  ),
+                                );
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Address not found.')),
+                                );
+                              }
+                            }
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -326,10 +380,10 @@ class _VenueSkeleton extends StatelessWidget {
         ),
         itemCount: 6,
         itemBuilder: (context, i) => Shimmer.fromColors(
-          baseColor: Colors.grey[300]!,
-          highlightColor: Colors.grey[100]!,
+          baseColor: AppColors.grey300,
+          highlightColor: AppColors.grey100,
           child: Card(
-            child: Container(width: double.infinity, height: 120, color: Colors.white),
+            child: Container(width: double.infinity, height: 120, color: AppColors.surfaceLight),
           ),
         ),
       );
@@ -337,13 +391,13 @@ class _VenueSkeleton extends StatelessWidget {
       return ListView.builder(
         itemCount: 6,
         itemBuilder: (context, i) => Shimmer.fromColors(
-          baseColor: Colors.grey[300]!,
-          highlightColor: Colors.grey[100]!,
+          baseColor: AppColors.grey300,
+          highlightColor: AppColors.grey100,
           child: Card(
             child: ListTile(
-              title: Container(height: 16, color: Colors.white),
-              subtitle: Container(height: 12, color: Colors.white),
-              trailing: Container(width: 40, height: 16, color: Colors.white),
+              title: Container(height: 16, color: AppColors.surfaceLight),
+              subtitle: Container(height: 12, color: AppColors.surfaceLight),
+              trailing: Container(width: 40, height: 16, color: AppColors.surfaceLight),
             ),
           ),
         ),
@@ -351,6 +405,49 @@ class _VenueSkeleton extends StatelessWidget {
     }
   }
 }
+
+  Widget _buildActionButton(
+    BuildContext context,
+    String label,
+    IconData icon,
+    Color color,
+    VoidCallback onPressed,
+  ) {
+    return Container(
+      height: 48,
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(12),
+          child: Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 20, color: color),
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
 class _EmptyState extends StatelessWidget {
   final String message;
@@ -362,11 +459,11 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.search_off, size: 64, color: Colors.grey[400]),
+          Icon(Icons.search_off, size: 64, color: AppColors.grey500),
           const SizedBox(height: 16),
           Text(
             message,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.textPrimary),
           ),
           if (onClear != null)
             Padding(
@@ -374,6 +471,10 @@ class _EmptyState extends StatelessWidget {
               child: ElevatedButton.icon(
                 icon: const Icon(Icons.clear),
                 label: const Text('Clear Filters'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.textOnPrimary,
+                ),
                 onPressed: onClear,
               ),
             ),
@@ -393,11 +494,11 @@ class _ErrorState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+          Icon(Icons.error_outline, size: 64, color: AppColors.error),
           const SizedBox(height: 16),
           Text(
             message,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.red[700]),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.error),
           ),
           if (onRetry != null)
             Padding(
@@ -405,6 +506,10 @@ class _ErrorState extends StatelessWidget {
               child: ElevatedButton.icon(
                 icon: const Icon(Icons.refresh),
                 label: const Text('Retry'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.textOnPrimary,
+                ),
                 onPressed: onRetry,
               ),
             ),

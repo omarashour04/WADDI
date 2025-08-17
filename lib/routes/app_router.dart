@@ -52,6 +52,7 @@ import '../features/accessibility/presentation/pages/accessibility_settings_page
 import '../features/notifications/presentation/pages/notifications_page.dart';
 import '../features/bookings/presentation/pages/user_check_in_scanner_page.dart';
 import '../features/venue_owner/presentation/pages/room_qr_poster_page.dart';
+import '../shared/widgets/app_loading_screen.dart';
 
 // Helper function to check if user needs to change password on first login
 Future<bool> _checkFirstLogin(String userId) async {
@@ -248,7 +249,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
       // Loading route
-      GoRoute(path: '/loading', builder: (context, state) => _LoadingPage()),
+      GoRoute(path: '/loading', builder: (context, state) => const AppLoadingScreen()),
       // Root route
       GoRoute(
         path: '/',
@@ -780,46 +781,4 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   );
 });
 
-// Loading page widget with timeout
-class _LoadingPage extends StatefulWidget {
-  @override
-  _LoadingPageState createState() => _LoadingPageState();
-}
 
-class _LoadingPageState extends State<_LoadingPage> {
-  @override
-  void initState() {
-    super.initState();
-    // Auto-redirect to home after 5 seconds to prevent infinite loading
-    Future.delayed(Duration(seconds: 5)).then((_) {
-      if (mounted) {
-        context.go('/home');
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Loading WADDI Platform...'),
-            SizedBox(height: 8),
-            Text(
-              'Redirecting to home in 5 seconds...',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
-            ),
-            SizedBox(height: 16),
-            ElevatedButton(onPressed: () => context.go('/home'), child: Text('Go to Home Now')),
-            SizedBox(height: 8),
-            ElevatedButton(onPressed: () => context.go('/debug'), child: Text('Debug Router')),
-          ],
-        ),
-      ),
-    );
-  }
-}

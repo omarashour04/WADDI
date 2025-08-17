@@ -1,0 +1,129 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===== USER MANAGEMENT =====
+    // Users can read and write their own documents
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Admins can read and write all user documents
+      allow read, write: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // ===== VENUE MANAGEMENT =====
+    match /venues/{venueId} {
+      // Anyone can read venues (for browsing)
+      allow read: if true;
+      
+      // Venue owners can read and write their own venues
+      allow read, write: if request.auth != null && 
+        resource.data.ownerId == request.auth.uid;
+      
+      // Admins can read and write all venues
+      allow read, write: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      
+      // Authenticated users can create venues (will be validated on backend)
+      allow create: if request.auth != null;
+    }
+    
+    // ===== ROOM MANAGEMENT =====
+    match /venues/{venueId}/rooms/{roomId} {
+      // Anyone can read rooms
+      allow read: if true;
+      
+      // Venue owners can manage rooms in their venues
+      allow read, write: if request.auth != null && 
+        get(/databases/$(database)/documents/venues/$(venueId)).data.ownerId == request.auth.uid;
+      
+      // Admins can manage all rooms
+      allow read, write: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // ===== BOOKING MANAGEMENT =====
+    match /bookings/{bookingId} {
+      // Users can read and write their own bookings
+      allow read, write: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+      
+      // Venue owners can read and write bookings for their venues
+      allow read, write: if request.auth != null && 
+        get(/databases/$(database)/documents/venues/$(resource.data.venueId)).data.ownerId == request.auth.uid;
+      
+      // Admins can read and write all bookings
+      allow read, write: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      
+      // Authenticated users can create bookings
+      allow create: if request.auth != null;
+    }
+    
+    // ===== REVIEW MANAGEMENT =====
+    match /reviews/{reviewId} {
+      // Anyone can read reviews
+      allow read: if true;
+      
+      // Users can create reviews for venues they've booked
+      allow create: if request.auth != null;
+      
+      // Users can update/delete their own reviews
+      allow update, delete: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+      
+      // Admins can manage all reviews
+      allow read, write: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // ===== NOTIFICATION MANAGEMENT =====
+    match /notifications/{notificationId} {
+      // Users can read and write their own notifications
+      allow read, write: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+      
+      // Admins can read and write all notifications
+      allow read, write: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // ===== PAYMENT MANAGEMENT =====
+    match /payments/{paymentId} {
+      // Users can read their own payments
+      allow read: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+      
+      // Venue owners can read payments for their venues
+      allow read: if request.auth != null && 
+        get(/databases/$(database)/documents/venues/$(resource.data.venueId)).data.ownerId == request.auth.uid;
+      
+      // Admins can read and write all payments
+      allow read, write: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      
+      // Authenticated users can create payments
+      allow create: if request.auth != null;
+    }
+    
+    // ===== SYSTEM CONFIGURATION =====
+    match /config/{configId} {
+      // Only admins can read and write system configuration
+      allow read, write: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // ===== ANALYTICS AND REPORTS =====
+    match /analytics/{analyticsId} {
+      // Only admins can access analytics
+      allow read, write: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // ===== DEFAULT DENY =====
+    // By default, deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

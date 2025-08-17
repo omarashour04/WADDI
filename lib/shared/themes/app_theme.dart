@@ -12,14 +12,18 @@ class AppTheme {
     colorScheme: const ColorScheme.light(
       primary: AppColors.primary,
       secondary: AppColors.secondary,
-      tertiary: AppColors.tertiary,
+      tertiary: AppColors.accent,
       surface: AppColors.surfaceLight,
+      background: AppColors.backgroundLight,
       error: AppColors.error,
       onPrimary: AppColors.textOnPrimary,
       onSecondary: AppColors.textOnSecondary,
-      onTertiary: AppColors.textOnTertiary,
+      onTertiary: AppColors.textOnAccent,
       onSurface: AppColors.textPrimary,
+      onBackground: AppColors.textPrimary,
       onError: Colors.white,
+      surfaceVariant: AppColors.surfaceMedium,
+      onSurfaceVariant: AppColors.textSecondary,
     ),
     appBarTheme: AppBarTheme(
       backgroundColor: AppColors.primary,
@@ -52,7 +56,7 @@ class AppTheme {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: AppColors.grey100,
+      fillColor: AppColors.surfaceLight,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none,
@@ -91,6 +95,20 @@ class AppTheme {
       type: BottomNavigationBarType.fixed,
       elevation: 0,
     ),
+    switchTheme: SwitchThemeData(
+      thumbColor: MaterialStateProperty.resolveWith((states) {
+        if (states.contains(MaterialState.selected)) {
+          return AppColors.primary;
+        }
+        return AppColors.grey400;
+      }),
+      trackColor: MaterialStateProperty.resolveWith((states) {
+        if (states.contains(MaterialState.selected)) {
+          return AppColors.primary.withValues(alpha: 0.5);
+        }
+        return AppColors.grey300;
+      }),
+    ),
   );
 
   // Dark Theme Definition
@@ -101,29 +119,33 @@ class AppTheme {
     colorScheme: const ColorScheme.dark(
       primary: AppColors.primaryDark,
       secondary: AppColors.secondaryDark,
-      tertiary: AppColors.tertiary,
+      tertiary: AppColors.accent,
       surface: AppColors.surfaceDark,
+      background: AppColors.backgroundDark,
       error: AppColors.error,
-      onPrimary: Colors.white,
-      onSecondary: Colors.white,
-      onTertiary: Colors.white,
-      onSurface: Colors.white,
+      onPrimary: AppColors.textOnPrimary,
+      onSecondary: AppColors.textOnSecondary,
+      onTertiary: AppColors.textOnPrimary,
+      onSurface: AppColors.textOnPrimary,
+      onBackground: AppColors.textOnPrimary,
       onError: Colors.white,
+      surfaceVariant: AppColors.surfaceMedium,
+      onSurfaceVariant: AppColors.textOnPrimary,
     ),
     appBarTheme: AppBarTheme(
       backgroundColor: AppColors.primaryDark,
-      foregroundColor: Colors.white,
+      foregroundColor: AppColors.textOnPrimary,
       elevation: 0,
-      titleTextStyle: AppTypography.titleLarge.copyWith(color: Colors.white),
-      iconTheme: const IconThemeData(color: Colors.white),
+      titleTextStyle: AppTypography.titleLarge.copyWith(color: AppColors.textOnPrimary),
+      iconTheme: const IconThemeData(color: AppColors.textOnPrimary),
     ),
     textTheme: TextTheme(
-      displayLarge: AppTypography.displayLarge.copyWith(color: Colors.white),
-      headlineMedium: AppTypography.headlineMedium.copyWith(color: Colors.white),
-      titleLarge: AppTypography.titleLarge.copyWith(color: Colors.white),
-      bodyLarge: AppTypography.bodyLarge.copyWith(color: Colors.white70),
-      bodyMedium: AppTypography.bodyMedium.copyWith(color: Colors.white70),
-      labelSmall: AppTypography.labelSmall.copyWith(color: AppColors.grey500),
+      displayLarge: AppTypography.displayLarge.copyWith(color: AppColors.textOnPrimary),
+      headlineMedium: AppTypography.headlineMedium.copyWith(color: AppColors.textOnPrimary),
+      titleLarge: AppTypography.titleLarge.copyWith(color: AppColors.textOnPrimary),
+      bodyLarge: AppTypography.bodyLarge.copyWith(color: AppColors.textOnPrimary),
+      bodyMedium: AppTypography.bodyMedium.copyWith(color: AppColors.textOnPrimary),
+      labelSmall: AppTypography.labelSmall.copyWith(color: AppColors.grey300),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
@@ -137,17 +159,17 @@ class AppTheme {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: AppColors.grey900,
+      fillColor: AppColors.surfaceDark,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none,
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+        borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
       ),
       labelStyle: AppTypography.bodyMedium.copyWith(color: AppColors.grey300),
-      hintStyle: AppTypography.bodyMedium.copyWith(color: AppColors.grey700),
+      hintStyle: AppTypography.bodyMedium.copyWith(color: AppColors.grey500),
     ),
     cardTheme: const CardThemeData(
       color: AppColors.surfaceDark,
@@ -161,20 +183,34 @@ class AppTheme {
       contentTextStyle: AppTypography.bodyLarge,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
     ),
-    iconTheme: const IconThemeData(color: Colors.white),
+    iconTheme: const IconThemeData(color: AppColors.primaryDark),
     dividerColor: AppColors.grey700,
     snackBarTheme: SnackBarThemeData(
-      backgroundColor: AppColors.secondaryDark,
-      contentTextStyle: AppTypography.bodyMedium.copyWith(color: Colors.white),
+      backgroundColor: AppColors.surfaceDark,
+      contentTextStyle: AppTypography.bodyMedium.copyWith(color: AppColors.textOnPrimary),
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     ),
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
       backgroundColor: AppColors.primaryDark,
-      selectedItemColor: Colors.white,
-      unselectedItemColor: Colors.white70,
+      selectedItemColor: AppColors.textOnPrimary,
+      unselectedItemColor: AppColors.textOnPrimary,
       type: BottomNavigationBarType.fixed,
       elevation: 0,
+    ),
+    switchTheme: SwitchThemeData(
+      thumbColor: MaterialStateProperty.resolveWith((states) {
+        if (states.contains(MaterialState.selected)) {
+          return AppColors.primaryDark;
+        }
+        return AppColors.grey600;
+      }),
+      trackColor: MaterialStateProperty.resolveWith((states) {
+        if (states.contains(MaterialState.selected)) {
+          return AppColors.primaryDark.withValues(alpha: 0.5);
+        }
+        return AppColors.grey700;
+      }),
     ),
   );
 }
